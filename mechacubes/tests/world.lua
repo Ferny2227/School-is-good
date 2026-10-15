@@ -199,7 +199,10 @@ MT["Humanoid.UnequipTools"] = function() end
 MT["Humanoid.EquipTool"] = function() end
 
 -- Workspace
-MT["Workspace.FindPartOnRay"] = function() return nil, Vector3.new() end
+MT["Workspace.FindPartOnRay"] = function(self, ray, ignore)
+	if RAYHIT and RAYHIT.Parent then return RAYHIT, Vector3.new() end
+	return nil, Vector3.new()
+end
 MT["Workspace.FindPartOnRayWithIgnoreList"] = function() return nil, Vector3.new() end
 MT["Workspace.FindPartOnRayWithWhitelist"] = function() return nil, Vector3.new() end
 MT["Camera.Interpolate"] = function() end
@@ -390,6 +393,8 @@ local function contextFor(o)
 	if cls == "Script" then
 		for _, a in ipairs(chain) do
 			if a == workspace or a == services.ServerScriptService then return SERVER end
+			local ac = rawget(a, "_class")
+			if ac == "Backpack" or ac == "PlayerGui" then return SERVER end
 		end
 	elseif cls == "LocalScript" then
 		for _, a in ipairs(chain) do
@@ -471,6 +476,15 @@ function SPAWN_CHARACTER(player)
 				rawset(c, "_starterSource", item)
 				c.Parent = pg
 			end
+		end
+	end
+	local sp = services.StarterPack
+	local bp = player:FindFirstChild("Backpack")
+	if sp and bp then
+		for _, t in ipairs(bp:GetChildren()) do t:Destroy() end
+		for _, t in ipairs(sp:GetChildren()) do
+			local c = t:Clone()
+			if c then c.Parent = bp end
 		end
 	end
 	ch.Parent = workspace
@@ -620,3 +634,21 @@ FRAME = function()
 		if rawget(l, "_parent") and not rawget(l, "_destroyed") then applyLayout(l) end
 	end
 end
+
+-- DataModel shortcuts real Roblox has
+SPECIAL_GET.DataModel = {
+	workspace = function() return workspace end,
+	Workspace = function() return workspace end,
+	lighting = function() return GETSERVICE("Lighting") end,
+	Lighting = function() return GETSERVICE("Lighting") end,
+	Players = function() return GETSERVICE("Players") end,
+	players = function() return GETSERVICE("Players") end,
+}
+SIM_METHODS["ServiceProvider.service"] = SIM_METHODS["DataModel.GetService"]
+
+SPECIAL_GET.Humanoid = {
+	Torso = function(h)
+		local ch = rawget(h, "_parent")
+		return ch and (ch:FindFirstChild("Torso") or ch:FindFirstChild("HumanoidRootPart"))
+	end,
+}
