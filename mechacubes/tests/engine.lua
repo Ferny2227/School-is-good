@@ -206,6 +206,22 @@ local function ypcall(f, ...)
 	end
 end
 YPCALL_N = function(f, ...) return packn(ypcall(f, ...)) end
+-- 2016-and-older pcall: waiting inside it is an error (ypcall was the one that could wait)
+local KILLED = setmetatable({}, { __mode = "k" })
+local function oldpcall(f, ...)
+	if not coroutine.running() then return pcall(f, ...) end
+	local co = coroutine.create(f)
+	CTXOF[co] = CTX
+	local res = packn(coroutine.resume(co, ...))
+	if not res[1] then return false, res[2] end
+	if coroutine.status(co) ~= "dead" then
+		KILLED[co] = true
+		return false, "attempt to yield across metamethod/C-call boundary"
+	end
+	return true, unpack(res, 2, res.n)
+end
+OLDPCALL = oldpcall
+IS_KILLED = KILLED
 local function yxpcall(f, handler, ...)
 	local r = { ypcall(f, ...) }
 	if not r[1] then return false, handler(r[2]) end
@@ -221,7 +237,7 @@ function runFor(seconds)
 		if not best or best.at > stop then break end
 		table.remove(queue, bi)
 		NOW = math.max(NOW, best.at)
-		if coroutine.status(best.co) == "suspended" then
+		if coroutine.status(best.co) == "suspended" and not KILLED[best.co] then
 			resume(best.co, unpack(best.args, 1, best.n))
 		end
 		if FRAME then FRAME() end
@@ -980,7 +996,7 @@ BASE_ENV = {
 	wait = wait, Wait = wait, spawn = spawn, Spawn = spawn, delay = delay, Delay = delay,
 	tick = tick, time = time, elapsedTime = elapsedTime, ElapsedTime = elapsedTime,
 	require = function(m) return requireModule(m) end,
-	pcall = ypcall, ypcall = ypcall, xpcall = yxpcall,
+	pcall = OPT.oldPcall and OLDPCALL or ypcall, ypcall = ypcall, xpcall = yxpcall,
 	select = select, type = type, tostring = tostring, tonumber = tonumber, pairs = pairs, ipairs = ipairs, next = next,
 	unpack = unpack, setmetatable = setmetatable, getmetatable = getmetatable, rawget = rawget, rawset = rawset, rawequal = rawequal,
 	error = error, assert = assert, newproxy = newproxy, gcinfo = gcinfo, collectgarbage = function() return 0 end,

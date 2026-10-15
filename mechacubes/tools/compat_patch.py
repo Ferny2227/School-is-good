@@ -14,7 +14,7 @@ def enc_i32(v):
 def u32(b): return int.from_bytes(b, 'big')
 
 GUI_CLASSES = ('Frame', 'TextLabel', 'TextButton', 'TextBox', 'ImageLabel', 'ImageButton', 'ScrollingFrame', 'ViewportFrame', 'VideoFrame')
-PRELUDE = ('local __compat = require(game:GetService("ReplicatedStorage"):WaitForChild("compat2016")); '
+PRELUDE = ('local pcall = ypcall or pcall; local __compat = require(game:GetService("ReplicatedStorage"):WaitForChild("compat2016")); '
            'local Color3, typeof, math = __compat.Color3, __compat.typeof, __compat.math; ')
 EXPR = r'[A-Za-z_]\w*(?:\.[A-Za-z_]\w*|\[[^\]\n]+\]|:[A-Za-z_]\w*\(\))*'
 
@@ -258,7 +258,16 @@ def apply(E, find, edit, LOG, paths):
 		blur.Enabled = false
 	end)''')
 
-    skip = {compat, layouts}
+    # on-screen error box (client + server errors) so problems on the revival can be screenshotted
+    rep = E.add_instance(find('ReplicatedFirst.load'), find('ReplicatedFirst'), 'errorReport')
+    E.set_string(rep, 'Source', open(os.path.join(SRC, 'errorReport.client.lua'), 'rb').read())
+    tmpl_remote = next(r for r in E.loc if E.classof(r) == 'RemoteEvent')
+    E.add_instance(tmpl_remote, rs, 'errorReport')
+    relay = E.add_instance(find('ServerScriptService.server'), find('ServerScriptService'), 'errorRelay')
+    E.set_string(relay, 'Source', open(os.path.join(SRC, 'errorRelay.server.lua'), 'rb').read())
+    LOG.append('compat: added on-screen error report')
+
+    skip = {compat, layouts, rep, relay}
     changed = 0
     for r in list(E.loc):
         if E.classof(r) not in ('Script', 'LocalScript', 'ModuleScript') or r in skip:
@@ -299,10 +308,23 @@ def apply(E, find, edit, LOG, paths):
         client_side = path.startswith('StarterGui.') or path.startswith('ReplicatedStorage.modules.') or path.startswith('StarterPlayer.')
         if client_side:
             new = rewrite_gui_moves(new)
+        if path == 'StarterGui.root.client.interface':
+            # one broken menu must not stop the others (Towers, Play, Shop...) from working
+            new = new.replace("""	for _, sector in pairs(script:GetChildren()) do
+		module[sector.Name] = require(sector)
+	end""", """	for _, sector in pairs(script:GetChildren()) do
+		local ok, result = pcall(require, sector)
+		if ok then
+			module[sector.Name] = result
+		else
+			warn("interface." .. sector.Name .. " failed to load: " .. tostring(result))
+		end
+	end""")
+            assert 'failed to load' in new
         if path == 'StarterGui.root.client':
             new = new.replace('\ninterface.initialize()', '\n__compat.watchLayouts(script.Parent.Parent:WaitForChild("gui"))\ninterface.initialize()')
             assert '__compat.watchLayouts' in new
-        needs = ('__compat' in new or re.search(r'Color3\.from(RGB|HSV)|typeof\(|math\.clamp', new))
+        needs = ('__compat' in new or re.search(r'Color3\.from(RGB|HSV)|typeof\(|math\.clamp|pcall\(', new))
         if needs and not new.startswith(PRELUDE):
             new = PRELUDE + new
         if new != src:

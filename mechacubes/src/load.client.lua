@@ -1,3 +1,4 @@
+local pcall = ypcall or pcall -- [fix] old engines: pcall can't wait, ypcall can
 -- ReplicatedFirst.load: the loading screen.
 -- [fix] Rewritten so it works on 2016 engines too: no Color3.fromHSV, the animation can't crash the
 -- script, it stays on top without DisplayOrder, and it closes even if a server message gets lost.

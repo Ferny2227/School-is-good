@@ -1,3 +1,4 @@
+local pcall = ypcall or pcall -- [fix] old engines: pcall can't wait, ypcall can
 -- tween(instance, goal, property, time, style, direction, callback)
 -- tween(startValue, endValue, function, time, style, direction)
 -- [fix] Uses TweenService when the engine has it (2017+); otherwise animates the value itself,

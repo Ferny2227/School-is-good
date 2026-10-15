@@ -1,3 +1,4 @@
+local pcall = ypcall or pcall -- [fix] old engines: pcall can't wait, ypcall can
 -- safeData: drop-in replacement for DataStoreService that can never freeze the game.
 --
 -- The game used to wait for the save servers forever ("repeat ... until success"). When the place

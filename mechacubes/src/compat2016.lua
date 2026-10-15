@@ -1,3 +1,4 @@
+local pcall = ypcall or pcall -- [fix] old engines: pcall can't wait, ypcall can
 -- compat2016: lets MechaCubes (made for 2017-2018 Roblox) run on 2016 engines.
 -- Every script gets these through one line at its top:
 --   local __compat = require(game:GetService("ReplicatedStorage"):WaitForChild("compat2016")); local Color3, typeof, math = ...

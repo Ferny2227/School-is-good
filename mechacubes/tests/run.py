@@ -38,6 +38,7 @@ for k in ('typeof', 'mathClamp', 'color3FromRGB', 'color3FromHSV', 'modernSignal
     opt[k] = modern
 # Color3.fromRGB arrived during 2016; assume the late-2016 engine has it but not the early one
 if a.api == 'v270': opt.color3FromRGB = True
+opt.oldPcall = not modern and os.environ.get('NEWPCALL') is None
 g.API = L.execute(open(os.path.join(HERE, 'api', a.api + '.lua')).read())
 L.execute(open(os.path.join(HERE, '..', '..', 'shooter-arena', 'tools', 'tests', 'mock.lua')).read())
 L.execute(open(os.path.join(HERE, 'engine.lua')).read())
