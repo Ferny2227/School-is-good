@@ -66,7 +66,7 @@ def split(t, raw, n):
         out = []
         for _ in range(n):
             f = raw[p]
-            sz = 1 + (20 if f & 1 else 0) + (4 if f & 2 else 0)
+            sz = 1 + ((20 + (4 if f & 2 else 0)) if f & 1 else 0)  # 2 alone = default with the new flag
             out.append(raw[p:p + sz]); p += sz
     elif t == 32:
         out = []
@@ -75,6 +75,21 @@ def split(t, raw, n):
             l, = struct.unpack_from('<I', raw, p); p += 4 + l + 3
             l, = struct.unpack_from('<I', raw, p); p += 4 + l
             out.append(raw[s:p])
+    elif t == 34:  # Content: source types, then the uris, then object refs (in instance order)
+        kinds = untransform_i32(raw, n); p = 4 * n
+        nu, = struct.unpack_from('<I', raw, p); p += 4
+        uris = []
+        for _ in range(nu):
+            l, = struct.unpack_from('<I', raw, p); uris.append(raw[p:p + 4 + l]); p += 4 + l
+        no, = struct.unpack_from('<I', raw, p); p += 4
+        objs = refs_decode(raw[p:p + 4 * no], no); p += 4 * no
+        ne, = struct.unpack_from('<I', raw, p); p += 4
+        assert ne == 0, 'external content objects not supported'
+        ui = oi = 0; out = []
+        for k in kinds:
+            if k == 1: out.append((1, uris[ui])); ui += 1
+            elif k == 2: out.append((2, objs[oi])); oi += 1
+            else: out.append((k, None))
     else:
         raise ValueError('unknown type %d' % t)
     assert p == len(raw), ('size mismatch', t, p, len(raw))
@@ -103,7 +118,15 @@ def join(t, vals):
         if t == 30:
             b = b'\x10' + b + b'\x02' + b''.join(v[1] for v in vals)
         return b
+    if t == 34:
+        uris = [v[1] for v in vals if v[0] == 1]
+        objs = [v[1] for v in vals if v[0] == 2]
+        return (transform_i32([v[0] for v in vals]) + struct.pack('<I', len(uris)) + b''.join(uris)
+                + struct.pack('<I', len(objs)) + refs_encode(objs) + struct.pack('<I', 0))
     raise ValueError(t)
+
+class RawBlob(bytes):
+    """A whole property column kept unchanged (the class can't gain or lose instances)."""
 
 class Editable:
     """Place loaded with every property split per instance."""
@@ -118,7 +141,10 @@ class Editable:
             props = []
             for pn in c['porder']:
                 t, raw = c['props'][pn]
-                props.append([pn, t, split(t, raw, n)])
+                try:
+                    props.append([pn, t, split(t, raw, n)])
+                except (ValueError, AssertionError, struct.error, IndexError):
+                    props.append([pn, t, RawBlob(raw)])  # type we can't split: kept as is
             self.cls.append(dict(name=c['name'], fmt=c['fmt'], refs=list(c['refs']), extra=c['extra'], props=props))
         self.parent = dict(P.parent)
         self.prnt_order = list(P.prnt_order)
@@ -132,7 +158,9 @@ class Editable:
     def prop(self, r, name):
         ci, i = self.loc[r]
         for pn, t, vals in self.cls[ci]['props']:
-            if pn == name: return t, vals[i]
+            if pn == name:
+                assert not isinstance(vals, RawBlob), name
+                return t, vals[i]
     def set_prop(self, r, name, value):
         ci, i = self.loc[r]
         for p in self.cls[ci]['props']:
@@ -163,6 +191,7 @@ class Editable:
         for c in self.cls:
             keep = [i for i, r in enumerate(c['refs']) if r not in dead]
             if len(keep) == len(c['refs']): continue
+            assert not any(isinstance(p[2], RawBlob) for p in c['props']), ('cannot delete from', c['name'])
             c['refs'] = [c['refs'][i] for i in keep]
             for p in c['props']: p[2] = [p[2][i] for i in keep]
         self.cls = [c for c in self.cls if c['refs']]
@@ -171,12 +200,16 @@ class Editable:
         # refs pointing at deleted objects become nil
         for c in self.cls:
             for p in c['props']:
-                if p[1] == 19: p[2] = [(-1 if v in dead else v) for v in p[2]]
+                if p[1] == 19 and not isinstance(p[2], RawBlob): p[2] = [(-1 if v in dead else v) for v in p[2]]
         self._index()
     def save(self):
         # dense renumbering
         order = [r for c in self.cls for r in c['refs']]
-        remap = {r: i for i, r in enumerate(order)}
+        if set(order) == set(range(len(order))):
+            remap = {r: r for r in order}  # ids already dense: keep them (raw columns may hold refs)
+        else:
+            assert not any(isinstance(p[2], RawBlob) for c in self.cls for p in c['props'] if p[1] in (19, 34)), 'refs in raw column'
+            remap = {r: i for i, r in enumerate(order)}
         rm = lambda v: remap.get(v, -1) if v >= 0 else -1
         def chunk(name, body, compress=True):
             if compress:
@@ -192,11 +225,38 @@ class Editable:
             out.append(chunk(b'INST', body))
         for ci, c in enumerate(self.cls):
             for pn, t, vals in c['props']:
-                if t == 19: vals = [rm(v) for v in vals]
-                body = struct.pack('<I', ci) + wstr(pn.encode()) + bytes([t]) + join(t, vals)
+                if isinstance(vals, RawBlob):
+                    blob = bytes(vals)
+                else:
+                    if t == 19: vals = [rm(v) for v in vals]
+                    blob = join(t, vals)
+                body = struct.pack('<I', ci) + wstr(pn.encode()) + bytes([t]) + blob
                 out.append(chunk(b'PROP', body))
         ch = [remap[r] for r in self.prnt_order]
         pa = [rm(self.parent.get(r, -1)) for r in self.prnt_order]
         out.append(chunk(b'PRNT', b'\x00' + struct.pack('<I', len(ch)) + refs_encode(ch) + refs_encode(pa)))
         out.append(chunk(b'END\0', b'</roblox>', compress=False))
         return b''.join(out)
+
+def _add_instance(self, template_ref, parent_ref, name):
+    """New instance of the same class as template_ref, with the template's property values."""
+    import os as _os, uuid as _uuid
+    ci, i = self.loc[template_ref]
+    c = self.cls[ci]
+    assert not any(isinstance(p[2], RawBlob) for p in c['props']), 'class has unsupported property types'
+    new = max(self.loc) + 1
+    c['refs'].append(new)
+    for p in c['props']:
+        v = p[2][i]
+        if p[1] == 31:  # UniqueId-style 16-byte ids must not repeat
+            v = _os.urandom(16)
+        elif p[0] == 'ScriptGuid':
+            g = ('{%s}' % str(_uuid.uuid4()).upper()).encode()
+            v = struct.pack('<I', len(g)) + g
+        p[2].append(v)
+    self.parent[new] = parent_ref
+    self.prnt_order.append(new)
+    self.loc[new] = (ci, len(c['refs']) - 1)
+    self.set_string(new, 'Name', name)
+    return new
+Editable.add_instance = _add_instance
