@@ -14,6 +14,8 @@ crash the server script. Either way nobody got past "Loading assets..".
   `user`, `hub` and `hub.gameData` use it instead of `DataStoreService`.
 - `server`: connects `PlayerAdded` first, then loads players already in the server at the same time
   (before, one waiting player blocked everyone else).
+- `ReplicatedFirst.load`: listens for the server's "done loading" message from the very start (older engines
+  dropped it because the interface wasn't listening yet), and closes once your stats exist as a backup.
 - `user.playerAdded`: waits at most 20 s for the client, and the gamepass checks run at the same time
   with a 5 s limit (before, they ran one after another and could hang).
 

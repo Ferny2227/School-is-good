@@ -100,6 +100,41 @@ edit(S + '.user', '''	for _, gamepass in pairs(ref.gamepasses) do
 		return
 	end''')
 
+# 4. Loading screen never closed on older engines: the server's "done loading" message
+#    (userLoadscreen with no text) arrived before the interface module was listening, and old
+#    engines drop remote messages nobody is listening to. The loading screen now listens itself
+#    from the start, and also closes once your stats exist (leaderstats) as a backup.
+edit('ReplicatedFirst.load', '''--if (not game:GetService("RunService"):IsStudio()) then
+load()''', '''-- [fix] listen for the server's loading messages from the very start
+spawn(function()
+	local remote = game:GetService("ReplicatedStorage"):WaitForChild("remotes"):WaitForChild("userLoadscreen")
+	remote.OnClientEvent:connect(function(text)
+		if (text) then
+			activate(text)
+		else
+			deactivate()
+		end
+	end)
+end)
+
+-- [fix] backup: your stats only appear after the server has loaded you, so close the first
+-- loading screen then (it waits 3 s in case the server still has something to show)
+spawn(function()
+	local player = game.Players.LocalPlayer
+	while (not player) do
+		wait(.5)
+		player = game.Players.LocalPlayer
+	end
+	player:WaitForChild("leaderstats")
+	wait(3)
+	if (active and (text == "Loading game" or text == "Loading assets" or text == "Loading user data")) then
+		deactivate()
+	end
+end)
+
+--if (not game:GetService("RunService"):IsStudio()) then
+load()''')
+
 data = E.save()
 open(out_path, 'wb').write(data)
 for l in LOG:
