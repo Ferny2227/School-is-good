@@ -39,11 +39,10 @@
   KillParts still kill drivers.
 - **No more mystery deaths on the original map:** its 16 invisible "Kill Brick"s lay flat on the roads and
   bridges (walk there and you die), so getting bumped out of your car killed you. They are removed; falling
-  off still kills (kill floor under the map). The bridge over the pit after the start is 14 studs wide (was 9).
-- **Original map 2x bigger, jeep 0.8x smaller:** the roads were ~20 studs wide (some only 9) for an 8.4 stud
-  jeep. Every part, mesh and weld of the original course is scaled 2x (roads ~40 wide, the narrowest ~18),
-  and the jeep (same model) is scaled to 0.8x (~6.7 wide). The course has no gaps to jump, so the bigger
-  map doesn't make it harder to drive. Checkpoints and car pads are placed on the scaled map.
+  off still kills (kill floor under the map).
+- **Smaller jeep, original map:** the map keeps its original size and every obstacle. The jeep (same model) is
+  0.8x smaller (~6.7 studs wide instead of 8.4), so it fits the roads. The truss rails over the pit were spaced
+  for the old jeep's wheels, so each pair moved slightly closer to stay under the smaller wheels.
 - **VIP doors** used to freeze non-VIP players and kill them when the gamepass purchase failed (purchases
   never work on a revival). Now they just don't open for non-VIP players. No car pads behind VIP doors.
 - **Smaller UI:** the signs and car name tags are sized in studs (they don't cover the screen from far away),
