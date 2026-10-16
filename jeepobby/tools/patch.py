@@ -152,6 +152,30 @@ for r in kids(WS):
 assert nb == 1, nb
 LOG.append('widened the bridge over the pit after the start from 9 to 14 studs')
 
+# ------------------------------------------------------------------ 2b. the whole original map 1.5x bigger
+# (roads were ~20 studs wide, some 9, for an 8.4 stud wide jeep). Everything scales around (0, 0, 0):
+# part positions and sizes, mesh offsets (and file-mesh sizes), and the 900+ welds holding the map together.
+K = 1.5
+def S(p): return tuple(K * x for x in p)
+def scale_cf(raw): return (raw[0],) + VEC3(*S(vec3(raw[1:])))
+counts = {'parts': 0, 'meshes': 0, 'welds': 0}
+for r in E.descendants(WS):
+    c = E.classof(r)
+    if c in ('Part', 'WedgePart', 'TrussPart', 'CornerWedgePart', 'SpawnLocation', 'Seat', 'VehicleSeat'):
+        E.set_prop(r, 'CFrame', scale_cf(E.prop(r, 'CFrame')[1]))
+        E.set_prop(r, 'size', VEC3(*S(vec3(E.prop(r, 'size')[1]))))
+        counts['parts'] += 1
+    elif c in ('SpecialMesh', 'BlockMesh', 'CylinderMesh'):
+        E.set_prop(r, 'Offset', VEC3(*S(vec3(E.prop(r, 'Offset')[1]))))
+        if c == 'SpecialMesh' and u32(E.prop(r, 'MeshType')[1]) == 5:   # file meshes have absolute size
+            E.set_prop(r, 'Scale', VEC3(*S(vec3(E.prop(r, 'Scale')[1]))))
+        counts['meshes'] += 1
+    elif c in ('ManualWeld', 'Weld', 'Snap', 'Glue', 'ManualGlue', 'Rotate', 'Motor', 'Motor6D'):
+        for cp in ('C0', 'C1'):
+            E.set_prop(r, cp, scale_cf(E.prop(r, cp)[1]))
+        counts['welds'] += 1
+LOG.append('original map scaled 1.5x: %(parts)d parts, %(meshes)d meshes, %(welds)d welds' % counts)
+
 # ------------------------------------------------------------------ 3. JeepObby folder: stages, levels, cars
 root = new_model(WS, 'JeepObby')
 stages = new_model(root, 'Stages')
@@ -170,20 +194,23 @@ sp_p, sp_R = cframe(E.prop(START, 'CFrame')[1])
 s1 = new_part(stages, dict(cls='Part', name='Stage1', pos=sp_p, size=(6, 1, 6), color=LV.LIME, mat=LV.SMOOTH, collide=False, transp=1))
 marker(sd(1), 'Spawn', (sp_p[0], sp_p[1] + 3, sp_p[2]), sp_R)
 c_p, c_R = cframe(E.prop(CHECK, 'CFrame')[1])
-s2 = new_part(stages, dict(cls='Part', name='Stage2', pos=(407, 40, -15), size=(75, 30, 60), color=LV.LIME, mat=LV.SMOOTH, collide=False, transp=1))
+s2 = new_part(stages, dict(cls='Part', name='Stage2', pos=S((407, 40, -15)), size=S((75, 30, 60)), color=LV.LIME, mat=LV.SMOOTH, collide=False, transp=1))
 marker(sd(2), 'Spawn', (c_p[0], c_p[1] + 3, c_p[2]), c_R)
 n1 = n2 = 0
 for j, raw in info1.items():
     p, R = cframe(raw)
+    # the old jeep's seat sat 3.47 above the floor (with the 1 stud drop): scale the floor point, not the seat
+    floor = S((p[0], p[1] - 2.47, p[2]))
+    sl = (floor[0], floor[1] + 3.47, floor[2])
     if p[0] > 900 and abs(p[2] + 272.8) < 1:   # the jeeps at x=1021 and x=1108 sat behind VIP doors
-        marker(sd(1), 'Slot', (p[0], p[1] + 1.0, p[2]), R); n1 += 1
+        marker(sd(1), 'Slot', sl, R); n1 += 1
     elif 300 < p[0] < 420:   # (the jeep at x=432 sat inside the VIP door: no car pad there)
-        marker(sd(2), 'Slot', (p[0], p[1] + 1.0, p[2]), R); n2 += 1
+        marker(sd(2), 'Slot', sl, R); n2 += 1
 f_p, f_R = cframe(E.prop(FINISH, 'CFrame')[1])
 le = new_part(stages, dict(cls='Part', name='LevelEnd', pos=(f_p[0], f_p[1] + 4, f_p[2]), rot=f_R, size=(12, 8, 12), color=LV.LIME, mat=LV.NEON, collide=False, transp=0.5))
 new_value(T_INT, le, 'NextStage', 3)
-for x0, x1 in ((-1300, -25), (-25, 1250)):
-    new_part(levelsM, dict(cls='Part', name='KillFloor', pos=((x0 + x1) / 2, -25, -50), size=(x1 - x0, 2, 740), color=LV.RRED, mat=LV.SMOOTH, collide=False, transp=1))
+for x0, x1 in ((-1950, -40), (-40, 1875)):   # (under the 1.5x map; parts can't be over 2048 long)
+    new_part(levelsM, dict(cls='Part', name='KillFloor', pos=((x0 + x1) / 2, -40, -75), size=(x1 - x0, 2, 1110), color=LV.RRED, mat=LV.SMOOTH, collide=False, transp=1))
 LOG.append('level 1 (the original course): stage 1 at the start (%d car pads), stage 2 at the old checkpoint (%d car pads), finish pad -> level 2' % (n1, n2))
 
 FACE_X = LV.FACE_X
