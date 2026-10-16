@@ -15,6 +15,7 @@ local STAGES = ROOT:WaitForChild("Stages")
 local LEVELMODELS = ROOT:WaitForChild("Levels")
 local CARFOLDER = ROOT:WaitForChild("Cars")
 local TEMPLATE = SS:WaitForChild("CarTemplate")
+local STAGEDATA = SS:WaitForChild("StageData")   -- spawn points and car pads (kept out of Workspace)
 
 local remote = RS:FindFirstChild("JeepObbyEvent")
 if not remote then
@@ -44,9 +45,11 @@ end
 
 local function stagePad(n) return STAGES:FindFirstChild("Stage" .. n) end
 
+local function stageData(n) return STAGEDATA:FindFirstChild("Stage" .. n) end
+
 local function stageSpawn(n)
-	local pad = stagePad(n)
-	local sp = pad and pad:FindFirstChild("Spawn")
+	local sd = stageData(n)
+	local sp = sd and sd:FindFirstChild("Spawn")
 	if sp then return sp.CFrame end
 	return CFrame.new(0, 100, 0)
 end
@@ -140,7 +143,7 @@ local function nearestCarDistance(pos)
 end
 
 local function pickSlot(stage)
-	local pad = stagePad(stage)
+	local pad = stageData(stage)
 	if not pad then return nil end
 	local best, bestDist = nil, -1
 	for _, s in ipairs(pad:GetChildren()) do
@@ -190,20 +193,41 @@ local function styleCar(car, def, parts, player)
 		local s = Instance.new("Sparkles")
 		s.Parent = seat
 	end
-	-- name tag over the car
+	-- glowing strip under the car (between the wheels) with a light in the car's colour
+	pcall(function()
+		local glow = Instance.new("Part")
+		pcall(function() glow.FormFactor = Enum.FormFactor.Custom end)
+		glow.Name = "Underglow"
+		glow.Size = Vector3.new(5, 0.2, 7)
+		glow.CanCollide = false
+		glow.Anchored = true
+		glow.BrickColor = BrickColor.new(def.color)
+		pcall(function() glow.Material = Enum.Material.Neon end)
+		glow.TopSurface = Enum.SurfaceType.Smooth
+		glow.BottomSurface = Enum.SurfaceType.Smooth
+		glow.CFrame = seat.CFrame * CFrame.new(0, -1.6, 1.3)
+		local light = Instance.new("PointLight")
+		light.Color = BrickColor.new(def.color).Color
+		light.Range = 14
+		light.Brightness = 3
+		light.Parent = glow
+		glow.Parent = car
+		table.insert(parts, glow)
+	end)
+	-- name tag over the car (sized in studs, so it shrinks with distance)
 	pcall(function()
 		local bb = Instance.new("BillboardGui")
 		bb.Name = "Tag"
-		bb.Size = UDim2.new(0, 160, 0, 36)
-		bb.StudsOffset = Vector3.new(0, 7, 0)
+		bb.Size = UDim2.new(7, 0, 1.8, 0)
+		bb.StudsOffset = Vector3.new(0, 6, 0)
 		local t = Instance.new("TextLabel")
 		t.BackgroundTransparency = 1
 		t.Size = UDim2.new(1, 0, 1, 0)
-		t.Text = player.Name .. "\n" .. def.name
+		t.Text = player.Name .. " - " .. def.name
 		t.TextColor3 = Color3.new(1, 1, 1)
 		t.TextStrokeTransparency = 0.3
+		t.TextScaled = true
 		pcall(function() t.Font = Enum.Font.SourceSansBold end)
-		pcall(function() t.FontSize = Enum.FontSize.Size18 end)
 		t.Parent = bb
 		bb.Parent = seat
 	end)
@@ -233,6 +257,17 @@ local function spawnCar(player, stage)
 	car.Parent = CARFOLDER
 	d.carModel = car
 	pcall(function() car:MakeJoints() end)
+	-- never let the car be joined to anything that isn't part of it (that pins it in the air)
+	local inCar = {}
+	for _, p in ipairs(parts) do inCar[p] = true end
+	for _, p in ipairs(parts) do
+		for _, j in ipairs(p:GetChildren()) do
+			if j:IsA("JointInstance") then
+				local a, b = j.Part0, j.Part1
+				if (a and not inCar[a]) or (b and not inCar[b]) then j:Destroy() end
+			end
+		end
+	end
 	for _, p in ipairs(parts) do
 		if p ~= seat and p.Name ~= "Wheel" then weld(seat, p) end
 	end
@@ -381,16 +416,16 @@ local function sign(part, text, color)
 	pcall(function()
 		local bb = Instance.new("BillboardGui")
 		bb.Name = "Sign"
-		bb.Size = UDim2.new(0, 260, 0, 50)
-		bb.StudsOffset = Vector3.new(0, part.Size.Y / 2 + 6, 0)
+		bb.Size = UDim2.new(24, 0, 4, 0)   -- in studs: small from far away, never covers the screen
+		bb.StudsOffset = Vector3.new(0, part.Size.Y / 2 + 4, 0)
 		local t = Instance.new("TextLabel")
 		t.BackgroundTransparency = 1
 		t.Size = UDim2.new(1, 0, 1, 0)
 		t.Text = text
 		t.TextColor3 = color or Color3.new(1, 1, 1)
 		t.TextStrokeTransparency = 0
+		t.TextScaled = true
 		pcall(function() t.Font = Enum.Font.SourceSansBold end)
-		pcall(function() t.FontSize = Enum.FontSize.Size36 end)
 		t.Parent = bb
 		bb.Parent = part
 	end)

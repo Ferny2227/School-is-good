@@ -67,5 +67,5 @@ for _, d in ipairs(workspace.JeepObby.Levels.Level2:GetChildren()) do if d:FindF
 local a = m.CFrame.p runFor(0.7) say("sweeper moved", tostring(a), "->", tostring(m.CFrame.p))
 ui = p.PlayerGui:FindFirstChild("JeepObbyUI")
 say("hud after respawn:", ui and ui.HUD.Level.Text, "|", ui and ui.HUD.Stage.Text, "|", ui and ui.HUD.Time.Text)
-PlayersLeave = true
+click(ui.HideUI) say("hide ui -> hud", ui.HUD.Visible, "side", ui.Side.Visible, "btn", ui.HideUI.Text) click(ui.HideUI) say("show ui -> hud", ui.HUD.Visible, "side", ui.Side.Visible)
 return out

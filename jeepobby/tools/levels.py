@@ -10,10 +10,11 @@ LIME, CYAN, PURPLE, PINK, NEWYELLER, RRED, RBLUE = 1020, 1013, 1031, 1032, 1009,
 PLASTIC, SMOOTH, NEON, SLATE, CONCRETE, DIAMOND, METAL, ICE, GRASS, SAND, WOOD = 256, 272, 288, 800, 816, 1056, 1088, 1536, 1280, 1296, 512
 
 BASE_Y = 220          # road top height of the new levels
-ROW_Z = {2: 520, 3: 760, 4: 1000, 5: 1240}
+# far away from the main map and from each other: you only get there by teleport, and can't see them
+ROW_Z = {2: 6000, 3: 9000, 4: 12000, 5: 15000}
 START_X = -620
 THICK = 4
-SEAT_H = 2.8          # VehicleSeat centre above the road surface (from the original jeeps)
+SEAT_H = 3.6          # VehicleSeat centre above the road (2.5 on the ground + a small drop, so nothing touches)
 FACE_X = [0, 0, -1, 0, 1, 0, 1, 0, 0]   # seat rotation that makes a car face +x
 
 THEMES = {
@@ -93,7 +94,7 @@ class Level:
         # car pads: 4 lanes, 18 studs apart
         slots = []
         for i, dz in enumerate((-27, -9, 9, 27)):
-            pad = self.part('CarPad', (x0 + 34, self.y + 0.1, self.z + dz), (16, 0.2, 10), DGREY, SMOOTH, collide=False)
+            self.part('CarPad', (x0 + 34, self.y + 0.025, self.z + dz), (16, 0.05, 10), DGREY, SMOOTH, collide=False)
             slots.append(((x0 + 34, self.y + SEAT_H, self.z + dz), FACE_X))
         spawn = (x0 + 8, self.y + 4, self.z)
         self.part('SpawnMark', (x0 + 8, self.y + 0.1, self.z), (6, 0.2, 6), self.th['accent'], NEON, collide=False)

@@ -91,12 +91,12 @@ local function levelOf(stage)
 end
 
 ------------------------------------------------------------------ HUD (top middle)
-local hud = frame(gui, "HUD", UDim2.new(0.5, -230, 0, 6), UDim2.new(0, 460, 0, 70), DARK, 1, 0.2)
-local levelLbl = label(hud, "Level", UDim2.new(0, 12, 0, 4), UDim2.new(0, 300, 0, 26), "", 24, GOLD, 2, Enum.TextXAlignment.Left)
-local stageLbl = label(hud, "Stage", UDim2.new(0, 12, 0, 30), UDim2.new(0, 200, 0, 20), "", 18, WHITE, 2, Enum.TextXAlignment.Left)
-local winsLbl = label(hud, "Wins", UDim2.new(1, -150, 0, 4), UDim2.new(0, 140, 0, 26), "", 24, GOLD, 2, Enum.TextXAlignment.Right)
-local timeLbl = label(hud, "Time", UDim2.new(1, -150, 0, 30), UDim2.new(0, 140, 0, 20), "0:00", 18, WHITE, 2, Enum.TextXAlignment.Right)
-local barBack = frame(hud, "Bar", UDim2.new(0, 12, 1, -14), UDim2.new(1, -24, 0, 8), rgb(60, 66, 86), 2)
+local hud = frame(gui, "HUD", UDim2.new(0.5, -170, 0, 4), UDim2.new(0, 340, 0, 50), DARK, 1, 0.35)
+local levelLbl = label(hud, "Level", UDim2.new(0, 8, 0, 2), UDim2.new(0, 240, 0, 20), "", 18, GOLD, 2, Enum.TextXAlignment.Left)
+local stageLbl = label(hud, "Stage", UDim2.new(0, 8, 0, 21), UDim2.new(0, 220, 0, 16), "", 14, WHITE, 2, Enum.TextXAlignment.Left)
+local winsLbl = label(hud, "Wins", UDim2.new(1, -98, 0, 2), UDim2.new(0, 90, 0, 20), "", 18, GOLD, 2, Enum.TextXAlignment.Right)
+local timeLbl = label(hud, "Time", UDim2.new(1, -98, 0, 21), UDim2.new(0, 90, 0, 16), "0:00", 14, WHITE, 2, Enum.TextXAlignment.Right)
+local barBack = frame(hud, "Bar", UDim2.new(0, 8, 1, -9), UDim2.new(1, -16, 0, 5), rgb(60, 66, 86), 2)
 local barFill = frame(barBack, "Fill", UDim2.new(0, 0, 0, 0), UDim2.new(0, 0, 1, 0), GREEN, 3)
 
 -- the run timer lives in _G so it keeps counting after you respawn
@@ -112,14 +112,17 @@ local function refreshHud()
 end
 
 ------------------------------------------------------------------ side buttons (big, for touch / chromebook pads)
-local side = frame(gui, "Side", UDim2.new(0, 8, 0.5, -120), UDim2.new(0, 130, 0, 236), DARK, 1, 1)
-local garageBtn = button(side, "Garage", UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0, 52), "GARAGE", rgb(60, 120, 230), 2, 24)
-local spawnBtn = button(side, "NewCar", UDim2.new(0, 0, 0, 60), UDim2.new(1, 0, 0, 52), "NEW CAR", GREEN, 2, 24)
-local flipBtn = button(side, "Flip", UDim2.new(0, 0, 0, 120), UDim2.new(1, 0, 0, 52), "FLIP CAR", rgb(230, 140, 40), 2, 24)
-local levelsBtn = button(side, "Levels", UDim2.new(0, 0, 0, 180), UDim2.new(1, 0, 0, 52), "LEVELS", rgb(150, 80, 220), 2, 24)
+local side = frame(gui, "Side", UDim2.new(0, 6, 0.5, -84), UDim2.new(0, 96, 0, 168), DARK, 1, 1)
+local garageBtn = button(side, "Garage", UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0, 36), "GARAGE", rgb(60, 120, 230), 2, 18)
+local spawnBtn = button(side, "NewCar", UDim2.new(0, 0, 0, 42), UDim2.new(1, 0, 0, 36), "NEW CAR", GREEN, 2, 18)
+local flipBtn = button(side, "Flip", UDim2.new(0, 0, 0, 84), UDim2.new(1, 0, 0, 36), "FLIP CAR", rgb(230, 140, 40), 2, 18)
+local levelsBtn = button(side, "Levels", UDim2.new(0, 0, 0, 126), UDim2.new(1, 0, 0, 36), "LEVELS", rgb(150, 80, 220), 2, 18)
+-- small button that hides / shows everything else (key H)
+local hideBtn = button(gui, "HideUI", UDim2.new(0, 6, 0.5, -112), UDim2.new(0, 96, 0, 22), "HIDE UI", rgb(70, 75, 95), 2, 14)
+local uiHidden = _G.JeepObbyHideUI == true
 
 ------------------------------------------------------------------ toast (checkpoint etc.)
-local toast = label(gui, "Toast", UDim2.new(0.5, -250, 0, 84), UDim2.new(0, 500, 0, 50), "", 42, GREEN, 6)
+local toast = label(gui, "Toast", UDim2.new(0.5, -200, 0, 60), UDim2.new(0, 400, 0, 36), "", 28, GREEN, 6)
 toast.Visible = false
 local toastId = 0
 local function showToast(text, color)
@@ -162,9 +165,9 @@ for i, c in ipairs(CARS) do
 		local back = frame(card, name .. "Bar", UDim2.new(0, 58, 0, y + 4), UDim2.new(1, -66, 0, 8), rgb(60, 66, 86), 6)
 		frame(back, "Fill", UDim2.new(0, 0, 0, 0), UDim2.new(math.min(1, v / max), 0, 1, 0), GOLD, 7)
 	end
-	stat(48, "Speed", c.speed, 215)
-	stat(66, "Power", c.torque, 15)
-	stat(84, "Turn", c.turn, 2.2)
+	stat(48, "Speed", c.speed, 240)
+	stat(66, "Power", c.torque, 18)
+	stat(84, "Turn", c.turn, 2.4)
 	label(card, "Desc", UDim2.new(0, 6, 0, 100), UDim2.new(1, -12, 0, 22), c.desc, 14, rgb(200, 205, 220), 6)
 	local b = button(card, "Pick", UDim2.new(0, 8, 1, -42), UDim2.new(1, -16, 0, 34), "", GREEN, 6, 18)
 	b.MouseButton1Click:connect(function()
@@ -261,6 +264,19 @@ levelsBtn.MouseButton1Click:connect(function()
 	refreshLevels()
 	levels.Visible = show
 end)
+local function applyHidden()
+	hud.Visible = not uiHidden
+	side.Visible = not uiHidden
+	hideBtn.Text = uiHidden and "SHOW UI" or "HIDE UI"
+	if uiHidden then closeAll() end
+end
+local function toggleHidden()
+	uiHidden = not uiHidden
+	_G.JeepObbyHideUI = uiHidden
+	applyHidden()
+end
+hideBtn.MouseButton1Click:connect(toggleHidden)
+applyHidden()
 garageClose.MouseButton1Click:connect(function() garage.Visible = false end)
 levelsClose.MouseButton1Click:connect(function() levels.Visible = false end)
 spawnBtn.MouseButton1Click:connect(function()
@@ -305,7 +321,7 @@ remote.OnClientEvent:connect(function(what, a, b)
 	end
 end)
 
--- keyboard shortcuts: G garage, R new car, F flip, L levels
+-- keyboard shortcuts: G garage, R new car, F flip, L levels, H hide the UI
 pcall(function()
 	local mouse = player:GetMouse()
 	mouse.KeyDown:connect(function(k)
@@ -314,6 +330,7 @@ pcall(function()
 		elseif k == "l" then levels.Visible = not levels.Visible garage.Visible = false refreshLevels()
 		elseif k == "r" then pcall(function() remote:FireServer("spawn") end)
 		elseif k == "f" then pcall(function() remote:FireServer("flip") end)
+		elseif k == "h" then toggleHidden()
 		end
 	end)
 end)

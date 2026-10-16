@@ -130,23 +130,30 @@ E.delete([r for r in kids(WS) if E.classof(r) == 'VelocityMotor'])
 # ------------------------------------------------------------------ 3. JeepObby folder: stages, levels, cars
 root = new_model(WS, 'JeepObby')
 stages = new_model(root, 'Stages')
+# spawn points and car pads are invisible marker parts kept in ServerStorage: in Workspace they touched the
+# new cars, and MakeJoints welded each car to an anchored marker (the car hung in the air and couldn't drive)
+stagedata = new_model(SS, 'StageData')
+_sd = {}
+def sd(n):
+    if n not in _sd: _sd[n] = new_model(stagedata, 'Stage%d' % n)
+    return _sd[n]
 levelsM = new_model(root, 'Levels')
 new_model(root, 'Cars')
 
 # level 1 = the original course. Stage 1 at the start, stage 2 at the old checkpoint room, finish -> level 2
 sp_p, sp_R = cframe(E.prop(START, 'CFrame')[1])
 s1 = new_part(stages, dict(cls='Part', name='Stage1', pos=sp_p, size=(6, 1, 6), color=LV.LIME, mat=LV.SMOOTH, collide=False, transp=1))
-marker(s1, 'Spawn', (sp_p[0], sp_p[1] + 3, sp_p[2]), sp_R)
+marker(sd(1), 'Spawn', (sp_p[0], sp_p[1] + 3, sp_p[2]), sp_R)
 c_p, c_R = cframe(E.prop(CHECK, 'CFrame')[1])
 s2 = new_part(stages, dict(cls='Part', name='Stage2', pos=(407, 40, -15), size=(75, 30, 60), color=LV.LIME, mat=LV.SMOOTH, collide=False, transp=1))
-marker(s2, 'Spawn', (c_p[0], c_p[1] + 3, c_p[2]), c_R)
+marker(sd(2), 'Spawn', (c_p[0], c_p[1] + 3, c_p[2]), c_R)
 n1 = n2 = 0
 for j, raw in info1.items():
     p, R = cframe(raw)
     if p[0] > 900:
-        marker(s1, 'Slot', (p[0], p[1] + 0.4, p[2]), R); n1 += 1
-    elif 300 < p[0] < 500:
-        marker(s2, 'Slot', (p[0], p[1] + 0.4, p[2]), R); n2 += 1
+        marker(sd(1), 'Slot', (p[0], p[1] + 1.0, p[2]), R); n1 += 1
+    elif 300 < p[0] < 420:   # (the jeep at x=432 sat inside the VIP door: no car pad there)
+        marker(sd(2), 'Slot', (p[0], p[1] + 1.0, p[2]), R); n2 += 1
 f_p, f_R = cframe(E.prop(FINISH, 'CFrame')[1])
 le = new_part(stages, dict(cls='Part', name='LevelEnd', pos=(f_p[0], f_p[1] + 4, f_p[2]), rot=f_R, size=(12, 8, 12), color=LV.LIME, mat=LV.NEON, collide=False, transp=0.5))
 new_value(T_INT, le, 'NextStage', 3)
@@ -163,9 +170,9 @@ for L in LV.build():
         if id(d) in stage_parts:
             st = stage_parts[id(d)]
             pad = new_part(stages, d)
-            marker(pad, 'Spawn', st['spawn'], FACE_X)
+            marker(sd(st['stage']), 'Spawn', st['spawn'], FACE_X)
             for pos, rot in st['slots']:
-                marker(pad, 'Slot', pos, rot)
+                marker(sd(st['stage']), 'Slot', pos, rot)
         elif d['name'] in ('LevelEnd', 'WinPad'):
             pad = new_part(stages, d)
             if d['name'] == 'LevelEnd':
