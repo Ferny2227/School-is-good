@@ -1,7 +1,7 @@
 # Rebuilds Jeep Obby: removes the piled-up jeeps, adds the stage/car system, 4 new harder levels,
 # car unlocks by wins, a UI, and fixes for the map.
 #   python3 patch.py <original.rbxl> <fixed.rbxl>
-import sys, os, struct
+import sys, os, struct, re
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from vals import *          # also puts casino/tools on the path
@@ -127,13 +127,21 @@ for s in kids(water): disable(s)
 LOG.append('Water generator turned off (it made a new part 10 times a second: lag)')
 E.delete([r for r in kids(WS) if E.classof(r) == 'VelocityMotor'])
 
-# kill bricks: spare drivers sitting in their car (people on foot still die)
-nk = 0
-for kb in kids(WS, 'Kill Brick'):
-    for sc in kids(kb):
-        if E.classof(sc) == 'Script':
-            setsrc(sc, read('KillBrick.server.lua')); nk += 1
-LOG.append('%d Kill Brick scripts: no longer kill players sitting in a car' % nk)
+# the original invisible "Kill Brick"s all lie flat on the roads and bridges ("walk here and you die, drive").
+# Anyone bumped out of their car died without seeing why, so they are removed. Falling off still kills
+# (the pits drop to the kill floor under the map).
+kbs = kids(WS, 'Kill Brick')
+dead = set()
+for kb in kbs: dead.update(E.descendants(kb))
+E.delete(dead)
+LOG.append('removed the %d invisible Kill Bricks lying on the roads and bridges' % len(kbs))
+# VIP doors froze non-VIP players and then killed them when the purchase failed (always, on a revival)
+nv = 0
+for r in list(E.loc):
+    if E.classof(r) == 'Script' and E.name(r) == 'VIPScript':
+        m = re.search(r'PassOrShirtID\s*=\s*(\d+)', src(r))
+        setsrc(r, read('VIPDoor.server.lua').replace('--#ID', m.group(1) if m else '0')); nv += 1
+LOG.append('%d VIP door scripts: closed for non-VIP players, never freeze or kill' % nv)
 # the narrow bridge over the pit right after the start: 9 -> 14 studs wide (the jeep is 8.4 wide)
 nb = 0
 for r in kids(WS):
@@ -141,9 +149,7 @@ for r in kids(WS):
     p, R = cframe(E.prop(r, 'CFrame')[1]); sz = vec3(E.prop(r, 'size')[1])
     if abs(p[0] - 963.8) < 1 and abs(p[2] - 47.7) < 1 and abs(sz[0] - 9) < 0.1 and abs(sz[2] - 71) < 0.1:
         E.set_prop(r, 'size', VEC3(14, sz[1], sz[2])); nb += 1        # the bridge
-    if E.name(r) == 'Kill Brick' and abs(p[0] - 951.8) < 1 and abs(p[2] - 47.7) < 1 and abs(sz[0] - 9) < 0.1:
-        E.set_prop(r, 'size', VEC3(14, sz[1], sz[2])); nb += 1        # its kill brick (still kills walkers)
-assert nb == 2, nb
+assert nb == 1, nb
 LOG.append('widened the bridge over the pit after the start from 9 to 14 studs')
 
 # ------------------------------------------------------------------ 3. JeepObby folder: stages, levels, cars
@@ -169,7 +175,7 @@ marker(sd(2), 'Spawn', (c_p[0], c_p[1] + 3, c_p[2]), c_R)
 n1 = n2 = 0
 for j, raw in info1.items():
     p, R = cframe(raw)
-    if p[0] > 900:
+    if p[0] > 900 and abs(p[2] + 272.8) < 1:   # the jeeps at x=1021 and x=1108 sat behind VIP doors
         marker(sd(1), 'Slot', (p[0], p[1] + 1.0, p[2]), R); n1 += 1
     elif 300 < p[0] < 420:   # (the jeep at x=432 sat inside the VIP door: no car pad there)
         marker(sd(2), 'Slot', (p[0], p[1] + 1.0, p[2]), R); n2 += 1

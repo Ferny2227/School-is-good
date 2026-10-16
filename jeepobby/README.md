@@ -37,9 +37,11 @@
 - **No more dying on the old bridges in a car:** the original map's invisible "Kill Brick" zones (just under its
   bridges, made for walkers) only kill people on foot again, like in the original game. The new levels' red
   KillParts still kill drivers.
-- **Start bridge fixed:** the bridge over the pit after the start was 9 studs wide with an invisible kill brick on top
-  (the jeep is 8.4 wide, so a wheel slipping off killed you). It is now 14 wide, and kill bricks never kill
-  someone sitting in a car (walkers still die).
+- **No more mystery deaths on the original map:** its 16 invisible "Kill Brick"s lay flat on the roads and
+  bridges (walk there and you die), so getting bumped out of your car killed you. They are removed; falling
+  off still kills (kill floor under the map). The bridge over the pit after the start is 14 studs wide (was 9).
+- **VIP doors** used to freeze non-VIP players and kill them when the gamepass purchase failed (purchases
+  never work on a revival). Now they just don't open for non-VIP players. No car pads behind VIP doors.
 - **Smaller UI:** the signs and car name tags are sized in studs (they don't cover the screen from far away),
   the HUD and buttons are smaller, and HIDE UI (or the H key) hides everything.
 
