@@ -14,7 +14,8 @@ BASE_Y = 220          # road top height of the new levels
 ROW_Z = {2: 6000, 3: 9000, 4: 12000, 5: 15000}
 START_X = -620
 THICK = 4
-SEAT_H = 3.6          # VehicleSeat centre above the road (2.5 on the ground + a small drop, so nothing touches)
+CAR_K = 0.8           # the jeep is scaled to 0.8x (patch.py)
+SEAT_H = 2.47 * CAR_K + 1.1   # VehicleSeat centre above the road: on its wheels + a small drop, so nothing touches
 FACE_X = [0, 0, -1, 0, 1, 0, 1, 0, 0]   # seat rotation that makes a car face +x
 
 THEMES = {

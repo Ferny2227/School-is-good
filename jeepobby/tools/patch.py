@@ -110,6 +110,25 @@ for j in jeeps:
 tmpl_tree = set(E.descendants(tmpl))
 dead -= tmpl_tree
 E.delete(dead)
+# the jeep is 0.8x smaller (it barely fit the roads): parts, meshes and welds scale around the seat
+CAR_K = LV.CAR_K
+_seat = [k for k in E.children(tmpl) if E.classof(k) == 'VehicleSeat'][0]
+_sp = vec3(E.prop(_seat, 'CFrame')[1][1:])
+def _cs(p): return tuple(_sp[i] + CAR_K * (p[i] - _sp[i]) for i in range(3))
+for d in E.descendants(tmpl):
+    c = E.classof(d)
+    if c in ('Part', 'WedgePart', 'VehicleSeat', 'Seat'):
+        raw = E.prop(d, 'CFrame')[1]
+        E.set_prop(d, 'CFrame', (raw[0],) + VEC3(*_cs(vec3(raw[1:]))))
+        E.set_prop(d, 'size', VEC3(*(CAR_K * x for x in vec3(E.prop(d, 'size')[1]))))
+    elif c in ('SpecialMesh', 'BlockMesh', 'CylinderMesh'):
+        E.set_prop(d, 'Offset', VEC3(*(CAR_K * x for x in vec3(E.prop(d, 'Offset')[1]))))
+        if c == 'SpecialMesh' and u32(E.prop(d, 'MeshType')[1]) == 5:
+            E.set_prop(d, 'Scale', VEC3(*(CAR_K * x for x in vec3(E.prop(d, 'Scale')[1]))))
+    elif c in ('ManualWeld', 'Weld', 'Snap', 'Glue', 'ManualGlue', 'Rotate', 'Motor', 'Motor6D'):
+        for cp in ('C0', 'C1'):
+            raw = E.prop(d, cp)[1]
+            E.set_prop(d, cp, (raw[0],) + VEC3(*(CAR_K * x for x in vec3(raw[1:]))))
 LOG.append('cars: removed the %d jeeps and their regen pads that piled up; one jeep kept as ServerStorage.CarTemplate' % len(jeeps))
 
 # ------------------------------------------------------------------ 2. map fixes
@@ -152,10 +171,10 @@ for r in kids(WS):
 assert nb == 1, nb
 LOG.append('widened the bridge over the pit after the start from 9 to 14 studs')
 
-# ------------------------------------------------------------------ 2b. the whole original map 1.5x bigger
+# ------------------------------------------------------------------ 2b. the whole original map 2x bigger
 # (roads were ~20 studs wide, some 9, for an 8.4 stud wide jeep). Everything scales around (0, 0, 0):
 # part positions and sizes, mesh offsets (and file-mesh sizes), and the 900+ welds holding the map together.
-K = 1.5
+K = 2.0
 def S(p): return tuple(K * x for x in p)
 def scale_cf(raw): return (raw[0],) + VEC3(*S(vec3(raw[1:])))
 counts = {'parts': 0, 'meshes': 0, 'welds': 0}
@@ -174,7 +193,7 @@ for r in E.descendants(WS):
         for cp in ('C0', 'C1'):
             E.set_prop(r, cp, scale_cf(E.prop(r, cp)[1]))
         counts['welds'] += 1
-LOG.append('original map scaled 1.5x: %(parts)d parts, %(meshes)d meshes, %(welds)d welds' % counts)
+LOG.append('original map scaled 2x: %(parts)d parts, %(meshes)d meshes, %(welds)d welds' % counts)
 
 # ------------------------------------------------------------------ 3. JeepObby folder: stages, levels, cars
 root = new_model(WS, 'JeepObby')
@@ -199,9 +218,10 @@ marker(sd(2), 'Spawn', (c_p[0], c_p[1] + 3, c_p[2]), c_R)
 n1 = n2 = 0
 for j, raw in info1.items():
     p, R = cframe(raw)
-    # the old jeep's seat sat 3.47 above the floor (with the 1 stud drop): scale the floor point, not the seat
+    # the old jeep's seat sat 2.47 above the floor: scale the floor point, then put the (smaller) car's seat
+    # its own height above it plus a 1 stud drop
     floor = S((p[0], p[1] - 2.47, p[2]))
-    sl = (floor[0], floor[1] + 3.47, floor[2])
+    sl = (floor[0], floor[1] + 2.47 * CAR_K + 1.0, floor[2])
     if p[0] > 900 and abs(p[2] + 272.8) < 1:   # the jeeps at x=1021 and x=1108 sat behind VIP doors
         marker(sd(1), 'Slot', sl, R); n1 += 1
     elif 300 < p[0] < 420:   # (the jeep at x=432 sat inside the VIP door: no car pad there)
@@ -209,8 +229,8 @@ for j, raw in info1.items():
 f_p, f_R = cframe(E.prop(FINISH, 'CFrame')[1])
 le = new_part(stages, dict(cls='Part', name='LevelEnd', pos=(f_p[0], f_p[1] + 4, f_p[2]), rot=f_R, size=(12, 8, 12), color=LV.LIME, mat=LV.NEON, collide=False, transp=0.5))
 new_value(T_INT, le, 'NextStage', 3)
-for x0, x1 in ((-1950, -40), (-40, 1875)):   # (under the 1.5x map; parts can't be over 2048 long)
-    new_part(levelsM, dict(cls='Part', name='KillFloor', pos=((x0 + x1) / 2, -40, -75), size=(x1 - x0, 2, 1110), color=LV.RRED, mat=LV.SMOOTH, collide=False, transp=1))
+for x0, x1 in ((-2600, -900), (-900, 800), (800, 2500)):   # (under the 2x map; parts can't be over 2048 long)
+    new_part(levelsM, dict(cls='Part', name='KillFloor', pos=((x0 + x1) / 2, -50, -100), size=(x1 - x0, 2, 1480), color=LV.RRED, mat=LV.SMOOTH, collide=False, transp=1))
 LOG.append('level 1 (the original course): stage 1 at the start (%d car pads), stage 2 at the old checkpoint (%d car pads), finish pad -> level 2' % (n1, n2))
 
 FACE_X = LV.FACE_X

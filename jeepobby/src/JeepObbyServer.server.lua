@@ -198,14 +198,14 @@ local function styleCar(car, def, parts, player)
 		local glow = Instance.new("Part")
 		pcall(function() glow.FormFactor = Enum.FormFactor.Custom end)
 		glow.Name = "Underglow"
-		glow.Size = Vector3.new(5, 0.2, 7)
+		glow.Size = Vector3.new(4, 0.2, 5.6)
 		glow.CanCollide = false
 		glow.Anchored = true
 		glow.BrickColor = BrickColor.new(def.color)
 		pcall(function() glow.Material = Enum.Material.Neon end)
 		glow.TopSurface = Enum.SurfaceType.Smooth
 		glow.BottomSurface = Enum.SurfaceType.Smooth
-		glow.CFrame = seat.CFrame * CFrame.new(0, -1.6, 1.3)
+		glow.CFrame = seat.CFrame * CFrame.new(0, -1.28, 1.04)
 		local light = Instance.new("PointLight")
 		light.Color = BrickColor.new(def.color).Color
 		light.Range = 14
