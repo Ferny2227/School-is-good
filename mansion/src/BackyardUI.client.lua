@@ -21,7 +21,7 @@ end
 
 local box = Instance.new("Frame")
 box.Name = "Box"
-box.Position = UDim2.new(0, 8, 1, -96)
+box.Position = UDim2.new(0, 8, 0.5, 50)   -- left side, under the Reset button (the chat button lives bottom-left)
 box.Size = UDim2.new(0, 210, 0, 88)
 box.BackgroundColor3 = Color3.new(0.1, 0.12, 0.16)
 box.BackgroundTransparency = 0.25
@@ -71,9 +71,20 @@ local function money(n)
 	return "$" .. s .. out
 end
 local function refresh()
-	stat.Text = "Backyard: " .. itemsV.Value .. "/100 things  |  +" .. money(incomeV.Value) .. "/s"
+	local owns = player:FindFirstChild("Tycoon")
+	if owns and owns.Value == 0 then
+		stat.Text = "Touch \"Become Owner\" at a mansion to get one!"
+	elseif itemsV.Value == 0 then
+		stat.Text = "Go to your backyard and step on the GOLD pads to buy!"
+	else
+		stat.Text = "Backyard: " .. itemsV.Value .. "/100 things  |  +" .. money(incomeV.Value) .. "/s"
+	end
 end
 itemsV.Changed:connect(refresh)
+spawn(function()
+	local owns = player:WaitForChild("Tycoon", 30)
+	if owns then owns.Changed:connect(refresh) refresh() end
+end)
 incomeV.Changed:connect(refresh)
 refresh()
 

@@ -860,12 +860,30 @@ local function makePad(Y, i)
 	pad.Size = Vector3.new(6, 0.4, 6)
 	pad.TopSurface = Enum.SurfaceType.Smooth
 	pad.BottomSurface = Enum.SurfaceType.Smooth
-	pad.BrickColor = BrickColor.new(it.income >= it.price / 100 and "Lime green" or "Bright green")
+	-- gold, with a light and a beam above it, so pads stand out on the green grass
+	pad.BrickColor = BrickColor.new(it.income >= it.price / 100 and "New Yeller" or "Bright yellow")
 	pcall(function() pad.Material = Enum.Material.Neon end)
+	local glow = Instance.new("PointLight")
+	glow.Color = Color3.new(1, 0.85, 0.2)
+	glow.Range = 10
+	glow.Parent = pad
+	local beam = Instance.new("Part")
+	pcall(function() beam.FormFactor = Enum.FormFactor.Custom end)
+	beam.Name = "Beam"
+	beam.Anchored = true
+	beam.CanCollide = false
+	beam.Size = Vector3.new(0.6, 12, 0.6)
+	beam.BrickColor = BrickColor.new("Bright yellow")
+	pcall(function() beam.Material = Enum.Material.Neon end)
+	beam.Transparency = 0.5
+	beam.TopSurface = Enum.SurfaceType.Smooth
+	beam.BottomSurface = Enum.SurfaceType.Smooth
 	pad.CFrame = cellCF(Y, it) * CFrame.new(0, 0.2, 0)
+	beam.CFrame = pad.CFrame * CFrame.new(0, 6.2, 0)
+	beam.Parent = pad
 	local bb = Instance.new("BillboardGui")
 	bb.Size = UDim2.new(10, 0, 3, 0)
-	bb.StudsOffset = Vector3.new(0, 3, 0)
+	bb.StudsOffset = Vector3.new(0, 13.5, 0)   -- above the beam
 	local t = Instance.new("TextLabel")
 	t.BackgroundTransparency = 1
 	t.Size = UDim2.new(1, 0, 1, 0)

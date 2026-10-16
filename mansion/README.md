@@ -11,7 +11,7 @@
   it touched and grew its fire by 1,000,000), 73 empty virus scripts ("OH SNAP YOU GOT INFECTED XD"),
   and a script that deleted the starter pack. Turned off a second reset script that fought with the first
   one, and 2 scripts that never worked.
-- **Backyard with 100 more things to buy** behind every mansion. Walk on a glowing pad to buy (owner only).
+- **Backyard with 100 more things to buy** behind every mansion. Walk on a gold pad (with a light beam above it) to buy (owner only).
   - Rows of 10 open as you go: buy 5 in a row to open the next row. Prices go from $100 to about $2M.
   - **Every item adds money per second** to your "Cash to collect". Money makers (lemonade stand, hot dog
     stand, ATM, money printer, bank vault, money tree...) pay the most.
