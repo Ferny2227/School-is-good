@@ -36,7 +36,14 @@ local function build()
 end
 build()
 
+-- missing sounds/textures/meshes on the server (HTTP 404 etc.) are harmless: don't show them
+local function harmless(text)
+	text = tostring(text)
+	return text:find("Content failed") or text:find("HTTP 404") or text:find("Failed to load sound")
+		or text:find("Image failed") or text:find("Mesh failed") or text:find("asset") and text:find("HTTP")
+end
 local function add(text)
+	if harmless(text) then return end
 	text = tostring(text):sub(1, 220)
 	for _, l in ipairs(lines) do if l == text then return end end
 	table.insert(lines, text)
