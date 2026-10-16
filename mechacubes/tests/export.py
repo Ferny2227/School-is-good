@@ -45,6 +45,9 @@ E = Editable(open(sys.argv[1], 'rb').read())
 out = ['local T = {}']
 for c in E.cls:
     cols = [(pn, t, vals) for pn, t, vals in c['props'] if not isinstance(vals, RawBlob)]
+    # older files save some part properties under their old names ("size", "shape"): load them as the real ones
+    have = set(pn for pn, _, _ in cols)
+    cols = [({'size': 'Size', 'shape': 'Shape'}.get(pn, pn) if {'size': 'Size', 'shape': 'Shape'}.get(pn) not in have else pn, t, vals) for pn, t, vals in cols]
     for i, r in enumerate(c['refs']):
         props = []
         for pn, t, vals in cols:
