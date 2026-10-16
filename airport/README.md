@@ -30,7 +30,9 @@ Step on the green **CLAIM** pad of a free airport, then on the gold pads. New pa
 - **Passengers** arrive by car, taxi, bus or train, check in, go through security, eat, shop, sit, then board
   a plane through a jet bridge. They pay at check-in, the food court, shops and when they fly.
 - Each passenger leaves a **review** (1-5 stars) based on 7 things: Check-in, Security, Food, Shopping,
-  Comfort, Cleanliness, Flights. Your rating multiplies your money (1 star = 0.8x, 5 stars = 2x).
+  Comfort, Cleanliness, Flights. A thing only counts once your airport has it (check-in after the first desk,
+  security after the checkpoint, flights after Gate 1, food after the Food Court, shopping after the first shop),
+  so a new airport isn't stuck at 1 star. Your rating multiplies your money (1 star = 0.8x, 5 stars = 2x).
 - The **Airport Inspector** visits every 5 minutes, walks through everything and pays a bonus.
 - **Hire staff** (HIRE STAFF button): check-in agents, security officers, chefs, shop clerks, janitors,
   gate agents, pilots, baggage handlers, air traffic controllers, mechanics, firefighters. They stand at
@@ -52,6 +54,10 @@ New reviews pop up in the corner. Progress saves if the server has DataStores.
 ## Rebuilding / changing it
 - Prices, effects and staff: `tools/catalog.py`. Check the pace with `python3 tools/sim.py`.
 - What things look like: `src/server/s20_items.lua`. Passengers: `s40_npc.lua`. Planes: `s50_planes.lua`.
+- Moving people and planes: 2016 clients don't drag welded parts along with an anchored part that the server
+  moves, so the server only moves one invisible marker per NPC (`workspace.AirportMovers`). The model waits in
+  `ReplicatedStorage.AirportNPCModels`, and `src/AirportNPCs.client.lua` (in ReplicatedFirst) keeps a copy of
+  each one in the player's camera and puts it on its marker every frame.
 - `python3 tools/build.py <any 2016 place>.rbxl AirportTycoon.rbxl` builds the place
   (the Mansion Tycoon file was used as the empty container).
 - `python3 tests/run.py AirportTycoon.rbxl --api v227` plays it in the fake 2016 engine.

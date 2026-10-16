@@ -44,6 +44,8 @@ end
 
 function A.reset(plot)
 	for _, n in ipairs({ "Items", "Pads", "Staff", "People", "Planes" }) do plot[n]:ClearAllChildren() end
+	for mark in pairs(plot.movers or {}) do U.unmover(mark) end
+	plot.movers = {}
 	for _, f in pairs(G.flyers) do if f.plot == plot then pcall(function() f.model:Destroy() end) end end
 	plot.owner = nil
 	plot.bought, plot.staff, plot.spots, plot.pts, plot.cnt, plot.items, plot.pads = {}, {}, {}, {}, {}, {}, {}
@@ -221,11 +223,25 @@ function A.cats(plot)
 	for k, v in pairs(c) do c[k] = math.min(1, v) end
 	return c
 end
+-- passengers only judge what this airport already has: check-in counts once there is a check-in desk,
+-- security once there is a checkpoint, and so on (cleanliness and comfort always count)
+local CAT_OPENER = { checkin = "desk1", security = "secwall", gates = "gate1", food = "foodfloor", shopping = "shop1" }
+function A.openCats(plot)
+	local open = { comfort = true, clean = true }
+	for k, key in pairs(CAT_OPENER) do if plot.bought[key] then open[k] = true end end
+	return open
+end
+-- stars from the open categories. Each counts as sqrt(score): the first few things you build in a category
+-- make passengers a lot happier, the last ones a little.
 function A.stars(plot)
 	local c = A.cats(plot)
-	local s = 0
-	for _, k in ipairs(CATS) do s = s + c[k] end
-	return 1 + 4 * s / #CATS, c
+	local open = A.openCats(plot)
+	local s, n = 0, 0
+	for _, k in ipairs(CATS) do
+		c[k] = math.sqrt(c[k])
+		if open[k] then s = s + c[k] n = n + 1 end
+	end
+	return 1 + 4 * s / math.max(1, n), c, open
 end
 function A.rating(plot)
 	local n = #plot.reviews
@@ -244,12 +260,10 @@ function A.pay(plot, amount, who)
 	if amount <= 0 then return end
 	cash.Value = cash.Value + amount
 	table.insert(plot.earnLog, { t = tick(), a = amount })
+	-- who = a walker's marker (at its chest): the "+$" floats over its head
 	if who and who.Parent then
-		local head = who:FindFirstChild("Head")
-		if head then
-			local l = U.bill(head, "+" .. U.money(amount), 4, 1.2, 2.5, Color3.new(0.4, 1, 0.4))
-			Debris:AddItem(l.Parent, 1.4)
-		end
+		local l = U.bill(who, "+" .. U.money(amount), 4, 1.2, 4, Color3.new(0.4, 1, 0.4))
+		Debris:AddItem(l.Parent, 1.4)
 	end
 end
 
@@ -301,11 +315,13 @@ function A.state(player)
 	for i, p in ipairs(G.plots) do list[i] = p.owner and p.owner.Name or "" end
 	local d = { plot = plot and plot.i or 0, plots = list }
 	if not plot then return d end
-	local stars, cats = A.stars(plot)
+	local stars, cats, open = A.stars(plot)
 	d.rating = A.rating(plot)
 	d.stars = stars
 	d.nreviews = #plot.reviews
 	d.cats = cats
+	d.closed = {}
+	for k, key in pairs(CAT_OPENER) do if not open[k] then d.closed[k] = ITEM[key].name end end
 	d.reviews = {}
 	for i = #plot.reviews, math.max(1, #plot.reviews - 7), -1 do table.insert(d.reviews, plot.reviews[i]) end
 	d.staff = {}

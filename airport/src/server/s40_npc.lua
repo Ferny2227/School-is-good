@@ -7,6 +7,12 @@ function NPC.walk(plot, model, root, route, speed, onDone)
 	return w
 end
 
+function NPC.count(plot)
+	local n = 0
+	for _, w in ipairs(G.walkers) do if w.plot == plot then n = n + 1 end end
+	return n
+end
+
 function NPC.step(dt)
 	local now = tick()
 	for i = #G.walkers, 1, -1 do
@@ -42,7 +48,7 @@ function NPC.step(dt)
 		if done then
 			table.remove(G.walkers, i)
 			if w.onDone then pcall(w.onDone, w) end
-			pcall(function() w.model:Destroy() end)
+			U.unmover(w.root)
 		elseif w.model.Parent then
 			local flat = Vector3.new(w.dir.x, 0, w.dir.z)
 			if flat.magnitude < 0.01 then flat = Vector3.new(0, 0, -1) end
@@ -72,29 +78,29 @@ local BAD = {
 	comfort = { "Nowhere nice to sit!", "So boring, nothing to do.", "My feet hurt, no seats anywhere." },
 	clean = { "It was so dirty...", "The bins were overflowing!", "Hire some janitors please!" },
 	gates = { "My flight was delayed!", "The gate was so far and crowded.", "Where are the planes?!" } }
--- a random category among the strongest (best) and among the weakest (worst)
-local function bestWorst(cats)
+-- a random category among the strongest (best) and among the weakest (worst) of the open ones
+local function bestWorst(cats, open)
 	local hi, lo = -1, 2
-	for _, k in ipairs(CATS) do hi = math.max(hi, cats[k]) lo = math.min(lo, cats[k]) end
+	for _, k in ipairs(CATS) do if open[k] then hi = math.max(hi, cats[k]) lo = math.min(lo, cats[k]) end end
 	local tops, bots = {}, {}
 	for _, k in ipairs(CATS) do
-		if cats[k] >= hi - 0.1 then table.insert(tops, k) end
-		if cats[k] <= lo + 0.1 then table.insert(bots, k) end
+		if open[k] and cats[k] >= hi - 0.1 then table.insert(tops, k) end
+		if open[k] and cats[k] <= lo + 0.1 then table.insert(bots, k) end
 	end
 	return U.pick(tops), U.pick(bots)
 end
 
 function NPC.review(plot, flew)
-	local stars, cats = A.stars(plot)
-	local s = stars + (math.random() - 0.5) * 1.5 - (flew and 0 or 0.8)
+	local stars, cats, open = A.stars(plot)
+	local s = stars + (math.random() - 0.5) * 1.5
 	s = U.clamp(math.floor(s + 0.5), 1, 5)
-	local best, worst = bestWorst(cats)
+	local best, worst = bestWorst(cats, open)
 	local good, bad = U.pick(GOOD[best]), U.pick(BAD[worst])
 	local text
 	if s >= 4 then text = good
 	elseif s <= 2 then text = bad
 	else text = good .. " But " .. bad:sub(1, 1):lower() .. bad:sub(2) end
-	if not flew then text = "There were no flights! " .. text end
+	if not flew then text = "No flights yet! " .. text end
 	local r = { name = U.pick(NAMES), stars = s, text = text }
 	table.insert(plot.reviews, r)
 	while #plot.reviews > 40 do table.remove(plot.reviews, 1) end
@@ -139,7 +145,7 @@ function NPC.passenger(plot)
 		local agents = plot.staff.agent or 0
 		local desks = math.max(1, plot.cnt.desk or 1)
 		local wait = d.kiosk and 1.5 or (3 / (1 + agents / desks) - 0.1 * (plot.staff.handler or 0))
-		moveTo(d.q, math.max(0.8, wait), function(w) A.pay(plot, CONST.checkinFee, w.model) end)
+		moveTo(d.q, math.max(0.8, wait), function(w) A.pay(plot, CONST.checkinFee, w.root) end)
 	end
 	-- security
 	if pts.lane and #pts.lane > 0 then
@@ -157,11 +163,11 @@ function NPC.passenger(plot)
 	-- food, shops, seats
 	if pts.stall and #pts.stall > 0 and math.random() < 0.6 then
 		local s = U.pick(pts.stall)
-		moveTo(s.p, 3, function(w) A.pay(plot, s.spend * (1 + 0.1 * (plot.staff.chef or 0)), w.model) end)
+		moveTo(s.p, 3, function(w) A.pay(plot, s.spend * (1 + 0.1 * (plot.staff.chef or 0)), w.root) end)
 	end
 	if pts.shop and #pts.shop > 0 and math.random() < 0.5 then
 		local s = U.pick(pts.shop)
-		moveTo(s.p, 3, function(w) A.pay(plot, s.spend * (1 + 0.1 * (plot.staff.clerk or 0)), w.model) end)
+		moveTo(s.p, 3, function(w) A.pay(plot, s.spend * (1 + 0.1 * (plot.staff.clerk or 0)), w.root) end)
 	end
 	if pts.seat and #pts.seat > 0 and math.random() < 0.35 then
 		moveTo(U.pick(pts.seat).p, 4)
@@ -173,7 +179,7 @@ function NPC.passenger(plot)
 		go(g.door)
 		local bridge
 		for _, br in ipairs(pts.bridge or {}) do if br.n == g.n then bridge = br end end
-		local function board(w) flew = true A.pay(plot, A.ticket(plot), w.model) end
+		local function board(w) flew = true A.pay(plot, A.ticket(plot), w.root) end
 		if bridge then go(bridge.e, 0.2, board) else route[#route].act = board end
 	else
 		moveTo(W(aisle, F, 250), 2)
@@ -183,8 +189,8 @@ function NPC.passenger(plot)
 		go(W(0, 0.5, 50))
 	end
 	local feet = route[1].p
-	local model, root = M.person(plot.People, CFrame.new(feet), look, "Passenger")
-	U.rig(model, root, false)
+	local model, torso = M.person(nil, CFrame.new(feet), look, "Passenger")
+	local root = U.mover(model, torso.CFrame, plot)
 	NPC.walk(plot, model, root, route, CONST.walkSpeed + math.random() * 2, function() NPC.review(plot, flew) end)
 end
 
@@ -208,15 +214,14 @@ function NPC.inspector(plot)
 	end
 	go(W(0, F, 64))
 	go(W(0, 0.5, 46))
-	local model, root = M.person(plot.People, CFrame.new(route[1].p), { shirt = "Really black", pants = "Really black", skin = "Nougat",
+	local model, torso = M.person(nil, CFrame.new(route[1].p), { shirt = "Really black", pants = "Really black", skin = "Nougat",
 		tie = "Gold", clipboard = true, hat = "cap", hatColor = "Gold" }, "Inspector")
-	local head = model:FindFirstChild("Head")
-	if head then U.bill(head, "AIRPORT INSPECTOR", 7, 1.4, 2.5, Color3.new(1, 0.85, 0.2)) end
-	U.rig(model, root, false)
+	local root = U.mover(model, torso.CFrame, plot)
+	U.bill(root, "AIRPORT INSPECTOR", 7, 1.4, 4.3, Color3.new(1, 0.85, 0.2))
 	NPC.walk(plot, model, root, route, 7, function()
 		if not plot.owner then return end
-		local stars, cats = A.stars(plot)
-		local best, worst = bestWorst(cats)
+		local stars, cats, open = A.stars(plot)
+		local best, worst = bestWorst(cats, open)
 		local bonus = math.floor(150 * stars ^ 3 + 10 * (plot.incomeRate or 0) * stars)
 		local cash = A.cash(plot.owner)
 		if cash then cash.Value = cash.Value + bonus end

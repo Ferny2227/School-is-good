@@ -273,6 +273,7 @@ def add_script(tmpl, parent, name, source):
 NEW_SCRIPTS = [
     add_script(T_SCRIPT, SSS, 'AirportServer', server),
     add_script(T_LOCAL, SG, 'AirportClient', open(os.path.join(SRC, 'AirportClient.client.lua')).read()),
+    add_script(T_LOCAL, RF, 'AirportNPCs', open(os.path.join(SRC, 'AirportNPCs.client.lua')).read()),
     add_script(T_LOCAL, RF, 'errorReport', open(os.path.join(ROOT, '..', 'mansion', 'src', 'errorReport.client.lua')).read()),
     add_script(T_SCRIPT, SSS, 'errorRelay', open(os.path.join(ROOT, '..', 'mansion', 'src', 'errorRelay.server.lua')).read()),
 ]

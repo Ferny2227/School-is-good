@@ -151,7 +151,7 @@ spawn(function()
 					local interval = math.max(2.5, 16 / (1 + 0.3 * (c.transport or 0) + 0.15 * (c.desk or 0) + 0.25 * (c.gate or 0)))
 					local cap = math.min(16, 3 + (c.desk or 0) + 2 * (c.gate or 0))
 					plot.spawnT = plot.spawnT - 1
-					if plot.spawnT <= 0 and #plot.People:GetChildren() < cap then
+					if plot.spawnT <= 0 and NPC.count(plot) < cap then
 						plot.spawnT = interval * (0.8 + math.random() * 0.4)
 						local ok, err = pcall(NPC.passenger, plot)
 						if not ok then print("Airport: passenger failed: " .. tostring(err)) end

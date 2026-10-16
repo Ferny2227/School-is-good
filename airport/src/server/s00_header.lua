@@ -108,7 +108,8 @@ function U.text(p, text, color, bg, face, font)
 	t.TextWrapped = true
 	t.Text = text
 	t.TextColor3 = color or Color3.new(1, 1, 1)
-	pcall(function() t.Font = font or Enum.Font.SourceSansBold end)
+	-- font = a name ("Code"): fonts that a 2016 engine doesn't have fall back to SourceSansBold
+	if not pcall(function() t.Font = Enum.Font[font or "SourceSansBold"] end) then pcall(function() t.Font = Enum.Font.SourceSansBold end) end
 	t.Parent = sg
 	sg.Parent = p
 	return t
@@ -141,14 +142,55 @@ function U.weld(root, p)
 	return w
 end
 -- make a model move as one piece by setting root.CFrame: root anchored, everything else welded to it
-function U.rig(model, root, collide)
-	for _, p in ipairs(model:GetChildren()) do
-		if p:IsA("BasePart") then
-			if not collide then p.CanCollide = false end
-			if p ~= root then U.weld(root, p) p.Anchored = false end
-		end
-	end
-	root.Anchored = true
+------------------------------------------------------------------ moving NPC models (people, airliners, small planes)
+-- 2016 clients don't carry welded parts along when the server moves an anchored part, so moving models work like
+-- this: the model itself (every part anchored) waits in ReplicatedStorage.AirportNPCModels, and the server moves
+-- one invisible anchored marker with the same name in workspace.AirportMovers. Every client (the AirportNPCs
+-- LocalScript) keeps its own copy of the model in its camera and puts it on the marker every frame.
+local function plainFolder(name, parent)
+	local f
+	pcall(function() f = Instance.new("Folder") end)
+	f = f or Instance.new("Model")
+	f.Name = name
+	f.Parent = parent
+	return f
+end
+G.npcModels = plainFolder("AirportNPCModels", RS)
+G.npcMarks = plainFolder("AirportMovers", workspace)
+G.moverOf = {}
+local moverCount = 0
+-- model: built around CFrame `origin` (not parented yet). Returns the marker: set marker.CFrame to move the model.
+function U.mover(model, origin, plot)
+	moverCount = moverCount + 1
+	local key = "NPC" .. moverCount
+	local o = Instance.new("CFrameValue")
+	o.Name = "Origin"
+	o.Value = origin
+	o.Parent = model
+	local title = Instance.new("StringValue")
+	title.Name = "Title"
+	title.Value = model.Name
+	title.Parent = model
+	model.Name = key
+	model.Parent = G.npcModels
+	local mark = U.newPart()
+	mark.Name = key
+	mark.Anchored = true
+	mark.CanCollide = false
+	mark.Transparency = 1
+	mark.Size = Vector3.new(1, 1, 1)
+	mark.CFrame = origin
+	mark.Parent = G.npcMarks
+	G.moverOf[mark] = { model = model, plot = plot }
+	if plot then plot.movers[mark] = true end
+	return mark
+end
+function U.unmover(mark)
+	local m = G.moverOf[mark]
+	G.moverOf[mark] = nil
+	if m and m.plot then m.plot.movers[mark] = nil end
+	pcall(function() mark:Destroy() end)
+	if m then pcall(function() m.model:Destroy() end) end
 end
 function U.spin(parts, center, axis, speed)
 	local rel = {}

@@ -91,22 +91,24 @@ function FLY.initGlobal()
 	local loopC = FLY.path(FLY.round({
 		pt(-1900, 200, -1400, 70), pt(1900, 220, -1400, 70), pt(1900, 240, 1400, 70), pt(-1900, 220, 1400, 70) }, 250), true)
 	local tails = { "Bright red", "Bright blue", "Bright green", "Royal purple", "Bright orange" }
+	local start = CFrame.new(0, 3000, 0)
 	for i = 1, 3 do
-		local m, root = M.airliner(sky, CFrame.new(0, 3000, 0), tails[i], "Airliner")
+		local root = U.mover(M.airliner(nil, start, tails[i], "Airliner"), start)
 		table.insert(G.global, { root = root, path = loopA, off = (i - 1) * loopA.total / 3 })
 	end
 	for i = 1, 2 do
-		local m, root = M.airliner(sky, CFrame.new(0, 3000, 0), tails[3 + i], "Airliner")
+		local root = U.mover(M.airliner(nil, start, tails[3 + i], "Airliner"), start)
 		table.insert(G.global, { root = root, path = loopB, off = (i - 1) * loopB.total / 2 })
 	end
-	-- airliners parked at the hub terminal next to the plaza
+	-- airliners parked at the hub terminal next to the plaza (they never move: plain anchored parts)
 	for i, x in ipairs({ -380, -300, -220 }) do M.airliner(sky, CFrame.new(x, 7.6, -112), tails[i + 1], "Parked Airliner") end
 	for i = 1, 2 do
-		local m, body, seat, gyro, vel = M.flyable(sky, "small", CFrame.new(0, 3000, 0), i == 1 and "Bright yellow" or "Bright red")
+		local m, body, seat, gyro, vel = M.flyable(nil, "small", start, i == 1 and "Bright yellow" or "Bright red")
 		seat:Destroy() gyro:Destroy() vel:Destroy()
-		for _, p in ipairs(m:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = false end end
-		body.Anchored = true
-		table.insert(G.global, { root = body, path = loopC, off = (i - 1) * loopC.total / 2 })
+		for _, c in ipairs(body:GetChildren()) do if c:IsA("JointInstance") then c:Destroy() end end
+		for _, p in ipairs(m:GetChildren()) do if p:IsA("BasePart") then p.Anchored = true p.CanCollide = false end end
+		local root = U.mover(m, start)
+		table.insert(G.global, { root = root, path = loopC, off = (i - 1) * loopC.total / 2 })
 	end
 end
 
@@ -114,7 +116,8 @@ end
 function A.gatePlane(plot, n, x)
 	if plot.gatePlanes[n] then return end
 	local park = plot.cf * U.L(x, H, 388)
-	local m, root = M.airliner(plot.Planes, park, plot.color, "Flight " .. plot.i .. "0" .. n)
+	local m = M.airliner(nil, park, plot.color, "Flight " .. plot.i .. "0" .. n)
+	local root = U.mover(m, park, plot)
 	plot.gatePlanes[n] = { plot = plot, n = n, x = x, model = m, root = root, state = "parked", t0 = tick(), park = park, look = park.lookVector }
 end
 function A.startDepartures(plot)
@@ -140,12 +143,12 @@ function FLY.gateStep(gp, dt)
 	local plot, now = gp.plot, tick()
 	if not gp.model.Parent then return end
 	if gp.state == "parked" then
-		gp.root.CFrame = gp.park
+		if not gp.atPark then gp.root.CFrame = gp.park gp.atPark = true end
 		gp.look = gp.park.lookVector
 		local pilots, atc = plot.staff.pilot or 0, plot.staff.atc or 0
 		local wait = math.max(18, 50 - 6 * pilots - 4 * atc)
 		if plot.hasRunway and now - gp.t0 > wait then
-			gp.state, gp.t0, gp.path = "departing", now, FLY.departure(plot, gp.x)
+			gp.state, gp.t0, gp.path, gp.atPark = "departing", now, FLY.departure(plot, gp.x), false
 		end
 	elseif gp.state == "departing" or gp.state == "arriving" then
 		local t = now - gp.t0

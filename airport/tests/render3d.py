@@ -49,7 +49,7 @@ for line in open(a.dump):
     col = tuple(int(float(x)) for x in f[8].split()); tr = float(f[9])
     cname = f[11].lstrip('#') if len(f) > 11 else ''
     if cname in PAL: col = PAL[cname]
-    big = size[0] > 300 or size[2] > 300
+    big = size[0] > 300 or size[2] > 300 or ((size[0] > 60 or size[2] > 60) and size[1] < 3)
     if tr >= 0.95: continue
     shape = f[10] if len(f) > 10 else 'Block'
     hx, hy, hz = size[0] / 2, size[1] / 2, size[2] / 2

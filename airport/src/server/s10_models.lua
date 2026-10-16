@@ -51,13 +51,12 @@ function M.passengerLook()
 end
 
 ------------------------------------------------------------------ an airliner (NPC). cf = centre of the body; nose points -z.
--- lowest point (wheels) is 7 studs below the centre. Returns model, root (anchored; the rest is welded to it).
+-- lowest point (wheels) is 7 studs below the centre. Every part is anchored; to make it move, pass parent = nil and
+-- hand the model to U.mover(m, cf).
 function M.airliner(parent, cf, tail, name)
 	local m = Instance.new("Model")
 	m.Name = name or "Airliner"
 	local b = { model = m, cf = cf }
-	-- an invisible, unrotated root: moving it moves the plane (the body cylinder itself is turned 90 degrees)
-	local root = U.P(b, "Root", Vector3.new(1, 1, 1), U.L(0, 0, 0), "Institutional white", nil, { tr = 1, nc = true })
 	U.P(b, "Body", Vector3.new(50, 7, 7), U.L(0, 0, 0, 90), "Institutional white", "SmoothPlastic", { shape = "cyl" })
 	U.P(b, "Nose", Vector3.new(7, 7, 7), U.L(0, 0, -25), "Institutional white", "SmoothPlastic", { shape = "ball" })
 	U.P(b, "TailCone", Vector3.new(6.6, 6.6, 6.6), U.L(0, 0.3, 25), "Institutional white", "SmoothPlastic", { shape = "ball" })
@@ -73,9 +72,8 @@ function M.airliner(parent, cf, tail, name)
 	U.P(b, "Gear", Vector3.new(1.4, 2, 2), U.L(0, -6, -18, 0, 0, 90), "Really black", nil, { shape = "cyl" })
 	U.P(b, "Stabiliser", Vector3.new(16, 0.8, 5), U.L(0, 0.8, 26.5), "Light stone grey", "SmoothPlastic")
 	U.P(b, "Fin", Vector3.new(0.8, 10, 9), U.L(0, 8, 25.5), tail, "SmoothPlastic", { class = "WedgePart" })
-	U.rig(m, root, false)
 	m.Parent = parent
-	return m, root
+	return m
 end
 
 ------------------------------------------------------------------ planes you can fly. cf = body centre, nose -z.

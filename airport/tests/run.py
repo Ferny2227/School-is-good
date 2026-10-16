@@ -44,6 +44,8 @@ for m, tb, c in errs:
     for x in tbs[:4]: print('       ' + x.strip())
 print('== faked:', dict(g.SIM_MISSING.items()))
 print('== dropped classes:', dict(g.DROPPED.classes.items()))
+fails = [l for l in g.LOG.values() if 'failed:' in l]
+print('== build/walker failures: %d' % len(fails))
 for l in g.LOG.values():
     if 'print' in l or 'warn' in l.lower(): print('  ' + l[:200])
 if os.environ.get('UIDUMP'):

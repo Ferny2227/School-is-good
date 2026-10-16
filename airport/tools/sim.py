@@ -26,7 +26,7 @@ def cats(bought, staff):
 
 def stars(bought, staff):
     c = cats(bought, staff)
-    return 1 + 4 * sum(c.values()) / len(c)
+    return 1 + 4 * sum(v ** 0.5 for v in c.values()) / len(c)   # same curve as A.stars
 
 def staff_cap(st, cnt):
     cap = st['capbase'] + (cnt.get(st['need'], 0) * st['capper'] if st['need'] else 0)

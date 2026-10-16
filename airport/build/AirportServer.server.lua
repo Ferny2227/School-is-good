@@ -115,7 +115,8 @@ function U.text(p, text, color, bg, face, font)
 	t.TextWrapped = true
 	t.Text = text
 	t.TextColor3 = color or Color3.new(1, 1, 1)
-	pcall(function() t.Font = font or Enum.Font.SourceSansBold end)
+	-- font = a name ("Code"): fonts that a 2016 engine doesn't have fall back to SourceSansBold
+	if not pcall(function() t.Font = Enum.Font[font or "SourceSansBold"] end) then pcall(function() t.Font = Enum.Font.SourceSansBold end) end
 	t.Parent = sg
 	sg.Parent = p
 	return t
@@ -148,14 +149,55 @@ function U.weld(root, p)
 	return w
 end
 -- make a model move as one piece by setting root.CFrame: root anchored, everything else welded to it
-function U.rig(model, root, collide)
-	for _, p in ipairs(model:GetChildren()) do
-		if p:IsA("BasePart") then
-			if not collide then p.CanCollide = false end
-			if p ~= root then U.weld(root, p) p.Anchored = false end
-		end
-	end
-	root.Anchored = true
+------------------------------------------------------------------ moving NPC models (people, airliners, small planes)
+-- 2016 clients don't carry welded parts along when the server moves an anchored part, so moving models work like
+-- this: the model itself (every part anchored) waits in ReplicatedStorage.AirportNPCModels, and the server moves
+-- one invisible anchored marker with the same name in workspace.AirportMovers. Every client (the AirportNPCs
+-- LocalScript) keeps its own copy of the model in its camera and puts it on the marker every frame.
+local function plainFolder(name, parent)
+	local f
+	pcall(function() f = Instance.new("Folder") end)
+	f = f or Instance.new("Model")
+	f.Name = name
+	f.Parent = parent
+	return f
+end
+G.npcModels = plainFolder("AirportNPCModels", RS)
+G.npcMarks = plainFolder("AirportMovers", workspace)
+G.moverOf = {}
+local moverCount = 0
+-- model: built around CFrame `origin` (not parented yet). Returns the marker: set marker.CFrame to move the model.
+function U.mover(model, origin, plot)
+	moverCount = moverCount + 1
+	local key = "NPC" .. moverCount
+	local o = Instance.new("CFrameValue")
+	o.Name = "Origin"
+	o.Value = origin
+	o.Parent = model
+	local title = Instance.new("StringValue")
+	title.Name = "Title"
+	title.Value = model.Name
+	title.Parent = model
+	model.Name = key
+	model.Parent = G.npcModels
+	local mark = U.newPart()
+	mark.Name = key
+	mark.Anchored = true
+	mark.CanCollide = false
+	mark.Transparency = 1
+	mark.Size = Vector3.new(1, 1, 1)
+	mark.CFrame = origin
+	mark.Parent = G.npcMarks
+	G.moverOf[mark] = { model = model, plot = plot }
+	if plot then plot.movers[mark] = true end
+	return mark
+end
+function U.unmover(mark)
+	local m = G.moverOf[mark]
+	G.moverOf[mark] = nil
+	if m and m.plot then m.plot.movers[mark] = nil end
+	pcall(function() mark:Destroy() end)
+	if m then pcall(function() m.model:Destroy() end) end
 end
 function U.spin(parts, center, axis, speed)
 	local rel = {}
@@ -226,13 +268,12 @@ function M.passengerLook()
 end
 
 ------------------------------------------------------------------ an airliner (NPC). cf = centre of the body; nose points -z.
--- lowest point (wheels) is 7 studs below the centre. Returns model, root (anchored; the rest is welded to it).
+-- lowest point (wheels) is 7 studs below the centre. Every part is anchored; to make it move, pass parent = nil and
+-- hand the model to U.mover(m, cf).
 function M.airliner(parent, cf, tail, name)
 	local m = Instance.new("Model")
 	m.Name = name or "Airliner"
 	local b = { model = m, cf = cf }
-	-- an invisible, unrotated root: moving it moves the plane (the body cylinder itself is turned 90 degrees)
-	local root = U.P(b, "Root", Vector3.new(1, 1, 1), U.L(0, 0, 0), "Institutional white", nil, { tr = 1, nc = true })
 	U.P(b, "Body", Vector3.new(50, 7, 7), U.L(0, 0, 0, 90), "Institutional white", "SmoothPlastic", { shape = "cyl" })
 	U.P(b, "Nose", Vector3.new(7, 7, 7), U.L(0, 0, -25), "Institutional white", "SmoothPlastic", { shape = "ball" })
 	U.P(b, "TailCone", Vector3.new(6.6, 6.6, 6.6), U.L(0, 0.3, 25), "Institutional white", "SmoothPlastic", { shape = "ball" })
@@ -248,9 +289,8 @@ function M.airliner(parent, cf, tail, name)
 	U.P(b, "Gear", Vector3.new(1.4, 2, 2), U.L(0, -6, -18, 0, 0, 90), "Really black", nil, { shape = "cyl" })
 	U.P(b, "Stabiliser", Vector3.new(16, 0.8, 5), U.L(0, 0.8, 26.5), "Light stone grey", "SmoothPlastic")
 	U.P(b, "Fin", Vector3.new(0.8, 10, 9), U.L(0, 8, 25.5), tail, "SmoothPlastic", { class = "WedgePart" })
-	U.rig(m, root, false)
 	m.Parent = parent
-	return m, root
+	return m
 end
 
 ------------------------------------------------------------------ planes you can fly. cf = body centre, nose -z.
@@ -368,8 +408,15 @@ end
 local function counter(b, w, d, h, x, z, ry, color)
 	return U.P(b, "Counter", V(w, h, d), U.L(x, F + h / 2, z, ry), color, "SmoothPlastic")
 end
+-- rods from the top of something at height `top` up to the ceiling frame (Terminal Walls)
+local function rods(b, cf, top, xs)
+	local len = F + WALL_H - top
+	if len <= 0.2 then return end
+	for _, dx in ipairs(xs) do U.P(b, "Rod", V(0.2, len, 0.2), cf * CFrame.new(dx, len / 2, 0), "Dark stone grey", "Metal", { nc = true }) end
+end
 local function hangSign(b, text, w, h, x, y, z, ry, bg, fg)
 	local s = U.P(b, "Sign", V(w, h, 0.4), U.L(x, y, z, ry), "Really black", "SmoothPlastic")
+	rods(b, U.L(x, y + h / 2, z, ry), y + h / 2, { -w / 2 + 1, w / 2 - 1 })
 	U.text(s, text, fg or Color3.new(1, 1, 1), bg or Color3.new(0.1, 0.12, 0.18), "Front")
 	U.text(s, text, fg or Color3.new(1, 1, 1), bg or Color3.new(0.1, 0.12, 0.18), "Back")
 	return s
@@ -431,6 +478,20 @@ end
 function K.floor(b)
 	U.blk(b, "Floor", 280, 1, 260, 0, 0, 190, "Institutional white", "Marble")
 	U.blk(b, "Step", 40, 0.5, 4, 0, 0, 58, "Light stone grey", "Marble")
+	-- a dark border, tile lines, and a carpet from the doors to security
+	local nc = { nc = true }
+	for _, z in ipairs({ 62, 318 }) do U.blk(b, "Border", 276, 0.06, 2, 0, F, z, "Dark stone grey", "Marble", nc) end
+	for _, x in ipairs({ -138, 138 }) do U.blk(b, "Border", 2, 0.06, 256, x, F, 190, "Dark stone grey", "Marble", nc) end
+	for x = -120, 120, 40 do U.blk(b, "TileLine", 0.3, 0.04, 254, x, F, 190, "Light stone grey", "Marble", nc) end
+	for z = 90, 300, 40 do U.blk(b, "TileLine", 274, 0.04, 0.3, 0, F, z, "Light stone grey", "Marble", nc) end
+	U.blk(b, "Carpet", 10, 0.08, 54, 0, F, 89, b.plot.color, "Fabric", nc)
+	for _, x in ipairs({ -5.3, 5.3 }) do U.blk(b, "CarpetEdge", 0.6, 0.1, 54, x, F, 89, "Gold", "Fabric", nc) end
+	local logo = U.cyl(b, "Logo", 18, 0.1, 0, F, 172, b.plot.color, "Marble", nc)
+	U.cyl(b, "LogoRing", 20, 0.08, 0, F, 172, "Gold", "Marble", nc)
+	-- a little plane on the disc, nose to the doors
+	U.blk(b, "LogoBody", 2, 0.12, 13, 0, F, 172, "Institutional white", "Marble", nc)
+	U.blk(b, "LogoWing", 14, 0.12, 2.6, 0, F, 171, "Institutional white", "Marble", nc)
+	U.blk(b, "LogoTail", 6, 0.12, 1.4, 0, F, 177.4, "Institutional white", "Marble", nc)
 	for _, p in ipairs({ { -60, 140 }, { 70, 120 } }) do SPOT(b, "janitor", p[1], F, p[2], 30) end
 end
 function K.walls(b)
@@ -460,6 +521,9 @@ function K.walls(b)
 	for x = -140, 140, 20 do U.blk(b, "Frame", 1.2, h, 1.2, x, F, 320, "Institutional white", "SmoothPlastic") end
 	U.blk(b, "Cornice", 284, 2, 2, 0, F + h, 60, b.plot.color, "SmoothPlastic")
 	U.blk(b, "Cornice", 284, 2, 2, 0, F + h, 320, b.plot.color, "SmoothPlastic")
+	-- ceiling frame (the Glass Roof fills it in later)
+	for x = -105, 105, 35 do U.blk(b, "Beam", 1.2, 1.4, 260, x, F + h, 190, "Institutional white", "Metal") end
+	for z = 100, 280, 40 do U.blk(b, "Beam", 280, 1.4, 1.2, 0, F + h, z, "Institutional white", "Metal") end
 end
 function K.doors(b)
 	for _, x in ipairs({ -6, 6 }) do U.blk(b, "Door", 11.6, 12, 0.4, x, F, 60, "Pastel light blue", "Glass", { tr = 0.65, nc = true }) end
@@ -472,6 +536,7 @@ function K.lights(b)
 	for _, x in ipairs({ -100, -50, 0, 50, 100 }) do
 		for _, z in ipairs({ 80, 130, 180, 230, 290 }) do
 			local p = U.blk(b, "Light", 10, 0.4, 3, x, F + 25, z, "Institutional white", "Neon", { nc = true })
+			rods(b, U.L(x, F + 25.4, z), F + 25.4, { -4, 4 })
 			if (x == -50 or x == 50) and (z == 130 or z == 230) then U.light(p, Color3.new(1, 0.97, 0.9), 50, 1) end
 		end
 	end
@@ -565,11 +630,17 @@ function K.kiosks(b, o)
 	PT(b, "desk", { q = V(o.x, F, 66), kiosk = true, lx = o.x })
 end
 function K.board(b)
-	local s = U.P(b, "Board", V(44, 10, 1), U.L(0, F + 19, 123), "Really black", "SmoothPlastic")
-	local lines = "DEPARTURES\nSKY 101   LONDON     BOARDING\nSKY 202   TOKYO      ON TIME\nSKY 303   PARIS      ON TIME\nSKY 404   NEW YORK   DELAYED"
-	U.text(s, lines, Color3.new(1, 0.85, 0.2), Color3.new(0.02, 0.02, 0.05), "Front", Enum.Font.Code)
-	U.text(s, lines, Color3.new(1, 0.85, 0.2), Color3.new(0.02, 0.02, 0.05), "Back", Enum.Font.Code)
-	for _, dx in ipairs({ -18, 18 }) do U.blk(b, "Cable", 0.2, 6, 0.2, dx, F + 24, 123, "Dark stone grey", nil, { nc = true }) end
+	-- two-sided, hanging from the ceiling frame just inside the doors
+	local z = 78
+	U.blk(b, "BoardFrame", 42, 11.6, 1.2, 0, F + 13.4, z, "Dark stone grey", "Metal")
+	local head = U.P(b, "BoardHeader", V(40, 2.2, 1.4), U.L(0, F + 23.4, z), b.plot.color, "SmoothPlastic")
+	U.text(head, "DEPARTURES", Color3.new(1, 1, 1), BrickColor.new(b.plot.color).Color, "Front")
+	U.text(head, "DEPARTURES", Color3.new(1, 1, 1), BrickColor.new(b.plot.color).Color, "Back")
+	local s = U.P(b, "Board", V(40, 8, 1.4), U.L(0, F + 18.1, z), "Really black", "SmoothPlastic")
+	local lines = "SKY 101   LONDON     BOARDING\nSKY 202   TOKYO      ON TIME\nSKY 303   PARIS      ON TIME\nSKY 404   NEW YORK   DELAYED"
+	U.text(s, lines, Color3.new(1, 0.85, 0.2), Color3.new(0.02, 0.02, 0.05), "Front", "Code")
+	U.text(s, lines, Color3.new(1, 0.85, 0.2), Color3.new(0.02, 0.02, 0.05), "Back", "Code")
+	rods(b, U.L(0, F + 25, z), F + 25, { -18, 18 })
 end
 function K.atm(b)
 	for _, x in ipairs({ -26, -32 }) do
@@ -948,9 +1019,8 @@ function K.fountain(b)
 	U.light(top, Color3.new(0.5, 0.9, 1), 18)
 end
 function K.roof(b)
-	U.blk(b, "GlassRoof", 282, 0.6, 262, 0, F + WALL_H + 0.6, 190, "Pastel light blue", "Glass", { tr = 0.6 })
-	for x = -140, 140, 35 do U.blk(b, "Beam", 1.2, 1.4, 262, x, F + WALL_H, 190, "Institutional white", "Metal") end
-	for z = 60, 320, 40 do U.blk(b, "Beam", 282, 1.4, 1.2, 0, F + WALL_H, z, "Institutional white", "Metal") end
+	-- glass panes on top of the ceiling frame that came with the Terminal Walls
+	U.blk(b, "GlassRoof", 282, 0.6, 262, 0, F + WALL_H + 1.4, 190, "Pastel light blue", "Glass", { tr = 0.6 })
 end
 function K.chandeliers(b)
 	for _, p in ipairs({ { -60, 140 }, { 60, 140 }, { -60, 230 }, { 60, 230 } }) do
@@ -1108,6 +1178,8 @@ end
 
 function A.reset(plot)
 	for _, n in ipairs({ "Items", "Pads", "Staff", "People", "Planes" }) do plot[n]:ClearAllChildren() end
+	for mark in pairs(plot.movers or {}) do U.unmover(mark) end
+	plot.movers = {}
 	for _, f in pairs(G.flyers) do if f.plot == plot then pcall(function() f.model:Destroy() end) end end
 	plot.owner = nil
 	plot.bought, plot.staff, plot.spots, plot.pts, plot.cnt, plot.items, plot.pads = {}, {}, {}, {}, {}, {}, {}
@@ -1285,11 +1357,25 @@ function A.cats(plot)
 	for k, v in pairs(c) do c[k] = math.min(1, v) end
 	return c
 end
+-- passengers only judge what this airport already has: check-in counts once there is a check-in desk,
+-- security once there is a checkpoint, and so on (cleanliness and comfort always count)
+local CAT_OPENER = { checkin = "desk1", security = "secwall", gates = "gate1", food = "foodfloor", shopping = "shop1" }
+function A.openCats(plot)
+	local open = { comfort = true, clean = true }
+	for k, key in pairs(CAT_OPENER) do if plot.bought[key] then open[k] = true end end
+	return open
+end
+-- stars from the open categories. Each counts as sqrt(score): the first few things you build in a category
+-- make passengers a lot happier, the last ones a little.
 function A.stars(plot)
 	local c = A.cats(plot)
-	local s = 0
-	for _, k in ipairs(CATS) do s = s + c[k] end
-	return 1 + 4 * s / #CATS, c
+	local open = A.openCats(plot)
+	local s, n = 0, 0
+	for _, k in ipairs(CATS) do
+		c[k] = math.sqrt(c[k])
+		if open[k] then s = s + c[k] n = n + 1 end
+	end
+	return 1 + 4 * s / math.max(1, n), c, open
 end
 function A.rating(plot)
 	local n = #plot.reviews
@@ -1308,12 +1394,10 @@ function A.pay(plot, amount, who)
 	if amount <= 0 then return end
 	cash.Value = cash.Value + amount
 	table.insert(plot.earnLog, { t = tick(), a = amount })
+	-- who = a walker's marker (at its chest): the "+$" floats over its head
 	if who and who.Parent then
-		local head = who:FindFirstChild("Head")
-		if head then
-			local l = U.bill(head, "+" .. U.money(amount), 4, 1.2, 2.5, Color3.new(0.4, 1, 0.4))
-			Debris:AddItem(l.Parent, 1.4)
-		end
+		local l = U.bill(who, "+" .. U.money(amount), 4, 1.2, 4, Color3.new(0.4, 1, 0.4))
+		Debris:AddItem(l.Parent, 1.4)
 	end
 end
 
@@ -1365,11 +1449,13 @@ function A.state(player)
 	for i, p in ipairs(G.plots) do list[i] = p.owner and p.owner.Name or "" end
 	local d = { plot = plot and plot.i or 0, plots = list }
 	if not plot then return d end
-	local stars, cats = A.stars(plot)
+	local stars, cats, open = A.stars(plot)
 	d.rating = A.rating(plot)
 	d.stars = stars
 	d.nreviews = #plot.reviews
 	d.cats = cats
+	d.closed = {}
+	for k, key in pairs(CAT_OPENER) do if not open[k] then d.closed[k] = ITEM[key].name end end
 	d.reviews = {}
 	for i = #plot.reviews, math.max(1, #plot.reviews - 7), -1 do table.insert(d.reviews, plot.reviews[i]) end
 	d.staff = {}
@@ -1442,6 +1528,12 @@ function NPC.walk(plot, model, root, route, speed, onDone)
 	return w
 end
 
+function NPC.count(plot)
+	local n = 0
+	for _, w in ipairs(G.walkers) do if w.plot == plot then n = n + 1 end end
+	return n
+end
+
 function NPC.step(dt)
 	local now = tick()
 	for i = #G.walkers, 1, -1 do
@@ -1477,7 +1569,7 @@ function NPC.step(dt)
 		if done then
 			table.remove(G.walkers, i)
 			if w.onDone then pcall(w.onDone, w) end
-			pcall(function() w.model:Destroy() end)
+			U.unmover(w.root)
 		elseif w.model.Parent then
 			local flat = Vector3.new(w.dir.x, 0, w.dir.z)
 			if flat.magnitude < 0.01 then flat = Vector3.new(0, 0, -1) end
@@ -1507,29 +1599,29 @@ local BAD = {
 	comfort = { "Nowhere nice to sit!", "So boring, nothing to do.", "My feet hurt, no seats anywhere." },
 	clean = { "It was so dirty...", "The bins were overflowing!", "Hire some janitors please!" },
 	gates = { "My flight was delayed!", "The gate was so far and crowded.", "Where are the planes?!" } }
--- a random category among the strongest (best) and among the weakest (worst)
-local function bestWorst(cats)
+-- a random category among the strongest (best) and among the weakest (worst) of the open ones
+local function bestWorst(cats, open)
 	local hi, lo = -1, 2
-	for _, k in ipairs(CATS) do hi = math.max(hi, cats[k]) lo = math.min(lo, cats[k]) end
+	for _, k in ipairs(CATS) do if open[k] then hi = math.max(hi, cats[k]) lo = math.min(lo, cats[k]) end end
 	local tops, bots = {}, {}
 	for _, k in ipairs(CATS) do
-		if cats[k] >= hi - 0.1 then table.insert(tops, k) end
-		if cats[k] <= lo + 0.1 then table.insert(bots, k) end
+		if open[k] and cats[k] >= hi - 0.1 then table.insert(tops, k) end
+		if open[k] and cats[k] <= lo + 0.1 then table.insert(bots, k) end
 	end
 	return U.pick(tops), U.pick(bots)
 end
 
 function NPC.review(plot, flew)
-	local stars, cats = A.stars(plot)
-	local s = stars + (math.random() - 0.5) * 1.5 - (flew and 0 or 0.8)
+	local stars, cats, open = A.stars(plot)
+	local s = stars + (math.random() - 0.5) * 1.5
 	s = U.clamp(math.floor(s + 0.5), 1, 5)
-	local best, worst = bestWorst(cats)
+	local best, worst = bestWorst(cats, open)
 	local good, bad = U.pick(GOOD[best]), U.pick(BAD[worst])
 	local text
 	if s >= 4 then text = good
 	elseif s <= 2 then text = bad
 	else text = good .. " But " .. bad:sub(1, 1):lower() .. bad:sub(2) end
-	if not flew then text = "There were no flights! " .. text end
+	if not flew then text = "No flights yet! " .. text end
 	local r = { name = U.pick(NAMES), stars = s, text = text }
 	table.insert(plot.reviews, r)
 	while #plot.reviews > 40 do table.remove(plot.reviews, 1) end
@@ -1574,7 +1666,7 @@ function NPC.passenger(plot)
 		local agents = plot.staff.agent or 0
 		local desks = math.max(1, plot.cnt.desk or 1)
 		local wait = d.kiosk and 1.5 or (3 / (1 + agents / desks) - 0.1 * (plot.staff.handler or 0))
-		moveTo(d.q, math.max(0.8, wait), function(w) A.pay(plot, CONST.checkinFee, w.model) end)
+		moveTo(d.q, math.max(0.8, wait), function(w) A.pay(plot, CONST.checkinFee, w.root) end)
 	end
 	-- security
 	if pts.lane and #pts.lane > 0 then
@@ -1592,11 +1684,11 @@ function NPC.passenger(plot)
 	-- food, shops, seats
 	if pts.stall and #pts.stall > 0 and math.random() < 0.6 then
 		local s = U.pick(pts.stall)
-		moveTo(s.p, 3, function(w) A.pay(plot, s.spend * (1 + 0.1 * (plot.staff.chef or 0)), w.model) end)
+		moveTo(s.p, 3, function(w) A.pay(plot, s.spend * (1 + 0.1 * (plot.staff.chef or 0)), w.root) end)
 	end
 	if pts.shop and #pts.shop > 0 and math.random() < 0.5 then
 		local s = U.pick(pts.shop)
-		moveTo(s.p, 3, function(w) A.pay(plot, s.spend * (1 + 0.1 * (plot.staff.clerk or 0)), w.model) end)
+		moveTo(s.p, 3, function(w) A.pay(plot, s.spend * (1 + 0.1 * (plot.staff.clerk or 0)), w.root) end)
 	end
 	if pts.seat and #pts.seat > 0 and math.random() < 0.35 then
 		moveTo(U.pick(pts.seat).p, 4)
@@ -1608,7 +1700,7 @@ function NPC.passenger(plot)
 		go(g.door)
 		local bridge
 		for _, br in ipairs(pts.bridge or {}) do if br.n == g.n then bridge = br end end
-		local function board(w) flew = true A.pay(plot, A.ticket(plot), w.model) end
+		local function board(w) flew = true A.pay(plot, A.ticket(plot), w.root) end
 		if bridge then go(bridge.e, 0.2, board) else route[#route].act = board end
 	else
 		moveTo(W(aisle, F, 250), 2)
@@ -1618,8 +1710,8 @@ function NPC.passenger(plot)
 		go(W(0, 0.5, 50))
 	end
 	local feet = route[1].p
-	local model, root = M.person(plot.People, CFrame.new(feet), look, "Passenger")
-	U.rig(model, root, false)
+	local model, torso = M.person(nil, CFrame.new(feet), look, "Passenger")
+	local root = U.mover(model, torso.CFrame, plot)
 	NPC.walk(plot, model, root, route, CONST.walkSpeed + math.random() * 2, function() NPC.review(plot, flew) end)
 end
 
@@ -1643,15 +1735,14 @@ function NPC.inspector(plot)
 	end
 	go(W(0, F, 64))
 	go(W(0, 0.5, 46))
-	local model, root = M.person(plot.People, CFrame.new(route[1].p), { shirt = "Really black", pants = "Really black", skin = "Nougat",
+	local model, torso = M.person(nil, CFrame.new(route[1].p), { shirt = "Really black", pants = "Really black", skin = "Nougat",
 		tie = "Gold", clipboard = true, hat = "cap", hatColor = "Gold" }, "Inspector")
-	local head = model:FindFirstChild("Head")
-	if head then U.bill(head, "AIRPORT INSPECTOR", 7, 1.4, 2.5, Color3.new(1, 0.85, 0.2)) end
-	U.rig(model, root, false)
+	local root = U.mover(model, torso.CFrame, plot)
+	U.bill(root, "AIRPORT INSPECTOR", 7, 1.4, 4.3, Color3.new(1, 0.85, 0.2))
 	NPC.walk(plot, model, root, route, 7, function()
 		if not plot.owner then return end
-		local stars, cats = A.stars(plot)
-		local best, worst = bestWorst(cats)
+		local stars, cats, open = A.stars(plot)
+		local best, worst = bestWorst(cats, open)
 		local bonus = math.floor(150 * stars ^ 3 + 10 * (plot.incomeRate or 0) * stars)
 		local cash = A.cash(plot.owner)
 		if cash then cash.Value = cash.Value + bonus end
@@ -1780,22 +1871,24 @@ function FLY.initGlobal()
 	local loopC = FLY.path(FLY.round({
 		pt(-1900, 200, -1400, 70), pt(1900, 220, -1400, 70), pt(1900, 240, 1400, 70), pt(-1900, 220, 1400, 70) }, 250), true)
 	local tails = { "Bright red", "Bright blue", "Bright green", "Royal purple", "Bright orange" }
+	local start = CFrame.new(0, 3000, 0)
 	for i = 1, 3 do
-		local m, root = M.airliner(sky, CFrame.new(0, 3000, 0), tails[i], "Airliner")
+		local root = U.mover(M.airliner(nil, start, tails[i], "Airliner"), start)
 		table.insert(G.global, { root = root, path = loopA, off = (i - 1) * loopA.total / 3 })
 	end
 	for i = 1, 2 do
-		local m, root = M.airliner(sky, CFrame.new(0, 3000, 0), tails[3 + i], "Airliner")
+		local root = U.mover(M.airliner(nil, start, tails[3 + i], "Airliner"), start)
 		table.insert(G.global, { root = root, path = loopB, off = (i - 1) * loopB.total / 2 })
 	end
-	-- airliners parked at the hub terminal next to the plaza
+	-- airliners parked at the hub terminal next to the plaza (they never move: plain anchored parts)
 	for i, x in ipairs({ -380, -300, -220 }) do M.airliner(sky, CFrame.new(x, 7.6, -112), tails[i + 1], "Parked Airliner") end
 	for i = 1, 2 do
-		local m, body, seat, gyro, vel = M.flyable(sky, "small", CFrame.new(0, 3000, 0), i == 1 and "Bright yellow" or "Bright red")
+		local m, body, seat, gyro, vel = M.flyable(nil, "small", start, i == 1 and "Bright yellow" or "Bright red")
 		seat:Destroy() gyro:Destroy() vel:Destroy()
-		for _, p in ipairs(m:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = false end end
-		body.Anchored = true
-		table.insert(G.global, { root = body, path = loopC, off = (i - 1) * loopC.total / 2 })
+		for _, c in ipairs(body:GetChildren()) do if c:IsA("JointInstance") then c:Destroy() end end
+		for _, p in ipairs(m:GetChildren()) do if p:IsA("BasePart") then p.Anchored = true p.CanCollide = false end end
+		local root = U.mover(m, start)
+		table.insert(G.global, { root = root, path = loopC, off = (i - 1) * loopC.total / 2 })
 	end
 end
 
@@ -1803,7 +1896,8 @@ end
 function A.gatePlane(plot, n, x)
 	if plot.gatePlanes[n] then return end
 	local park = plot.cf * U.L(x, H, 388)
-	local m, root = M.airliner(plot.Planes, park, plot.color, "Flight " .. plot.i .. "0" .. n)
+	local m = M.airliner(nil, park, plot.color, "Flight " .. plot.i .. "0" .. n)
+	local root = U.mover(m, park, plot)
 	plot.gatePlanes[n] = { plot = plot, n = n, x = x, model = m, root = root, state = "parked", t0 = tick(), park = park, look = park.lookVector }
 end
 function A.startDepartures(plot)
@@ -1829,12 +1923,12 @@ function FLY.gateStep(gp, dt)
 	local plot, now = gp.plot, tick()
 	if not gp.model.Parent then return end
 	if gp.state == "parked" then
-		gp.root.CFrame = gp.park
+		if not gp.atPark then gp.root.CFrame = gp.park gp.atPark = true end
 		gp.look = gp.park.lookVector
 		local pilots, atc = plot.staff.pilot or 0, plot.staff.atc or 0
 		local wait = math.max(18, 50 - 6 * pilots - 4 * atc)
 		if plot.hasRunway and now - gp.t0 > wait then
-			gp.state, gp.t0, gp.path = "departing", now, FLY.departure(plot, gp.x)
+			gp.state, gp.t0, gp.path, gp.atPark = "departing", now, FLY.departure(plot, gp.x), false
 		end
 	elseif gp.state == "departing" or gp.state == "arriving" then
 		local t = now - gp.t0
@@ -2090,7 +2184,7 @@ spawn(function()
 					local interval = math.max(2.5, 16 / (1 + 0.3 * (c.transport or 0) + 0.15 * (c.desk or 0) + 0.25 * (c.gate or 0)))
 					local cap = math.min(16, 3 + (c.desk or 0) + 2 * (c.gate or 0))
 					plot.spawnT = plot.spawnT - 1
-					if plot.spawnT <= 0 and #plot.People:GetChildren() < cap then
+					if plot.spawnT <= 0 and NPC.count(plot) < cap then
 						plot.spawnT = interval * (0.8 + math.random() * 0.4)
 						local ok, err = pcall(NPC.passenger, plot)
 						if not ok then print("Airport: passenger failed: " .. tostring(err)) end

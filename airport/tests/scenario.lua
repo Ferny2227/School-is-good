@@ -42,7 +42,32 @@ say("staff:", #A1.Staff:GetChildren())
 -- let the airport run
 local m0 = p.leaderstats.Cash.Value
 runFor(180)
-local people = #A1.People:GetChildren()
+local D = SERVER_G.AirportDebug
+local people = 0
+for _, w in ipairs(D.G.walkers) do if w.plot == D.G.plots[1] then people = people + 1 end end
+local holder = workspace.CurrentCamera:FindFirstChild("AirportNPCs")
+local copies, marks = holder and #holder:GetChildren() or 0, #workspace.AirportMovers:GetChildren()
+-- every copy must sit on its marker
+local off = 0
+if holder then
+	for _, m in ipairs(holder:GetChildren()) do
+		local mark = workspace.AirportMovers:FindFirstChild(m.Name)
+		local o = m:FindFirstChild("Origin")
+		if mark and o then
+			for _, p in ipairs(m:GetChildren()) do
+				if p:IsA("BasePart") then
+					local src = game:GetService("ReplicatedStorage").AirportNPCModels:FindFirstChild(m.Name)
+					local sp = src and src:FindFirstChild(p.Name)
+					if sp then
+						local want = mark.CFrame * (o.Value:inverse() * sp.CFrame)
+						off = math.max(off, (want.p - p.CFrame.p).magnitude)
+					end
+				end
+			end
+		end
+	end
+end
+say("npc markers", marks, "| client copies", copies, "| worst copy offset", string.format("%.2f", off))
 local planesMoving = 0
 for _, m in ipairs(A1.Planes:GetChildren()) do planesMoving = planesMoving + 1 end
 say("after 3 min: cash +", p.leaderstats.Cash.Value - m0, "| people now", people, "| leaderboard rating", p.leaderstats.Rating.Value)

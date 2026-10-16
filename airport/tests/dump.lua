@@ -18,5 +18,8 @@ end
 walk(workspace.Airport1, "plot")
 walk(workspace.AirportMap, "map")
 walk(workspace.SkyTraffic, "sky")
+-- moving people and planes: the copies the client draws on the server's markers
+local npcs = workspace.CurrentCamera:FindFirstChild("AirportNPCs")
+if npcs then walk(npcs, "npc") end
 local f = io.open(os.getenv("OUT"), "w") f:write(table.concat(rows, "\n")) f:close()
 return { "dumped " .. #rows }

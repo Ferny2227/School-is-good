@@ -30,8 +30,15 @@ end
 local function counter(b, w, d, h, x, z, ry, color)
 	return U.P(b, "Counter", V(w, h, d), U.L(x, F + h / 2, z, ry), color, "SmoothPlastic")
 end
+-- rods from the top of something at height `top` up to the ceiling frame (Terminal Walls)
+local function rods(b, cf, top, xs)
+	local len = F + WALL_H - top
+	if len <= 0.2 then return end
+	for _, dx in ipairs(xs) do U.P(b, "Rod", V(0.2, len, 0.2), cf * CFrame.new(dx, len / 2, 0), "Dark stone grey", "Metal", { nc = true }) end
+end
 local function hangSign(b, text, w, h, x, y, z, ry, bg, fg)
 	local s = U.P(b, "Sign", V(w, h, 0.4), U.L(x, y, z, ry), "Really black", "SmoothPlastic")
+	rods(b, U.L(x, y + h / 2, z, ry), y + h / 2, { -w / 2 + 1, w / 2 - 1 })
 	U.text(s, text, fg or Color3.new(1, 1, 1), bg or Color3.new(0.1, 0.12, 0.18), "Front")
 	U.text(s, text, fg or Color3.new(1, 1, 1), bg or Color3.new(0.1, 0.12, 0.18), "Back")
 	return s
@@ -93,6 +100,20 @@ end
 function K.floor(b)
 	U.blk(b, "Floor", 280, 1, 260, 0, 0, 190, "Institutional white", "Marble")
 	U.blk(b, "Step", 40, 0.5, 4, 0, 0, 58, "Light stone grey", "Marble")
+	-- a dark border, tile lines, and a carpet from the doors to security
+	local nc = { nc = true }
+	for _, z in ipairs({ 62, 318 }) do U.blk(b, "Border", 276, 0.06, 2, 0, F, z, "Dark stone grey", "Marble", nc) end
+	for _, x in ipairs({ -138, 138 }) do U.blk(b, "Border", 2, 0.06, 256, x, F, 190, "Dark stone grey", "Marble", nc) end
+	for x = -120, 120, 40 do U.blk(b, "TileLine", 0.3, 0.04, 254, x, F, 190, "Light stone grey", "Marble", nc) end
+	for z = 90, 300, 40 do U.blk(b, "TileLine", 274, 0.04, 0.3, 0, F, z, "Light stone grey", "Marble", nc) end
+	U.blk(b, "Carpet", 10, 0.08, 54, 0, F, 89, b.plot.color, "Fabric", nc)
+	for _, x in ipairs({ -5.3, 5.3 }) do U.blk(b, "CarpetEdge", 0.6, 0.1, 54, x, F, 89, "Gold", "Fabric", nc) end
+	local logo = U.cyl(b, "Logo", 18, 0.1, 0, F, 172, b.plot.color, "Marble", nc)
+	U.cyl(b, "LogoRing", 20, 0.08, 0, F, 172, "Gold", "Marble", nc)
+	-- a little plane on the disc, nose to the doors
+	U.blk(b, "LogoBody", 2, 0.12, 13, 0, F, 172, "Institutional white", "Marble", nc)
+	U.blk(b, "LogoWing", 14, 0.12, 2.6, 0, F, 171, "Institutional white", "Marble", nc)
+	U.blk(b, "LogoTail", 6, 0.12, 1.4, 0, F, 177.4, "Institutional white", "Marble", nc)
 	for _, p in ipairs({ { -60, 140 }, { 70, 120 } }) do SPOT(b, "janitor", p[1], F, p[2], 30) end
 end
 function K.walls(b)
@@ -122,6 +143,9 @@ function K.walls(b)
 	for x = -140, 140, 20 do U.blk(b, "Frame", 1.2, h, 1.2, x, F, 320, "Institutional white", "SmoothPlastic") end
 	U.blk(b, "Cornice", 284, 2, 2, 0, F + h, 60, b.plot.color, "SmoothPlastic")
 	U.blk(b, "Cornice", 284, 2, 2, 0, F + h, 320, b.plot.color, "SmoothPlastic")
+	-- ceiling frame (the Glass Roof fills it in later)
+	for x = -105, 105, 35 do U.blk(b, "Beam", 1.2, 1.4, 260, x, F + h, 190, "Institutional white", "Metal") end
+	for z = 100, 280, 40 do U.blk(b, "Beam", 280, 1.4, 1.2, 0, F + h, z, "Institutional white", "Metal") end
 end
 function K.doors(b)
 	for _, x in ipairs({ -6, 6 }) do U.blk(b, "Door", 11.6, 12, 0.4, x, F, 60, "Pastel light blue", "Glass", { tr = 0.65, nc = true }) end
@@ -134,6 +158,7 @@ function K.lights(b)
 	for _, x in ipairs({ -100, -50, 0, 50, 100 }) do
 		for _, z in ipairs({ 80, 130, 180, 230, 290 }) do
 			local p = U.blk(b, "Light", 10, 0.4, 3, x, F + 25, z, "Institutional white", "Neon", { nc = true })
+			rods(b, U.L(x, F + 25.4, z), F + 25.4, { -4, 4 })
 			if (x == -50 or x == 50) and (z == 130 or z == 230) then U.light(p, Color3.new(1, 0.97, 0.9), 50, 1) end
 		end
 	end
@@ -227,11 +252,17 @@ function K.kiosks(b, o)
 	PT(b, "desk", { q = V(o.x, F, 66), kiosk = true, lx = o.x })
 end
 function K.board(b)
-	local s = U.P(b, "Board", V(44, 10, 1), U.L(0, F + 19, 123), "Really black", "SmoothPlastic")
-	local lines = "DEPARTURES\nSKY 101   LONDON     BOARDING\nSKY 202   TOKYO      ON TIME\nSKY 303   PARIS      ON TIME\nSKY 404   NEW YORK   DELAYED"
-	U.text(s, lines, Color3.new(1, 0.85, 0.2), Color3.new(0.02, 0.02, 0.05), "Front", Enum.Font.Code)
-	U.text(s, lines, Color3.new(1, 0.85, 0.2), Color3.new(0.02, 0.02, 0.05), "Back", Enum.Font.Code)
-	for _, dx in ipairs({ -18, 18 }) do U.blk(b, "Cable", 0.2, 6, 0.2, dx, F + 24, 123, "Dark stone grey", nil, { nc = true }) end
+	-- two-sided, hanging from the ceiling frame just inside the doors
+	local z = 78
+	U.blk(b, "BoardFrame", 42, 11.6, 1.2, 0, F + 13.4, z, "Dark stone grey", "Metal")
+	local head = U.P(b, "BoardHeader", V(40, 2.2, 1.4), U.L(0, F + 23.4, z), b.plot.color, "SmoothPlastic")
+	U.text(head, "DEPARTURES", Color3.new(1, 1, 1), BrickColor.new(b.plot.color).Color, "Front")
+	U.text(head, "DEPARTURES", Color3.new(1, 1, 1), BrickColor.new(b.plot.color).Color, "Back")
+	local s = U.P(b, "Board", V(40, 8, 1.4), U.L(0, F + 18.1, z), "Really black", "SmoothPlastic")
+	local lines = "SKY 101   LONDON     BOARDING\nSKY 202   TOKYO      ON TIME\nSKY 303   PARIS      ON TIME\nSKY 404   NEW YORK   DELAYED"
+	U.text(s, lines, Color3.new(1, 0.85, 0.2), Color3.new(0.02, 0.02, 0.05), "Front", "Code")
+	U.text(s, lines, Color3.new(1, 0.85, 0.2), Color3.new(0.02, 0.02, 0.05), "Back", "Code")
+	rods(b, U.L(0, F + 25, z), F + 25, { -18, 18 })
 end
 function K.atm(b)
 	for _, x in ipairs({ -26, -32 }) do
@@ -610,9 +641,8 @@ function K.fountain(b)
 	U.light(top, Color3.new(0.5, 0.9, 1), 18)
 end
 function K.roof(b)
-	U.blk(b, "GlassRoof", 282, 0.6, 262, 0, F + WALL_H + 0.6, 190, "Pastel light blue", "Glass", { tr = 0.6 })
-	for x = -140, 140, 35 do U.blk(b, "Beam", 1.2, 1.4, 262, x, F + WALL_H, 190, "Institutional white", "Metal") end
-	for z = 60, 320, 40 do U.blk(b, "Beam", 282, 1.4, 1.2, 0, F + WALL_H, z, "Institutional white", "Metal") end
+	-- glass panes on top of the ceiling frame that came with the Terminal Walls
+	U.blk(b, "GlassRoof", 282, 0.6, 262, 0, F + WALL_H + 1.4, 190, "Pastel light blue", "Glass", { tr = 0.6 })
 end
 function K.chandeliers(b)
 	for _, p in ipairs({ { -60, 140 }, { 60, 140 }, { -60, 230 }, { 60, 230 } }) do

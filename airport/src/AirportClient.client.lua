@@ -347,9 +347,10 @@ function UI.refresh()
 	for _, k in ipairs(CATS) do
 		local v = d.cats and d.cats[k] or 0
 		local row = UI.catRows[k]
-		row.fill.Size = UDim2.new(v, 0, 1, 0)
+		local closed = d.closed and d.closed[k]
+		row.fill.Size = UDim2.new(closed and 0 or v, 0, 1, 0)
 		row.fill.BackgroundColor3 = v >= 0.7 and C.green or (v >= 0.35 and C.gold or C.red)
-		row.tip.Text = v >= 0.95 and "Perfect!" or TIPS[k]
+		row.tip.Text = closed and ("Not rated yet: build the " .. closed) or (v >= 0.95 and "Perfect!" or TIPS[k])
 	end
 	if d.report then
 		UI.report.Text = string.format("Inspector: %.1f stars. Best: %s. Needs work: %s. Bonus %s", d.report.stars, d.report.best, d.report.worst, money(d.report.bonus))
