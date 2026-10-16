@@ -454,7 +454,9 @@ local moving = {}
 local function scan(obj)
 	for _, c in ipairs(obj:GetChildren()) do
 		if c:IsA("BasePart") then
-			if c.Name == "KillPart" or c.Name == "Kill Brick" then
+			-- only the new levels' red KillParts kill drivers. The original map's "Kill Brick"s are invisible
+			-- zones right under its bridges, made for walkers: cars brushed them and killed the driver.
+			if c.Name == "KillPart" then
 				c.Touched:connect(function(hit) onKill(hit) end)
 			elseif c.Name == "KillFloor" then
 				c.Touched:connect(function(hit) onKillFloor(hit) end)

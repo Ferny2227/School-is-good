@@ -30,7 +30,8 @@ L.execute(open(os.path.join(ENG, 'world.lua')).read())
 L.execute('START_SERVER() runFor(1) JOINER = ADD_PLAYER("tester") runFor(6)')
 ROUNDS = 2
 L.execute('ROUNDS = 2')
-out = L.execute(open(os.path.join(HERE, 'scenario.lua')).read())
+out = L.execute(open(os.environ.get('SCENARIO') or os.path.join(HERE, 'scenario.lua')).read())
+if isinstance(out, str): out = {1: out}
 for line in out.values(): print(line)
 errs = [(e.msg, e.tb, e.ctx) for e in g.ERRORS.values()]
 seen = set()

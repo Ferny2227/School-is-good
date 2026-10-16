@@ -34,6 +34,9 @@
   coloured light, and smoke, fire, neon or gold on the top cars.
 - **Levels hidden:** levels 2-5 are now thousands of studs away. You can't see them from the main map;
   you get there only through the finish pad (teleport) or the LEVELS menu.
+- **No more dying on the old bridges in a car:** the original map's invisible "Kill Brick" zones (just under its
+  bridges, made for walkers) only kill people on foot again, like in the original game. The new levels' red
+  KillParts still kill drivers.
 - **Smaller UI:** the signs and car name tags are sized in studs (they don't cover the screen from far away),
   the HUD and buttons are smaller, and HIDE UI (or the H key) hides everything.
 
