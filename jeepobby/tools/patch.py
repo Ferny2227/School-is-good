@@ -127,6 +127,25 @@ for s in kids(water): disable(s)
 LOG.append('Water generator turned off (it made a new part 10 times a second: lag)')
 E.delete([r for r in kids(WS) if E.classof(r) == 'VelocityMotor'])
 
+# kill bricks: spare drivers sitting in their car (people on foot still die)
+nk = 0
+for kb in kids(WS, 'Kill Brick'):
+    for sc in kids(kb):
+        if E.classof(sc) == 'Script':
+            setsrc(sc, read('KillBrick.server.lua')); nk += 1
+LOG.append('%d Kill Brick scripts: no longer kill players sitting in a car' % nk)
+# the narrow bridge over the pit right after the start: 9 -> 14 studs wide (the jeep is 8.4 wide)
+nb = 0
+for r in kids(WS):
+    if E.classof(r) != 'Part': continue
+    p, R = cframe(E.prop(r, 'CFrame')[1]); sz = vec3(E.prop(r, 'size')[1])
+    if abs(p[0] - 963.8) < 1 and abs(p[2] - 47.7) < 1 and abs(sz[0] - 9) < 0.1 and abs(sz[2] - 71) < 0.1:
+        E.set_prop(r, 'size', VEC3(14, sz[1], sz[2])); nb += 1        # the bridge
+    if E.name(r) == 'Kill Brick' and abs(p[0] - 951.8) < 1 and abs(p[2] - 47.7) < 1 and abs(sz[0] - 9) < 0.1:
+        E.set_prop(r, 'size', VEC3(14, sz[1], sz[2])); nb += 1        # its kill brick (still kills walkers)
+assert nb == 2, nb
+LOG.append('widened the bridge over the pit after the start from 9 to 14 studs')
+
 # ------------------------------------------------------------------ 3. JeepObby folder: stages, levels, cars
 root = new_model(WS, 'JeepObby')
 stages = new_model(root, 'Stages')

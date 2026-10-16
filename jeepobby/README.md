@@ -37,6 +37,9 @@
 - **No more dying on the old bridges in a car:** the original map's invisible "Kill Brick" zones (just under its
   bridges, made for walkers) only kill people on foot again, like in the original game. The new levels' red
   KillParts still kill drivers.
+- **Start bridge fixed:** the bridge over the pit after the start was 9 studs wide with an invisible kill brick on top
+  (the jeep is 8.4 wide, so a wheel slipping off killed you). It is now 14 wide, and kill bricks never kill
+  someone sitting in a car (walkers still die).
 - **Smaller UI:** the signs and car name tags are sized in studs (they don't cover the screen from far away),
   the HUD and buttons are smaller, and HIDE UI (or the H key) hides everything.
 
