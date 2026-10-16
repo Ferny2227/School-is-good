@@ -800,8 +800,8 @@ local function setStats(Y)
 end
 
 local function rowOpen(Y, row)
+	if row == 0 then return true end      -- the first row always shows (only the owner can buy)
 	if Y.owner == "" then return false end
-	if row == 0 then return true end
 	local n = 0
 	for i, it in ipairs(ITEMS) do if it.row == row - 1 and Y.bought[i] then n = n + 1 end end
 	return n >= UNLOCK
@@ -898,7 +898,16 @@ local function makePad(Y, i)
 	pad.Touched:connect(function(hit)
 		if busy or Y.bought[i] then return end
 		local player = hit.Parent and Players:GetPlayerFromCharacter(hit.Parent)
-		if not player or player.Name ~= Y.owner then return end
+		if not player then return end
+		if player.Name ~= Y.owner then
+			if not busy then
+				busy = true
+				hint(player, Y.owner == "" and "Touch \"Become Owner\" at this mansion first!" or ("This is " .. Y.owner .. "'s backyard"))
+				wait(2)
+				busy = false
+			end
+			return
+		end
 		local ls = player:FindFirstChild("leaderstats")
 		local cash = ls and ls:FindFirstChild("Cash")
 		if not cash then return end
@@ -920,23 +929,40 @@ local function makePad(Y, i)
 	return pad
 end
 
-for _, tycoon in ipairs(workspace:GetChildren()) do
+-- set up a backyard for every tycoon, including ones that finish loading after this script starts
+-- (big places can still be loading when ServerScriptService runs)
+local function setupYard(tycoon)
+	if tycoon.Name ~= "tycoon" then return end
+	for _, Y in ipairs(YARDS) do if Y.tycoon == tycoon then return end end
 	local base = tycoon:FindFirstChild("BackyardBase")
-	if tycoon.Name == "tycoon" and base then
-		local Y = { tycoon = tycoon, base = base, bought = {}, pads = {}, owner = "" }
-		Y.padModel = Instance.new("Model", tycoon) Y.padModel.Name = "BackyardPads"
-		Y.items = Instance.new("Model", tycoon) Y.items.Name = "BackyardItems"
-		-- the mansion side: where the Become Owner button is (it disappears once someone owns the tycoon)
-		local f = tycoon:FindFirstChild("Factory")
-		local bo = f and f:FindFirstChild("Become Owner")
-		local head = bo and bo:FindFirstChild("Head")
-		Y.home = head and CFrame.new(head.CFrame.p) or base.CFrame
-		Y.entrance = base.CFrame * CFrame.new(0, base.Size.Y / 2, -base.Size.Z / 2 + 6)
-		for i = 1, #ITEMS do Y.pads[i] = makePad(Y, i) end
-		refreshPads(Y)
-		table.insert(YARDS, Y)
+	for _ = 1, 100 do
+		if base then break end
+		wait(0.3)
+		base = tycoon:FindFirstChild("BackyardBase")
 	end
+	if not base then return end
+	for _, Y in ipairs(YARDS) do if Y.tycoon == tycoon then return end end
+	local Y = { tycoon = tycoon, base = base, bought = {}, pads = {}, owner = "" }
+	table.insert(YARDS, Y)
+	Y.padModel = Instance.new("Model", tycoon) Y.padModel.Name = "BackyardPads"
+	Y.items = Instance.new("Model", tycoon) Y.items.Name = "BackyardItems"
+	-- the mansion side: where the Become Owner button is (it disappears once someone owns the tycoon)
+	local f = tycoon:FindFirstChild("Factory")
+	local bo = f and f:FindFirstChild("Become Owner")
+	local head = bo and bo:FindFirstChild("Head")
+	Y.home = head and CFrame.new(head.CFrame.p) or base.CFrame
+	Y.entrance = base.CFrame * CFrame.new(0, base.Size.Y / 2, -base.Size.Z / 2 + 6)
+	for i = 1, #ITEMS do Y.pads[i] = makePad(Y, i) end
+	refreshPads(Y)
 end
+for _, c in ipairs(workspace:GetChildren()) do spawn(function() setupYard(c) end) end
+workspace.ChildAdded:connect(function(c) spawn(function() setupYard(c) end) end)
+delay(15, function()
+	if #YARDS == 0 then
+		error("Backyard: found no tycoon with a BackyardBase after 15 seconds, so there are no backyards")
+	end
+	print("Backyard: " .. #YARDS .. " backyards set up")
+end)
 
 -- owners come and go (the tycoon resets when its owner leaves): reset the backyard with it
 spawn(function()
@@ -1048,4 +1074,4 @@ remote.OnServerEvent:connect(function(player, what)
 	pcall(function() remote:FireClient(player, "bought", "Own a mansion first (touch Become Owner)") end)
 end)
 
-print("Backyard ready: " .. #YARDS .. " backyards, " .. #ITEMS .. " things to buy each")
+print("Backyard script running: " .. #ITEMS .. " things to buy in each backyard")
