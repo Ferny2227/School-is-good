@@ -51,8 +51,14 @@ for it in sorted(items, key=zkey):
             if old and it.get('fontsize'):
                 try: size = int(it['fontsize'].replace('Size', ''))
                 except ValueError: pass
+        lines = t.split('\n')
+        if it['scaled'] and len(lines) > 1:
+            size = max(6, min(h * 0.8 / len(lines), (w / max(1, max(len(l) for l in lines))) * 1.8))
         f = font(size)
-        tw = dr.textlength(t, font=f)
-        dr.text((x + (w - tw) / 2, y + (h - size) / 2), t, font=f, fill=c + (ta,))
+        top = y + (h - size * 1.15 * len(lines)) / 2 if it.get('ya') != 'Top' else y
+        for k, line in enumerate(lines):
+            tw = dr.textlength(line, font=f)
+            lx = x if it.get('xa') == 'Left' else (x + w - tw if it.get('xa') == 'Right' else x + (w - tw) / 2)
+            dr.text((lx, top + k * size * 1.15), line, font=f, fill=c + (ta,))
 img.save(sys.argv[2])
 print('saved', sys.argv[2], len(items), 'items', '(2016 drawing rules)' if old else '')

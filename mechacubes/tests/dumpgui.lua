@@ -18,7 +18,7 @@ local function visit(o, guiIndex, siblingPath)
 			bg = c3(p.BackgroundColor3), bgt = p.BackgroundTransparency or 0, border = p.BorderSizePixel or 0,
 			text = (p.Text ~= nil and isA(cls, "GuiObject") and p.Text) or nil, tc = c3(p.TextColor3), tt = p.TextTransparency or 0,
 			scaled = p.TextScaled and true or false, ts = p.TextSize or 0,
-			fontsize = p.FontSize and p.FontSize.Name or "", image = p.Image or nil, it = p.ImageTransparency or 0, ic = c3(p.ImageColor3),
+			fontsize = p.FontSize and p.FontSize.Name or "", xa = p.TextXAlignment and p.TextXAlignment.Name or nil, ya = p.TextYAlignment and p.TextYAlignment.Name or nil, image = p.Image or nil, it = p.ImageTransparency or 0, ic = c3(p.ImageColor3),
 			clip = p.ClipsDescendants and true or false,
 		}
 		table.insert(out, item)

@@ -22,6 +22,15 @@ def num(x):
     r = repr(float(x)) if isinstance(x, float) else str(x)
     return r
 
+def rot(v0):
+    """rotation matrix (row-major) of a binary CFrame: either 9 floats or one of the 24 axis-aligned ids"""
+    if len(v0) == 37: return [struct.unpack('<f', v0[1 + 4 * i:5 + 4 * i])[0] for i in range(9)]
+    rid = v0[0] - 1
+    vec = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (-1, 0, 0), (0, -1, 0), (0, 0, -1)]
+    a, b = vec[rid // 6], vec[rid % 6]
+    c = (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+    return [a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]]
+
 def value(t, v):
     if t == 1: return lbytes(v[4:])
     if t == 2: return 'true' if v[0] else 'false'
@@ -34,7 +43,11 @@ def value(t, v):
     if t == 12: return 'Color3.new(%s,%s,%s)' % tuple(num(round(f32(x), 6)) for x in v)
     if t == 13: return 'Vector2.new(%s,%s)' % tuple(num(round(f32(x), 4)) for x in v)
     if t == 14: return 'Vector3.new(%s,%s,%s)' % tuple(num(round(f32(x), 4)) for x in v)
-    if t == 16: return 'CFrame.new(%s,%s,%s)' % tuple(num(round(f32(x), 4)) for x in v[1:])
+    if t == 16:
+        pos = tuple(num(round(f32(x), 4)) for x in v[1:])
+        R = rot(v[0])
+        if R == [1, 0, 0, 0, 1, 0, 0, 0, 1]: return 'CFrame.new(%s,%s,%s)' % pos
+        return 'CFrame.new(%s,%s,%s,%s)' % (pos + (','.join(num(round(x, 6)) for x in R),))
     if t == 18: return '{_enum=%d}' % u32(v)
     if t == 19: return '{_ref=%d}' % v
     if t == 26: return 'Color3.new(%r,%r,%r)' % tuple(round(x / 255, 6) for x in v)
