@@ -83,6 +83,7 @@ local function buyAll(plot, player)
 end
 
 D.FLY.CRUISE = CRUISE_SECONDS or D.FLY.CRUISE   -- shorter flights so the test sees whole trips
+D.FLY.MINCRUISE = math.floor(D.FLY.CRUISE * 0.8)
 local p1 = MOCK.addPlayer("tester", 111)
 MOCK.run(1)
 MOCK.makeCharacter(p1)

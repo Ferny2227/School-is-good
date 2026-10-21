@@ -117,11 +117,12 @@ end
 -- to land when its gate is free. Pilots sit in the cockpit; passengers board through the jet bridge.
 -- opt (all optional): z = where it parks, dep/arr = path makers (default: the main runway), rz = that runway's z,
 -- needs = the plot flag that must be true before it departs, tail = colour, cargo = freighter look, name, count
-FLY.CRUISE = 300   -- seconds in the air
+FLY.CRUISE = 300      -- seconds in the air, usually
+FLY.MINCRUISE = 240   -- never called back sooner than this
 function A.gatePlane(plot, n, x, opt)
 	if plot.gates[n] then return end
 	opt = opt or {}
-	local g = { n = n, x = x, z = opt.z or 388, rz = opt.rz or 525, opt = opt, planes = {}, made = 0, count = opt.count or 3,
+	local g = { n = n, x = x, z = opt.z or 388, rz = opt.rz or 525, opt = opt, planes = {}, made = 0, count = opt.count or 4,
 		dep = opt.dep or FLY.departure, arr = opt.arr or FLY.arrival, needs = opt.needs or "hasRunway", nextSpawn = 0 }
 	plot.gates[n] = g
 	FLY.newPlane(plot, g, "parked")
@@ -196,7 +197,8 @@ end
 function FLY.startCruise(gp, frac)
 	local P = FLY.loop(gp.plot, gp.g.rz)
 	local now = tick()
-	gp.state, gp.t0 = "cruising", now
+	-- a plane that joins the fleet in the sky has already been flying for a while
+	gp.state, gp.t0 = "cruising", now - (frac or 0) * FLY.CRUISE
 	gp.loop = P
 	gp.qoff = (P.tD or 0) + (frac or 0) * P.total - now
 	gp.until_ = now + FLY.CRUISE * (0.85 + math.random() * 0.3) - (frac or 0) * 120
@@ -231,7 +233,7 @@ function FLY.callNext(g, leaving)
 	for _, p in ipairs(g.planes) do
 		if p ~= leaving and p.state == "cruising" and p.model.Parent and (not best or p.t0 < best.t0) then best = p end
 	end
-	if best then best.until_ = 0 end
+	if best then best.until_ = math.min(best.until_, best.t0 + FLY.MINCRUISE) end
 end
 function FLY.boardTime(plot)
 	local pilots, atc = plot.staff.pilot or 0, plot.staff.atc or 0
