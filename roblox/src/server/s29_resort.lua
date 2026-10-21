@@ -110,7 +110,7 @@ end
 function RESORT.clearToPush(st)
 	for o in pairs(RESORT.planes) do
 		if o.model.Parent and (o.state == "resortLanding" or (o.state == "resortTakeoff" and not o.cleared)) then
-			local q = o.root.CFrame.p
+			local q = (o.pos or o.root.CFrame.p)
 			local dx = q.x - st.x
 			if q.y < 12 and dx > -70 and dx < 170 and q.z > 2005 then return false end
 		end
@@ -131,12 +131,12 @@ function RESORT.blocker(gp, t, now)
 	d = V(d.x, 0, d.z)
 	if d.magnitude < 0.01 then return nil end
 	d = d.unit
-	local me = gp.root.CFrame.p
+	local me = gp.pos or gp.root.CFrame.p
 	for o in pairs(RESORT.planes) do
 		if not o.model.Parent then
 			RESORT.planes[o] = nil
 		elseif o ~= gp and o.waitingFor ~= gp and (o.state == "resortLanding" or o.state == "resortTakeoff") then
-			local q = o.root.CFrame.p
+			local q = (o.pos or o.root.CFrame.p)
 			local off = V(q.x - me.x, 0, q.z - me.z)
 			if q.y < 12 and off.magnitude < 64 and off.magnitude > 0.01 and (d.x * off.x + d.z * off.z) > 0.6 * off.magnitude then
 				gp.waitSince = gp.waitSince or now

@@ -104,6 +104,17 @@ spawn(function()
 		local now = tick()
 		local dt = math.min(0.2, now - last)
 		last = now
+		-- where the players are (for U.due: things far from everyone update less often)
+		if now >= (G.nextEyes or 0) then
+			G.nextEyes = now + 0.5
+			local eyes = {}
+			for _, p in ipairs(Players:GetPlayers()) do
+				local c = p.Character
+				local t = c and (c:FindFirstChild("Torso") or c:FindFirstChild("HumanoidRootPart"))
+				if t then table.insert(eyes, t.Position) end
+			end
+			G.eyes = eyes
+		end
 		LIFT.step(dt)
 		NPC.step(dt)
 		FLY.step(dt)
@@ -126,7 +137,7 @@ spawn(function()
 			local s = G.spinners[i]
 			if not s.parts[1].Parent then
 				table.remove(G.spinners, i)
-			else
+			elseif U.nearest(s.center.p) < 600 then   -- nobody near: no need to turn it
 				local a = math.rad(s.speed * t)
 				local r = s.axis == "y" and CFrame.Angles(0, a, 0) or CFrame.Angles(0, 0, a)
 				for k, p in ipairs(s.parts) do p.CFrame = s.center * r * s.rel[k] end
@@ -182,7 +193,7 @@ spawn(function()
 				if plot.bought.foundation then
 					local c = plot.cnt
 					local interval = math.max(2.5, 16 / (1 + 0.3 * (c.transport or 0) + 0.15 * (c.desk or 0) + 0.25 * (c.gate or 0)))
-					local cap = math.min(26, 3 + (c.desk or 0) + 2 * (c.gate or 0) + 4 * (c.level or 0))
+					local cap = math.min(18, 3 + (c.desk or 0) + 2 * (c.gate or 0) + 4 * (c.level or 0))
 					plot.spawnT = plot.spawnT - 1
 					if plot.spawnT <= 0 and #plot.People:GetChildren() < cap then
 						plot.spawnT = interval * (0.8 + math.random() * 0.4)
@@ -193,7 +204,7 @@ spawn(function()
 					if plot.bought.hreception and plot.pts.hroom and #plot.pts.hroom > 0 then
 						plot.guestT = (plot.guestT or 5) - 1
 						local rooms = #plot.pts.hroom
-						local gcap = math.min(14, 2 + math.ceil(rooms / 2))
+						local gcap = math.min(10, 2 + math.ceil(rooms / 2))
 						if plot.guestT <= 0 and #plot.Guests:GetChildren() < gcap then
 							plot.guestT = math.max(3, 12 / (1 + 0.25 * (plot.staff.bellhop or 0) + rooms / 16)) * (0.8 + math.random() * 0.4)
 							local ok, err = pcall(NPC.guest, plot)
@@ -242,7 +253,7 @@ spawn(function()
 			pcall(function() G.remote:FireClient(p, "state", A.state(p)) end)
 		end
 		-- the theme park always has some visitors, even before any planes fly there
-		if RESORT.ready and screenLines % 5 == 0 and RESORT.PARK.visitors < 14 then
+		if RESORT.ready and screenLines % 5 == 0 and RESORT.PARK.visitors < 10 and U.nearest(RESORT.parkCenter) < 1500 then
 			local ok, err = pcall(RESORT.PARK.visitor)
 			if not ok then print("Airport: park visitor failed: " .. tostring(err)) end
 		end

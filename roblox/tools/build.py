@@ -2,7 +2,7 @@
 """Build AirportTycoon-Admin.rbxl from base/AirportTycoon.rbxl and the Lua sources in src/.
 
 - ServerScriptService.AirportServer source = src/server/*.lua joined in file-name order
-- StarterGui.AirportClient source        = src/client/AirportClient.lua + src/client/BuildTag.lua
+- StarterGui.AirportClient source        = src/client/AirportClient.lua + BuildTag.lua + Smooth.lua
 - adds ServerScriptService.AdminServer (+ AdminClient inside it) and StarterGui.AdminAnnounce
 - turns Workspace.FilteringEnabled on
 
@@ -33,7 +33,7 @@ def server_source():
 
 SOURCES = {  # existing scripts whose Source is replaced
     "AirportServer": server_source(),
-    "AirportClient": read("src/client/AirportClient.lua") + read("src/client/BuildTag.lua"),
+    "AirportClient": read("src/client/AirportClient.lua") + read("src/client/BuildTag.lua") + read("src/client/Smooth.lua"),
 }
 NEW = [  # (class, name, source file, parent: service name or the name of another new script)
     ("Script", "AdminServer", "src/AdminServer.lua", "ServerScriptService"),

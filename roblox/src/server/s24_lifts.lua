@@ -59,6 +59,48 @@ function LIFT.place(L)
 	local at = L.plot.cf * CFrame.new(L.x, L.y + 0.05, L.z)
 	for _, p in ipairs(L.parts) do p.part.CFrame = at * p.rel end
 end
+-- Players riding a moving car: a car moved by CFrame doesn't carry people (they bounce on the way up and fall on
+-- the way down, which looks like glitching). So while it moves, the floor gets the car's speed and every player
+-- standing in the car gets a BodyVelocity that moves them up/down with it (it also pulls them back onto the floor
+-- if they drift). v = vertical speed, nil when the car is stopped: then everything is removed.
+function LIFT.carry(L, v)
+	L.riders = L.riders or {}
+	local floor = L.parts[1] and L.parts[1].part
+	if floor and L.floorV ~= (v or 0) then
+		L.floorV = v or 0
+		pcall(function() floor.Velocity = Vector3.new(0, L.floorV, 0) end)
+	end
+	local seen = {}
+	if v then
+		local c = L.plot.cf * Vector3.new(L.x, L.y, L.z)
+		for _, player in ipairs(Players:GetPlayers()) do
+			local char = player.Character
+			local torso = char and (char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart"))
+			if torso then
+				local p = torso.Position
+				local dy = p.Y - c.Y
+				if dy > -1 and dy < 9 and Vector3.new(p.X - c.X, 0, p.Z - c.Z).magnitude < 4.3 then
+					seen[player] = true
+					local bv = L.riders[player]
+					if not bv or bv.Parent ~= torso then
+						bv = Instance.new("BodyVelocity")
+						bv.Name = "ElevatorRide"
+						bv.maxForce = Vector3.new(0, 4e5, 0)
+						bv.Parent = torso
+						L.riders[player] = bv
+					end
+					bv.velocity = Vector3.new(0, v + (3 - dy) * 4, 0)
+				end
+			end
+		end
+	end
+	for player, bv in pairs(L.riders) do
+		if not seen[player] then
+			pcall(function() bv:Destroy() end)
+			L.riders[player] = nil
+		end
+	end
+end
 
 -- make the car (called by the item that builds the bottom of the shaft)
 function U.lift(b, id, x, z, levels, keys, open, names)
@@ -104,12 +146,10 @@ function U.lift(b, id, x, z, levels, keys, open, names)
 	end
 	pad("UP", "Lime green", -1.8, 1)
 	pad("DOWN", "Really red", 1.8, -1)
-	for _, p in ipairs(cab:GetChildren()) do
-		if p:IsA("BasePart") then
-			p.Anchored = true
-			table.insert(L.parts, { part = p, rel = p.CFrame })
-		end
-	end
+	-- the whole car is one rig (everything welded to the floor), so moving it is one CFrame a frame, not 16
+	local floor = cab:FindFirstChild("CarFloor")
+	U.rig(cab, floor, true)
+	table.insert(L.parts, { part = floor, rel = floor.CFrame })
 	cab.Parent = b.model
 	L.cab = cab
 	LIFT.place(L)
@@ -205,6 +245,7 @@ function LIFT.step(dt)
 	for k = #G.lifts, 1, -1 do
 		local L = G.lifts[k]
 		if not L.cab.Parent then
+			LIFT.carry(L, nil)   -- nobody keeps floating if the airport is reset mid-ride
 			L.dead = true
 			table.remove(G.lifts, k)
 		else
@@ -249,6 +290,7 @@ function LIFT.step(dt)
 						L.y = ny
 					end
 					LIFT.place(L)
+					LIFT.carry(L, L.state == "moving" and dir * LIFT.speed or nil)
 				end
 			end
 			for i, d in pairs(L.doors) do

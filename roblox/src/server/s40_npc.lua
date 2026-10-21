@@ -5,8 +5,16 @@
 -- { ride = L, level = j } ride inside the car until it opens at level j
 function NPC.walk(plot, model, root, route, speed, onDone)
 	local w = { plot = plot, model = model, root = root, route = route, i = 1, pos = route[1].p, wt = 0,
-		speed = speed or CONST.walkSpeed, onDone = onDone, dir = Vector3.new(0, 0, -1), face = Vector3.new(0, 0, -1),
-		limbs = M.limbs(root), ph = math.random() * 6 }
+		speed = speed or CONST.walkSpeed, onDone = onDone, dir = Vector3.new(0, 0, -1), face = Vector3.new(0, 0, -1) }
+	-- players' computers animate the walking (src/client/Smooth.lua); the server only tells them, through this
+	-- value, where the person walks to next: "fromX fromY fromZ toX toY toZ speed", or "R" while the server moves
+	-- them itself (riding an elevator)
+	w.move = Instance.new("StringValue")
+	w.move.Name = "Move"
+	w.move.Parent = model
+	w.resend = 0
+	local p = w.pos + Vector3.new(0, 3, 0)
+	root.CFrame = CFrame.new(p, p + w.face)
 	table.insert(G.walkers, w)
 	return w
 end
@@ -81,21 +89,23 @@ function NPC.step(dt)
 		elseif w.model.Parent then
 			-- face the way they walk (riding an elevator straight up/down keeps the old direction)
 			local flat = Vector3.new(w.dir.x, 0, w.dir.z)
-			local walking = w.wt <= 0 and not w.riding and not w.waiting and flat.magnitude > 0.3
 			if flat.magnitude > 0.3 then w.face = flat.unit end
-			local bob = walking and math.abs(math.sin(now * 8 + w.ph)) * 0.15 or 0
-			local p = w.pos + Vector3.new(0, 3 + bob, 0)
-			w.root.CFrame = CFrame.new(p, p + w.face)
-			-- swing arms and legs like a Roblox character (10 times a second is plenty, and it all replicates)
-			if walking then
-				if now >= (w.nextPose or 0) then
-					w.nextPose = now + 0.1
-					M.pose(w.limbs, math.sin(now * 8 + w.ph) * 0.7)
-					w.posed = true
+			if w.riding then
+				-- in an elevator: the server moves them (players' computers leave them alone while Move is "R")
+				if w.sent ~= "R" then w.sent = "R" w.move.Value = "R" end
+				if U.due(w, w.pos, dt) then
+					local p = w.pos + Vector3.new(0, 3, 0)
+					w.root.CFrame = CFrame.new(p, p + w.face)
 				end
-			elseif w.posed then
-				M.pose(w.limbs, 0)
-				w.posed = false
+			else
+				-- walking somewhere new: tell the players' computers once (not every step)
+				-- (sent again every few seconds with where they are now, so players who just joined catch up)
+				local target = w.wt <= 0 and not w.waiting and w.route[w.i]
+				if target and target.p and (w.sent ~= target or now > w.resend) then
+					w.sent, w.resend = target, now + 3
+					local a, b = w.pos, target.p
+					w.move.Value = string.format("%.2f %.2f %.2f %.2f %.2f %.2f %.2f", a.x, a.y, a.z, b.x, b.y, b.z, w.speed)
+				end
 			end
 		end
 	end
@@ -353,7 +363,7 @@ local function walkOut(plot, gp, delay, look, name, kind, bags)
 	w.kind = kind
 end
 function NPC.arrivals(plot, gp)
-	if #plot.Crowd:GetChildren() > 30 then return end
+	if #plot.Crowd:GetChildren() > 20 then return end
 	for i = 1, math.random(3, 6) do walkOut(plot, gp, 0.5 + (i - 1) * 1.4, M.passengerLook(), "Arriving Passenger", "arrival", true) end
 end
 local CREW = {

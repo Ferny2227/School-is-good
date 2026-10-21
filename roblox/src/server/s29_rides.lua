@@ -565,13 +565,11 @@ local function haunted(root)
 	end
 	U.blk(b, "Fence", 84, 0.3, 0.3, 330, 3.4, z0 - 30, "Really black", "Metal")
 	U.blk(b, "Platform", 16, 1, 6, 322, 0, 2374, "Dark stone grey", "WoodPlanks")
-	-- spooky things inside
-	local ghosts = {}
+	-- spooky things inside (the ghosts and the spider float on players' own computers: src/client/Smooth.lua)
 	for i, p in ipairs({ { 320, 2410 }, { 345, 2408 }, { 352, 2432 }, { 325, 2436 }, { 336, 2422 } }) do
-		local g = U.ball(b, "Ghost", 3, p[1], 6, p[2], "Institutional white", "Neon", { tr = 0.3, nc = true })
-		local eye1 = U.ball(b, "GhostEye", 0.5, p[1] - 0.6, 6.4, p[2] - 1.4, "Really black", nil, { nc = true })
-		local eye2 = U.ball(b, "GhostEye", 0.5, p[1] + 0.6, 6.4, p[2] - 1.4, "Really black", nil, { nc = true })
-		table.insert(ghosts, { parts = { g, eye1, eye2 }, base = { g.CFrame, eye1.CFrame, eye2.CFrame }, ph = i * 1.3 })
+		U.ball(b, "Ghost" .. i, 3, p[1], 6, p[2], "Institutional white", "Neon", { tr = 0.3, nc = true })
+		U.ball(b, "GhostEye" .. i, 0.5, p[1] - 0.6, 6.4, p[2] - 1.4, "Really black", nil, { nc = true })
+		U.ball(b, "GhostEye" .. i, 0.5, p[1] + 0.6, 6.4, p[2] - 1.4, "Really black", nil, { nc = true })
 	end
 	U.blk(b, "Coffin", 3, 1.4, 7, 342, 0.4, 2425, "Reddish brown", "Wood")
 	U.blk(b, "CoffinLid", 3.2, 0.3, 7.2, 343.2, 2.2, 2425, "Brown", "Wood", nil, 20)
@@ -579,7 +577,7 @@ local function haunted(root)
 		U.blk(b, "Skeleton", 1.4, 4, 0.6, p[1], 0.4, p[2], "Institutional white", "SmoothPlastic")
 		U.ball(b, "Skull", 1.6, p[1], 5.4, p[2], "Institutional white")
 	end
-	local spider = U.ball(b, "Spider", 2.4, 330, 13, 2412, "Really black")
+	U.ball(b, "Spider", 2.4, 330, 13, 2412, "Really black")
 	U.blk(b, "Web", 0.1, 4, 0.1, 330, 14.2, 2412, "Institutional white", nil, { nc = true })
 	U.blk(b, "Boo", 6, 3, 0.2, 358, 7, 2420, "Really red", "Neon", nil, 90)
 	for _, p in ipairs({ { 310, 2405 }, { 350, 2440 }, { 330, 2420 } }) do U.light(U.ball(b, "RedLight", 0.8, p[1], 15, p[2], "Really red", "Neon", { nc = true }), Color3.new(1, 0, 0), 22, 2) end
@@ -615,12 +613,6 @@ local function haunted(root)
 			if d.magnitude > 0.02 then c.look = d.unit end
 			c.root.CFrame = CFrame.new(p, p + (c.look or V(1, 0, 0)))
 		end
-		local now = tick()
-		for _, g in ipairs(ghosts) do
-			local off = CFrame.new(math.sin(now * 0.7 + g.ph) * 2, math.sin(now * 2 + g.ph) * 1.5, 0)
-			for i, part in ipairs(g.parts) do part.CFrame = off * g.base[i] end
-		end
-		spider.CFrame = CFrame.new(330, 11 + math.sin(now * 1.5) * 2.5, 2412)
 	end
 	return R
 end
@@ -734,7 +726,7 @@ end
 
 ------------------------------------------------------------------ visitors: people who come off the planes (or out of the
 -- terminal), walk to the park, queue at a few rides, then walk back to the airport
-PARK.MAX = 30
+PARK.MAX = 18
 function PARK.visitor(fromX)
 	if PARK.visitors >= PARK.MAX or not PARK.root or #RIDES == 0 then return end
 	local route = {}
@@ -813,6 +805,10 @@ function RESORT.build()
 	root.Name = "Paradise Island"
 	root.Parent = workspace
 	RESORT.root = root
+	local centre = Instance.new("Vector3Value")
+	centre.Name = "Centre"
+	centre.Value = V(-210, 0, 2420)
+	centre.Parent = root
 	RESORT.buildIsland(root)
 	RESORT.buildAirport(root)
 	local park = Instance.new("Model")
@@ -831,7 +827,15 @@ function RESORT.build()
 	pad(root, CFrame.new(-176, 0.6, 2250), "FLY HOME", "Lime green", RESORT.goHome)
 	pad(workspace, CFrame.new(35, 0.6, -205), "FLY TO PARADISE PARK\n(10 rides!)", "Hot pink", RESORT.toPark)
 end
+RESORT.parkCenter = V(300, 0, 2450)
+-- the rides only run while someone is close enough to see them, and more smoothly the closer they are
 function RESORT.step(dt)
+	RESORT.rideAcc = (RESORT.rideAcc or 0) + dt
+	local d = U.nearest(RESORT.parkCenter)
+	if d > 1500 then RESORT.rideAcc = 0 return end
+	if RESORT.rideAcc < (d < 700 and 0.05 or 0.1) then return end   -- 20 updates a second near, 10 further away
+	dt = RESORT.rideAcc
+	RESORT.rideAcc = 0
 	for _, r in ipairs(RIDES) do
 		local ok, err = pcall(r.step, dt)
 		if not ok and not r.failed then

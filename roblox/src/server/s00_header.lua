@@ -3,7 +3,7 @@
 -- Airport Tycoon: 10 airports to claim, 300 things to buy in each (a 3-storey terminal, a hotel guests stay in), staff to hire, passengers who walk
 -- through your airport, pay and leave reviews, an inspector, NPC airliners, and planes you can fly.
 -- Written for 2016 Roblox engines: lowercase :connect, ypcall, no TweenService/typeof/AnchorPoint,
--- FormFactor Custom on new parts, BodyGyro/BodyVelocity with lowercase property names.
+-- no FormFactor (deprecated: setting it only spams warnings), BodyGyro/BodyVelocity with lowercase property names.
 local pcall = ypcall or pcall
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -41,7 +41,6 @@ end
 
 function U.newPart(class)
 	local p = Instance.new(class or "Part")
-	pcall(function() p.FormFactor = Enum.FormFactor.Custom end)
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	return p
@@ -158,10 +157,42 @@ function U.rig(model, root, collide)
 	root.Anchored = true
 end
 function U.spin(parts, center, axis, speed)
+	-- weld everything to the first part, so turning it is one CFrame (one network message) instead of one per part
+	if #parts > 1 then
+		for i = 2, #parts do
+			U.weld(parts[1], parts[i])
+			parts[i].Anchored = false
+		end
+		parts = { parts[1] }
+	end
 	local rel = {}
 	for i, p in ipairs(parts) do rel[i] = center:inverse() * p.CFrame end
 	table.insert(G.spinners, { parts = parts, rel = rel, center = center, axis = axis, speed = speed })
 end
 function U.pick(t) return t[math.random(1, #t)] end
+-- Distance-based update rates. Every CFrame the server sets is sent to every player, so things nobody is near are
+-- updated less often: within 150 studs of a player every frame, then 20, 10, 3 and 1 times a second.
+-- G.eyes (players' positions) is refreshed by the fast loop in s60_main.lua.
+G.eyes = {}
+function U.nearest(pos)
+	local best = 1e9
+	for _, e in ipairs(G.eyes) do
+		local d = (e - pos).magnitude
+		if d < best then best = d end
+	end
+	return best
+end
+-- true (and the time since the last update) when object o at pos should be moved this frame
+function U.due(o, pos, dt)
+	o.lodAcc = (o.lodAcc or 0) + (dt or 0.03)
+	local d = U.nearest(pos)
+	local every = d < 150 and 0 or (d < 350 and 0.05 or (d < 1000 and 0.1 or (d < 2500 and 0.33 or 1)))
+	if o.lodAcc >= every then
+		local a = o.lodAcc
+		o.lodAcc = 0
+		return true, a
+	end
+	return false
+end
 function U.clamp(x, a, b) if x < a then return a elseif x > b then return b end return x end
 

@@ -230,7 +230,8 @@ MOCK.Event = Event
 local EVENTS = { Touched = true, Changed = true, ChildAdded = true, ChildRemoved = true, PlayerAdded = true, PlayerRemoving = true,
 	CharacterAdded = true, Chatted = true, OnServerEvent = true, OnClientEvent = true, MouseButton1Click = true, Error = true,
 	MessageOut = true, Died = true, AncestryChanged = true, DescendantAdded = true, MouseButton1Down = true, MouseButton1Up = true,
-	MouseLeave = true, MouseEnter = true, KeyDown = true, KeyUp = true, FocusLost = true, MouseClick = true }
+	MouseLeave = true, MouseEnter = true, KeyDown = true, KeyUp = true, FocusLost = true, MouseClick = true,
+	RenderStepped = true, Heartbeat = true, Stepped = true }
 local Inst = {}
 local imt = {}
 local allParts = {}
@@ -260,6 +261,12 @@ imt.__newindex = function(o, k, v)
 		end
 		props.Parent = v
 		if v then table.insert(rawget(v, "_c"), o) end
+		-- workspace.DescendantAdded (only when something listens, e.g. the client test)
+		local wa = workspace and rawget(rawget(workspace, "_p"), "DescendantAdded")
+		if v and wa and #wa.fns > 0 and (v == workspace or v:IsDescendantOf(workspace)) then
+			wa:fire(o)
+			for _, d in ipairs(o:GetDescendants()) do wa:fire(d) end
+		end
 		return
 	end
 	if k == "Position" then
@@ -268,6 +275,18 @@ imt.__newindex = function(o, k, v)
 		return
 	end
 	if k == "CFrame" then assert(MOCK.isCFrame(v), "CFrame property set to a non-CFrame") end
+	-- replication traffic estimate: property changes on things in the workspace go to every player
+	if MOCK.countRepl and o:IsDescendantOf(workspace) then
+		local key = props.ClassName .. "." .. k
+		MOCK.repl[key] = (MOCK.repl[key] or 0) + 1
+		local top = o
+		while top.Parent and top.Parent ~= workspace do top = top.Parent end
+		MOCK.replTop[top.Name] = (MOCK.replTop[top.Name] or 0) + 1
+		if MOCK.replModel and o.Parent then
+			local key2 = o.Parent.Name .. "." .. k
+			MOCK.replModel[key2] = (MOCK.replModel[key2] or 0) + 1
+		end
+	end
 	if k == "Size" and isPart(props.ClassName) then
 		assert(getmetatable(v) == V3, "Size set to a non-Vector3")
 		-- like old Roblox: resizing a part that is already in the world pushes it up out of whatever it overlaps
@@ -278,6 +297,10 @@ imt.__newindex = function(o, k, v)
 	if k == "BrickColor" then assert(type(v) == "table" and v.Name, "BrickColor set to a non-BrickColor") end
 	if k == "Material" then assert(type(v) == "table" and v.EnumType == "Material", "Material set to a non-material") end
 	props[k] = v
+	local ch = rawget(props, "Changed")
+	if ch and #ch.fns > 0 then
+		if k == "Value" then ch:fire(v) else ch:fire(k) end
+	end
 end
 imt.__tostring = function(o) return rawget(o, "_p").Name end
 local function new(cls, parent)
@@ -371,7 +394,7 @@ function MOCK.store:SetAsync(k, v) self.data[k] = v end
 game = new("DataModel")
 game.Name = "Game"
 MOCK.services = {}
-for _, n in ipairs({ "Workspace", "Players", "ReplicatedStorage", "ReplicatedFirst", "ServerScriptService", "ServerStorage",
+for _, n in ipairs({ "RunService", "Workspace", "Players", "ReplicatedStorage", "ReplicatedFirst", "ServerScriptService", "ServerStorage",
 	"StarterGui", "Lighting", "Debris", "DataStoreService", "ScriptContext", "LogService", "SoundService", "Teams" }) do
 	local s = new(n, game)
 	s.Name = n

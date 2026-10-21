@@ -1,58 +1,14 @@
 -- Runs AirportServer in the mock: claim airports, buy everything, simulate play, save + reload.
--- Globals from the runner: SERVER_SOURCE, SIM_SECONDS
+-- Globals from the runner: SIM_SECONDS (setup.lua has already started the server)
 local MOCK = MOCK
-local printed = {}
-local realprint = print
-function print(...)
-	local t = {}
-	for i = 1, select("#", ...) do t[i] = tostring((select(i, ...))) end
-	local s = table.concat(t, " ")
-	table.insert(printed, s)
-	if s:find("failed") or s:find("rror") then table.insert(MOCK.errors, "printed: " .. s) end
-end
--- map: 10 plots like the real place
-local map = MOCK.new("Model", workspace) map.Name = "AirportMap"
-local plots = MOCK.new("Model", map) plots.Name = "Plots"
-local xs = { -1400, -700, 0, 700, 1400 }
-for i = 1, 10 do
-	local x = xs[(i - 1) % 5 + 1]
-	local south = i > 5
-	local pm = MOCK.new("Model", plots) pm.Name = "Plot" .. i
-	local cf = south and (CFrame.new(x, 0.5, -360) * CFrame.Angles(0, math.pi, 0)) or CFrame.new(x, 0.5, 360)
-	MOCK.part(pm, "Origin", Vector3.new(1, 1, 1), cf)
-	MOCK.part(pm, "Base", Vector3.new(420, 0.1, 620), cf * CFrame.new(0, -0.4, 310))
-	for _, c in ipairs({ { -210, 310, 2, 620 }, { 210, 310, 2, 620 }, { 0, 0.5, 422, 1 }, { 0, 619.5, 422, 1 } }) do
-		MOCK.part(pm, "Curb", Vector3.new(c[3], 0.6, c[4]), cf * CFrame.new(c[1], -0.1, c[2]))
-	end
-end
-local trees = MOCK.new("Model", map) trees.Name = "Trees"
-for i = 1, 60 do
-	local x, z = math.random(-1700, 1700), math.random(-1250, 1250)
-	MOCK.part(trees, "Trunk", Vector3.new(2, 10, 2), CFrame.new(x, 5, z))
-	MOCK.part(trees, "Leaves", Vector3.new(8, 8, 8), CFrame.new(x, 12, z))
-end
-local plaza = MOCK.new("Model", map) plaza.Name = "Plaza"
-MOCK.part(plaza, "WelcomeBoard", Vector3.new(60, 14, 1), CFrame.new(0, 10, -200))
-local hub = MOCK.new("Model", map) hub.Name = "Hub"
-MOCK.part(hub, "HubSign", Vector3.new(120, 10, 1), CFrame.new(-300, 40, -177))
-MOCK.part(map, "Spawn", Vector3.new(14, 1, 14), CFrame.new(0, 1, -215))
-local ground = MOCK.new("Model", map) ground.Name = "Ground"
-
--- run the server
-MOCK.pushOnResize = true
-local fn, err = loadstring(SERVER_SOURCE, "=AirportServer")
-if not fn then error(err) end
-spawn(fn)
-MOCK.run(3)
 local D = _G.AirportDebug
-assert(D, "server did not start: " .. table.concat(MOCK.errors, "\n"))
 local G, A, CATALOG = D.G, D.A, D.CATALOG
 local out = {}
 local function say(s) table.insert(out, s) end
 say("catalog items: " .. #CATALOG)
 -- the enlarged ground must stay on the ground
 for i, pl in ipairs(G.plots) do
-	local pm = plots:FindFirstChild("Plot" .. i)
+	local pm = workspace.AirportMap.Plots:FindFirstChild("Plot" .. i)
 	for _, part in ipairs(pm:GetChildren()) do
 		local l = pl.cf:inverse() * part.CFrame.p
 		if math.abs(l.Y) > 1 then table.insert(MOCK.errors, "Plot" .. i .. "." .. part.Name .. " is at height " .. l.Y) end
@@ -111,8 +67,12 @@ local gateWaitSum, walkSum, boardSum, gaveUp = 0, 0, 0, 0
 local skyTimes, lastState = {}, {}
 local seenKinds = {}
 local T = SIM_SECONDS or 240
--- Paradise Island bookkeeping
+-- Paradise Island bookkeeping (a player stands in the theme park: rides only run when someone is near)
 local RES = D.RESORT
+local fan = MOCK.addPlayer("parkfan", 909)
+MOCK.run(1)
+MOCK.makeCharacter(fan)
+fan.Character.Torso.CFrame = RES.entrance
 local tripStart, trips, resortStates, resortVisits, maxStands = {}, {}, {}, 0, 0
 local minSep, minSepWhat, closeCalls, rideMoved = 1e9, "", 0, {}
 local slotLate, slotN = 0, 0
@@ -313,8 +273,20 @@ do
 	pad.Touched:fire(torso)
 	for _ = 1, 40 do MOCK.run(0.5) if L.state == "open" and L.idx == 3 then break end end
 	local okCall = L.idx == 3 and L.state == "open"
+	-- the player steps into the car; while it moves they get carried (BodyVelocity), and it's removed after
+	torso.CFrame = CFrame.new(L.plot.cf * Vector3.new(L.x, L.y + 3, L.z))
 	btn.ClickDetector.MouseClick:fire(p1)
-	for _ = 1, 80 do MOCK.run(0.5) if L.state == "open" and L.idx == 7 then break end end
+	local carried = false
+	for _ = 1, 160 do
+		MOCK.run(0.25)
+		local bv = torso:FindFirstChild("ElevatorRide")
+		if bv then
+			carried = true
+			torso.CFrame = CFrame.new(L.plot.cf * Vector3.new(L.x, L.y + 3, L.z))   -- (no physics in the mock: ride along by hand)
+		end
+		if L.state == "open" and L.idx == 7 then break end
+	end
+	say("player carried by the moving elevator: " .. tostring(carried) .. ", BodyVelocity removed on arrival: " .. tostring(torso:FindFirstChild("ElevatorRide") == nil))
 	say("player elevator test: called to floor 3 = " .. tostring(okCall) .. ", rode to roof = " .. tostring(L.idx == 7) ..
 		", car floor height " .. string.format("%.1f", (plot.cf:inverse() * L.parts[1].part.CFrame.p).Y) .. ", door open " .. string.format("%.1f", L.doors[7].t))
 end
@@ -385,4 +357,3 @@ say("parts in world: " .. #MOCK.allParts)
 say("errors: " .. #MOCK.errors)
 for i = 1, math.min(15, #MOCK.errors) do say("  " .. MOCK.errors[i]:sub(1, 600)) end
 _G.TEST_OUT = table.concat(out, "\n")
-_G.TEST_PRINTED = printed

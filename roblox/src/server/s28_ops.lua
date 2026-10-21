@@ -103,10 +103,12 @@ function OPS.step(dt)
 				else
 					local t = now + mv.off
 					local p = FLY.at(mv.path, t)
-					local ahead = FLY.at(mv.path, t + 0.5)
-					local d = Vector3.new(ahead.x - p.x, 0, ahead.z - p.z)
-					if d.magnitude > 0.05 then mv.look = d.unit end
-					mv.root.CFrame = CFrame.new(p, p + (mv.look or Vector3.new(0, 0, -1)))
+					if U.due(mv, p, dt) then
+						local ahead = FLY.at(mv.path, t + 0.5)
+						local d = Vector3.new(ahead.x - p.x, 0, ahead.z - p.z)
+						if d.magnitude > 0.05 then mv.look = d.unit end
+						mv.root.CFrame = CFrame.new(p, p + (mv.look or Vector3.new(0, 0, -1)))
+					end
 				end
 			end
 		end
@@ -218,7 +220,9 @@ function K.skytrain(b)
 	table.insert(b.plot.movers, { root = root, train = true, at = 1, dir = 1, wait = 4, x = STATIONS[1].x, cf = b.cf })
 	OPS.placeTrain(b.plot.movers[#b.plot.movers])
 end
-function OPS.placeTrain(mv)
+function OPS.placeTrain(mv, dt)
+	local p = mv.cf * Vector3.new(mv.x, TRACK_Y + 0.4, TRACK_Z)
+	if dt and not U.due(mv, p, dt) then return end
 	mv.root.CFrame = mv.cf * CFrame.new(mv.x, TRACK_Y + 0.4, TRACK_Z)
 end
 function OPS.train(mv, dt)
@@ -238,7 +242,7 @@ function OPS.train(mv, dt)
 	else
 		mv.x = mv.x + (goal > mv.x and step or -step)
 	end
-	OPS.placeTrain(mv)
+	OPS.placeTrain(mv, dt)
 end
 function K.ambulance(b)
 	fleet(b, "van", "Institutional white", { sign = "AMBULANCE", stripe = "Really red", lights = "Really red" }, { { -280, 22 }, { 280, 22 }, { 280, 38 }, { -280, 38 } }, 28, 1)

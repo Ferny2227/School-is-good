@@ -52,6 +52,10 @@ end
 -- move a plane along a path with a smoothly turning nose
 function FLY.place(pl, P, t, dt)
 	local p, back = FLY.at(P, t)
+	pl.pos = p
+	local due, acc = U.due(pl, p, dt)
+	if not due then return end
+	dt = acc
 	local ahead = FLY.at(P, t + 0.6)
 	local behind = FLY.at(P, t - 0.6)
 	local dir = ahead - behind
@@ -137,7 +141,7 @@ function FLY.newPlane(plot, g, state)
 	local name = (g.opt.name or ("Flight " .. NAMES[(g.made - 1) % 3 + 1] .. plot.i .. g.n)) .. (g.made > 1 and ("-" .. g.made) or "")
 	local tail = g.opt.tail or (g.made == 1 and plot.color or U.pick({ "Bright red", "Bright blue", "Bright green", "Royal purple", "Bright orange", "Navy blue" }))
 	local m, root = M.airliner(plot.Planes, park, tail, name, g.opt.cargo, true)
-	local gp = { plot = plot, g = g, n = g.n, k = g.made, x = g.x, model = m, root = root, state = state, t0 = tick(), park = park, look = park.lookVector,
+	local gp = { plot = plot, g = g, n = g.n, k = g.made, x = g.x, model = m, root = root, state = state, t0 = tick(), park = park, look = park.lookVector, pos = park.p,
 		dep = g.dep, arr = g.arr, needs = g.needs, pax = 0 }
 	table.insert(g.planes, gp)
 	plot.gatePlanes[g.n * 10 + g.made] = gp
@@ -251,7 +255,7 @@ local function homeEntry(gp) return gp.plot.cf * Vector3.new(-1300, 320, gp.g.rz
 function FLY.toResort(gp)
 	if not RESORT.ready then return false end
 	local now = tick()
-	local leg = RESORT.leg(gp.root.CFrame.p, homeDir(gp.plot), RESORT.approachStart, Vector3.new(1, 0, 0))
+	local leg = RESORT.leg(gp.pos, homeDir(gp.plot), RESORT.approachStart, Vector3.new(1, 0, 0))
 	if not RESORT.book(gp, leg, now) then return false end   -- too busy there: a sightseeing loop near home instead
 	gp.state, gp.t0, gp.path, gp.lastT = "outbound", now, leg, nil
 	return true
@@ -270,14 +274,14 @@ local function nextAtResort(gp, now)
 	if gp.state == "outbound" and gp.holdPath then
 		gp.state, gp.t0, gp.path, gp.speed = "resortHold", now, gp.holdPath, gp.holdSpeed or 1
 	else
-		gp.state, gp.t0, gp.path, gp.speed = "resortLanding", now, RESORT.landing(gp.stand, gp.root.CFrame.p), 1
+		gp.state, gp.t0, gp.path, gp.speed = "resortLanding", now, RESORT.landing(gp.stand, gp.pos), 1
 	end
 end
 -- back near home: land if the gate is free, otherwise wait in the holding loop
 local function homeHold(gp, now)
 	local plot = gp.plot
 	if plot[gp.needs] and FLY.gateFree(gp.g, gp) then
-		gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x, gp.root.CFrame.p)
+		gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x, gp.pos)
 		gp.speed, gp.lastT = 1, nil
 	else
 		local P = FLY.loop(plot, gp.g.rz)
@@ -297,15 +301,16 @@ local function legDone(gp, now)
 	elseif s == "resortLanding" then
 		gp.state, gp.t0 = "resortParked", now
 		gp.root.CFrame = RESORT.standCF(gp.stand)
+		gp.pos = gp.root.CFrame.p
 		-- everyone gets off and heads for the theme park
-		if RESORT.PARK then
+		if RESORT.PARK and U.nearest(RESORT.parkCenter) < 1500 then
 			for i = 1, math.random(2, 4) do
 				local ok, err = pcall(RESORT.PARK.visitor, gp.stand.x + math.random(-10, 10))
 				if not ok then print("Airport: park visitor failed: " .. tostring(err)) break end
 			end
 		end
 	elseif s == "resortTakeoff" then
-		gp.path, gp.t0, gp.speed, gp.lastT = RESORT.leg(gp.root.CFrame.p, Vector3.new(1, 0, 0), homeEntry(gp), homeDir(gp.plot)), now, 1, nil
+		gp.path, gp.t0, gp.speed, gp.lastT = RESORT.leg(gp.pos, Vector3.new(1, 0, 0), homeEntry(gp), homeDir(gp.plot)), now, 1, nil
 		gp.state, gp.waitingFor = "inbound", nil
 		RESORT.planes[gp] = nil
 	elseif s == "inbound" then
@@ -325,7 +330,7 @@ function FLY.gateStep(gp, dt)
 	local plot, now = gp.plot, tick()
 	if not gp.model.Parent then return end
 	if gp.state == "parked" then
-		gp.root.CFrame = gp.park
+		if gp.parkedAt ~= gp.park then gp.parkedAt = gp.park gp.root.CFrame = gp.park gp.pos = gp.park.p end
 		gp.look = gp.park.lookVector
 		gp.leaveAt = gp.t0 + FLY.boardTime(plot)
 		-- the crew walks out to the plane a little before it leaves
@@ -335,6 +340,7 @@ function FLY.gateStep(gp, dt)
 		end
 		if plot[gp.needs] and now > gp.leaveAt then
 			gp.state, gp.t0, gp.path = "departing", now, gp.dep(plot, gp.x)
+			gp.parkedAt = nil
 			gp.speed, gp.lastT = 1, nil
 			gp.crewIn, gp.pax = false, 0
 			FLY.callNext(gp.g, gp)
@@ -353,7 +359,7 @@ function FLY.gateStep(gp, dt)
 			end
 		end
 		-- taxiing at Paradise: stop behind the plane in front
-		if not held and ((gp.state == "resortTakeoff" and not gp.cleared) or (gp.state == "resortLanding" and gp.root.CFrame.p.y < 12)) then
+		if not held and ((gp.state == "resortTakeoff" and not gp.cleared) or (gp.state == "resortLanding" and gp.pos.y < 12)) then
 			gp.waitingFor = RESORT.blocker(gp, t, now)
 			if gp.waitingFor then t, held = gp.lastT or t, true end
 		end
@@ -369,14 +375,10 @@ function FLY.gateStep(gp, dt)
 	elseif gp.state == "cruising" then
 		local P = gp.loop
 		local q = (now + gp.qoff) % P.total
-		-- far away in the sky: 15 updates a second is plenty
-		if now >= (gp.nextPlace or 0) then
-			gp.nextPlace = now + 1 / 15
-			FLY.place(gp, P, now + gp.qoff, dt)
-		end
+		FLY.place(gp, P, now + gp.qoff, dt)   -- (far from players it only moves a few times a second: U.due)
 		-- time to come home? when its gate is (about to be) free: fly straight to the approach and land
 		if now > gp.until_ and plot[gp.needs] and FLY.gateFree(gp.g, gp) then
-			gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x, gp.root.CFrame.p)
+			gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x, gp.pos)
 			gp.speed, gp.lastT = 1, nil
 		end
 	end

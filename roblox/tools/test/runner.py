@@ -12,13 +12,15 @@ args = [a for a in sys.argv[1:] if not a.startswith("--")]
 g.SIM_SECONDS = int(args[0]) if args else 240
 g.CRUISE_SECONDS = int(args[1]) if len(args) > 1 else 45
 g.DEBUG_CLOSE = "--close" in sys.argv
+g.DEBUG_SMOOTH = "--dbg" in sys.argv
 lua.execute("math.randomseed(7)")
 lua.execute(open(os.path.join(HERE, "mockrbx.lua")).read())
 t0 = time.time()
-lua.execute(open(os.path.join(HERE, "run.lua")).read())
+lua.execute(open(os.path.join(HERE, "setup.lua")).read())
+lua.execute(open(os.path.join(HERE, "perf.lua" if "--perf" in sys.argv else "run.lua")).read())
 print(g.TEST_OUT)
 if "--client" in sys.argv:
-    g.CLIENT_SOURCE = open(os.path.join(ROOT, "src", "client", "AirportClient.lua"), encoding="utf8").read()
+    g.CLIENT_SOURCE = "".join(open(os.path.join(ROOT, "src", "client", f), encoding="utf8").read() for f in ("AirportClient.lua", "BuildTag.lua", "Smooth.lua"))
     lua.execute(open(os.path.join(HERE, "client.lua")).read())
     print(g.CLIENT_OUT)
 if "--geo" in sys.argv:

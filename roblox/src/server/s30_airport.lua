@@ -31,6 +31,11 @@ function A.init()
 		local pm = plots:WaitForChild("Plot" .. i)
 		local plot = { i = i, cf = pm:WaitForChild("Origin").CFrame, color = PLOT_COLORS[i] }
 		plot.root = folder(workspace, "Airport" .. i)
+		-- the middle of the airport: players' computers hide airports that are far away (src/client/Smooth.lua)
+		local centre = Instance.new("Vector3Value")
+		centre.Name = "Centre"
+		centre.Value = plot.cf * Vector3.new(0, 0, PLOT_D / 2)
+		centre.Parent = plot.root
 		for _, n in ipairs({ "Items", "Pads", "Staff", "People", "Guests", "Crowd", "Planes" }) do plot[n] = folder(plot.root, n) end
 		A.enlarge(plot, pm)
 		-- the pylon at the front-left corner shows who owns it
