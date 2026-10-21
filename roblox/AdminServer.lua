@@ -1,4 +1,8 @@
 -- ServerScriptService.AdminServer: admin commands, usable ONLY by the player named asdasda.
+-- Security: every command is checked here on the server (clients can't fake who sent a RemoteEvent),
+-- the panel's LocalScript lives inside this script (ServerScriptService never reaches clients) and is
+-- handed only to asdasda, and the place has FilteringEnabled on so exploiters' changes don't replicate.
+-- Commands also work from chat: ;kick name reason, ;ban name, ;cmds for the list.
 -- 2016-safe: lowercase :connect, ypcall, no TweenService/typeof.
 local pcall = ypcall or pcall
 local Players = game:GetService("Players")
@@ -145,12 +149,15 @@ function handlers.cash(admin, a, rest)
 	if c and n then c.Value = c.Value + n reply(admin, "Gave " .. n .. " cash to " .. p.Name) else reply(admin, "Usage: cash <player> <amount>") end
 end
 function handlers.announce(admin, a, rest)
-	local text = (tostring(a or "") .. " " .. rest):gsub("^%s+", "")
+	local text = (tostring(a or "") .. " " .. rest):gsub("^%s+", ""):sub(1, 200)
 	for _, p in pairs(Players:GetPlayers()) do pcall(function() remote:FireClient(p, "announce", text) end) end
 end
 function handlers.list(admin) sendList(admin) end
+function handlers.cmds(admin)
+	reply(admin, "kick ban unban kill respawn heal god ungod freeze unfreeze speed jump bring tp cash announce")
+end
 
-remote.OnServerEvent:connect(function(player, cmd, a, rest)
+local function run(player, cmd, a, rest)
 	if not isAdmin(player) then return end  -- everyone else is ignored
 	cmd = tostring(cmd or ""):lower()
 	rest = tostring(rest or "")
@@ -162,7 +169,35 @@ remote.OnServerEvent:connect(function(player, cmd, a, rest)
 		reply(player, "Unknown command: " .. cmd)
 	end
 	if cmd ~= "list" then sendList(player) end
+end
+remote.OnServerEvent:connect(function(player, cmd, a, rest)
+	if not isAdmin(player) then return end
+	run(player, cmd, a, rest)
 end)
+
+-- the panel goes only into asdasda's PlayerGui (and back in after every respawn)
+local template = script:FindFirstChild("AdminClient")
+local function givePanel(p)
+	if not template or not isAdmin(p) then return end
+	local pg = p:FindFirstChild("PlayerGui")
+	if pg and not pg:FindFirstChild("AdminClient") then
+		local c = template:Clone()
+		c.Disabled = false
+		c.Parent = pg
+	end
+end
+
+-- chat commands, e.g. ";kick bob being rude"
+local function onChat(p, msg)
+	if not isAdmin(p) then return end
+	msg = tostring(msg)
+	local body = msg:match("^[;:](.+)$")
+	if not body then return end
+	local cmd, a, rest = body:match("^(%S+)%s*(%S*)%s*(.*)$")
+	if not cmd then return end
+	if cmd:lower() == "announce" then run(p, cmd, "", (a .. " " .. rest)) return end
+	run(p, cmd, a, rest)
+end
 
 local function onChar(p)
 	p.CharacterAdded:connect(function(c)
@@ -180,6 +215,16 @@ local function onPlayer(p)
 		return
 	end
 	onChar(p)
+	if isAdmin(p) then
+		p.Chatted:connect(function(msg) onChat(p, msg) end)
+		spawn(function()
+			while p.Parent do
+				pcall(givePanel, p)
+				wait(1)
+			end
+		end)
+	end
 end
 Players.PlayerAdded:connect(onPlayer)
-for _, p in pairs(Players:GetPlayers()) do onPlayer(p) end
+for _, p in pairs(Players:GetPlayers()) do spawn(function() onPlayer(p) end) end
+print("AdminServer ready (admin: " .. ADMIN .. ")")

@@ -1,4 +1,5 @@
--- StarterGui.AdminClient: admin panel UI, only built for the player named asdasda (server enforces it too).
+-- AdminServer.AdminClient: admin panel UI. AdminServer copies it into asdasda's PlayerGui only;
+-- it also checks the name itself, and the server re-checks every command.
 -- 2016-safe: no AnchorPoint/TweenService/UIListLayout, FontSize instead of TextSize.
 local pcall = ypcall or pcall
 local Players = game:GetService("Players")
@@ -13,6 +14,13 @@ if old then old:Destroy() end
 local gui = Instance.new("ScreenGui")
 gui.Name = "AdminUI"
 gui.Parent = pg
+-- old engines draw the most recently added ScreenGui on top: move ours to the top after the game's UI loads
+spawn(function()
+	for i = 1, 3 do
+		wait(2)
+		if gui.Parent then gui.Parent = nil gui.Parent = pg end
+	end
+end)
 
 local function box(parent, x, y, w, h, color)
 	local f = Instance.new("Frame")
@@ -46,9 +54,11 @@ local function input(parent, hint, x, y, w, h)
 	return t
 end
 
-local toggle = button(gui, "ADMIN", 6, 330, 120, 36, Color3.new(0.8, 0.1, 0.1))
+local toggle = button(gui, "ADMIN", 6, 0, 120, 36, Color3.new(0.8, 0.1, 0.1))
+toggle.Position = UDim2.new(0, 6, 0.5, -215)
 toggle.ZIndex = 10
-local panel = box(gui, 140, 120, 360, 420)
+local panel = box(gui, 140, 0, 360, 420)
+panel.Position = UDim2.new(0, 140, 0.5, -215)
 panel.ZIndex = 10
 panel.Visible = false
 toggle.MouseButton1Click:connect(function() panel.Visible = not panel.Visible end)
@@ -109,5 +119,6 @@ while not remote do
 	remote = rs:FindFirstChild("AdminCmd")
 	if not remote then wait(0.5) end
 end
-status.Text = "Ready."
+status.Text = "Ready. Chat ;cmds for chat commands."
 hook()
+
