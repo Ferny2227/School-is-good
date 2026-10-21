@@ -179,8 +179,14 @@ function LIFT.call(L, i, player)
 		return
 	end
 	if L.state == "moving" and L.target == i then return end
-	for _, q in ipairs(L.queue) do if q == i then return end end
-	table.insert(L.queue, i)
+	for qi, q in ipairs(L.queue) do
+		if q == i then
+			if player and qi > 1 then table.remove(L.queue, qi) table.insert(L.queue, 1, i) end
+			return
+		end
+	end
+	-- players go to the front of the queue (the guests can wait)
+	if player then table.insert(L.queue, 1, i) else table.insert(L.queue, i) end
 end
 -- can a walker waiting at level i get in now?
 function LIFT.ready(L, i)

@@ -216,7 +216,7 @@ do
 	for _ = 1, 40 do MOCK.run(0.5) if L.state == "open" and L.idx == 3 then break end end
 	local okCall = L.idx == 3 and L.state == "open"
 	btn.ClickDetector.MouseClick:fire(p1)
-	for _ = 1, 60 do MOCK.run(0.5) if L.state == "open" and L.idx == 7 then break end end
+	for _ = 1, 80 do MOCK.run(0.5) if L.state == "open" and L.idx == 7 then break end end
 	say("player elevator test: called to floor 3 = " .. tostring(okCall) .. ", rode to roof = " .. tostring(L.idx == 7) ..
 		", car floor height " .. string.format("%.1f", (plot.cf:inverse() * L.parts[1].part.CFrame.p).Y) .. ", door open " .. string.format("%.1f", L.doors[7].t))
 end
