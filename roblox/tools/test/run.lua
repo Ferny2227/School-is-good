@@ -111,8 +111,106 @@ local gateWaitSum, walkSum, boardSum, gaveUp = 0, 0, 0, 0
 local skyTimes, lastState = {}, {}
 local seenKinds = {}
 local T = SIM_SECONDS or 240
+-- Paradise Island bookkeeping
+local RES = D.RESORT
+local tripStart, trips, resortStates, resortVisits, maxStands = {}, {}, {}, 0, 0
+local minSep, minSepWhat, closeCalls, rideMoved = 1e9, "", 0, {}
+local slotLate, slotN = 0, 0
+local rideRoots, rideStart = {}, {}
+local coaster = RES and RES.RIDES[1]
+local coasterMaxV, coasterUpsideDown, coasterLaps, lastCoasterS = 0, false, 0, 0
+local parkVisitorsMax, parkProgress, parkStuck = 0, {}, {}
+if RES and RES.root then
+	for _, p in ipairs(RES.root:GetDescendants()) do
+		if p.Name == "Root" and p:IsA("BasePart") then table.insert(rideRoots, p) rideStart[p] = p.CFrame.p end
+	end
+end
+say("Paradise Island built: " .. tostring(RES and RES.ready) .. ", rides: " .. (RES and #RES.RIDES or 0) .. ", moving ride parts: " .. #rideRoots)
+if RES then
+	local names = {}
+	for _, r in ipairs(RES.RIDES) do table.insert(names, r.name) end
+	say("rides: " .. table.concat(names, ", "))
+	if coaster then say(string.format("coaster track: %d studs, lift top at %d", coaster.T.L, coaster.liftEnd)) end
+	local per = {}
+	for _, m in ipairs(RES.root:GetChildren()) do
+		local n = 0
+		for _, p in ipairs(m:GetDescendants()) do if p:IsA("BasePart") then n = n + 1 end end
+		table.insert(per, m.Name .. "=" .. n)
+	end
+	local park = RES.root:FindFirstChild("Paradise Park")
+	if park then
+		for _, m in ipairs(park:GetChildren()) do
+			local n = 0
+			for _, p in ipairs(m:GetDescendants()) do if p:IsA("BasePart") then n = n + 1 end end
+			if n > 150 then table.insert(per, "  " .. m.Name .. "=" .. n) end
+		end
+	end
+	say("island parts: " .. table.concat(per, " "))
+end
 for s = 1, T do
 	MOCK.run(1, 0.05)
+	if RES and RES.ready then
+		local all = {}
+		for _, pl in ipairs(G.plots) do for _, gp in pairs(pl.gatePlanes) do if gp.model.Parent then table.insert(all, gp) end end end
+		local used = 0
+		for _, st in ipairs(RES.stands) do if st.occ and st.occ.model.Parent and st.occ.stand == st then used = used + 1 end end
+		maxStands = math.max(maxStands, used)
+		for i, a in ipairs(all) do
+			resortStates[a.state] = (resortStates[a.state] or 0) + 1
+			local last = tripStart[a] and tripStart[a].state
+			if a.state ~= last then
+				if a.state == "departing" then tripStart[a] = { state = a.state, t = s }
+				else
+					if a.state == "arriving" and tripStart[a] and tripStart[a].t then table.insert(trips, s - tripStart[a].t) end
+					if a.state == "resortParked" then resortVisits = resortVisits + 1 end
+					tripStart[a] = { state = a.state, t = tripStart[a] and tripStart[a].t }
+					if a.state == "arriving" then tripStart[a].t = nil end
+				end
+			end
+			if a.state == "resortLanding" and last ~= "resortLanding" and a.slot then
+				slotN = slotN + 1
+				slotLate = math.max(slotLate, math.abs(tick() - a.slot))
+			end
+			for j = i + 1, #all do
+				local b = all[j]
+				if a.state:sub(1, 6) == "resort" and b.state:sub(1, 6) == "resort" and not (a.state == "resortParked" and b.state == "resortParked") then
+					local d = (a.root.CFrame.p - b.root.CFrame.p).magnitude
+					if d < 40 then
+						closeCalls = closeCalls + 1
+						if DEBUG_CLOSE and d < 32 then
+							local function info(x)
+								local q = x.root.CFrame.p
+								return string.format("%s#%d.%d at (%.0f,%.0f,%.0f) t=%.1f/%.1f cleared=%s waitingFor=%s stand=%s", x.state, x.n, x.k, q.X, q.Y, q.Z,
+									x.lastT or -1, x.path and x.path.total or -1, tostring(x.cleared), tostring(x.waitingFor and (x.waitingFor.n .. "." .. x.waitingFor.k)), tostring(x.stand and x.stand.x))
+							end
+							say(string.format("CLOSE %.0f s=%d: %s | %s", d, s, info(a), info(b)))
+						end
+					end
+					if d < minSep then minSep, minSepWhat = d, a.state .. "/" .. b.state .. string.format(" at (%.0f, %.0f, %.0f)", a.root.CFrame.p.X, a.root.CFrame.p.Y, a.root.CFrame.p.Z) end
+				end
+			end
+			local p = a.root.CFrame.p
+			if p.X ~= p.X or p.Y ~= p.Y then table.insert(MOCK.errors, "plane at NaN in state " .. a.state) end
+		end
+		if coaster then
+			coasterMaxV = math.max(coasterMaxV, coaster.v)
+			for _, car in ipairs(coaster.cars) do if car.CFrame.upVector.Y < -0.5 then coasterUpsideDown = true end end
+			if coaster.s < lastCoasterS - 100 then coasterLaps = coasterLaps + 1 end
+			lastCoasterS = coaster.s
+		end
+		parkVisitorsMax = math.max(parkVisitorsMax, RES.PARK.visitors)
+		for _, p in ipairs(rideRoots) do
+			local a, b = p.CFrame, rideStart[p]
+			if (a.p - b).magnitude > 1 or math.abs(a.upVector.Y - 1) > 0.01 or math.abs(a.lookVector.Z + 1) > 0.01 then rideMoved[p] = true end
+		end
+		for _, w in ipairs(G.walkers) do
+			if w.plot == RES.PARK then
+				local pr = parkProgress[w]
+				if not pr or pr.i ~= w.i then parkProgress[w] = { i = w.i, t = s }
+				elseif s - pr.t > 150 then parkStuck[w] = "visitor stuck at route point " .. w.i .. "/" .. #w.route .. " " .. tostring(w.pos) end
+			end
+		end
+	end
 	maxPeople = math.max(maxPeople, #plot.People:GetChildren())
 	for _, w in ipairs(G.walkers) do
 		if w.plot == plot then
@@ -196,7 +294,6 @@ table.sort(mp)
 say("most passengers on board a parked plane, per gate: " .. table.concat(mp, " "))
 local sum = 0
 for _, v in ipairs(skyTimes) do sum = sum + v end
-say(string.format("%d full trips in the sky, average %.0f s in the air", #skyTimes, #skyTimes > 0 and sum / #skyTimes or 0))
 say(string.format("passengers: on average %.1f walking around and %.1f waiting at a gate; gates boarding %.0f%% of the time; %d gave up",
 	walkSum / T, gateWaitSum / T, 100 * boardSum / (4 * T), gaveUp))
 local kinds = {}
@@ -220,6 +317,42 @@ do
 	for _ = 1, 80 do MOCK.run(0.5) if L.state == "open" and L.idx == 7 then break end end
 	say("player elevator test: called to floor 3 = " .. tostring(okCall) .. ", rode to roof = " .. tostring(L.idx == 7) ..
 		", car floor height " .. string.format("%.1f", (plot.cf:inverse() * L.parts[1].part.CFrame.p).Y) .. ", door open " .. string.format("%.1f", L.doors[7].t))
+end
+
+-- Paradise Island report
+if RES then
+	local moved, nan, still = 0, 0, {}
+	for _, p in ipairs(rideRoots) do
+		local q = p.CFrame.p
+		if q.X ~= q.X or q.Y ~= q.Y or q.Z ~= q.Z then nan = nan + 1 end
+		if rideMoved[p] then moved = moved + 1
+		elseif p.Parent then table.insert(still, p.Parent.Name) end
+	end
+	say(string.format("ride parts that moved: %d / %d (NaN: %d)  not moved: %s", moved, #rideRoots, nan, table.concat(still, ", ")))
+	for _, r in ipairs(RES.RIDES) do if r.failed then say("  RIDE FAILED: " .. r.name) end end
+	say(string.format("coaster: %d laps, top speed %.0f studs/s, upside down in the loop: %s", coasterLaps, coasterMaxV, tostring(coasterUpsideDown)))
+	local rs = {}
+	for k, v in pairs(resortStates) do table.insert(rs, k .. "=" .. v) end
+	table.sort(rs)
+	say("plane-seconds per state (all airports): " .. table.concat(rs, " "))
+	local tsum = 0
+	for _, v in ipairs(trips) do tsum = tsum + v end
+	say(string.format("Paradise: %d landings there, %d full round trips (average %.0f s from take-off to landing back home), most stands in use %d / %d",
+		resortVisits, #trips, #trips > 0 and tsum / #trips or 0, maxStands, #RES.stands))
+	local forced = 0
+	for gp in pairs(tripStart) do if gp.ignoreUntil then forced = forced + 1 end end
+	say("planes that ever had to push past a plane after waiting 25 s: " .. forced)
+	say(string.format("landings that started at their booked slot: %d, worst miss %.1f s", slotN, slotLate))
+	say(string.format("closest two planes at Paradise: %.0f studs (%s); plane-seconds closer than 40 studs: %d", minSep, minSepWhat, closeCalls))
+	local ps = {}
+	for w, why in pairs(parkStuck) do if w.model.Parent then table.insert(ps, why) end end
+	say("park visitors: most at once " .. parkVisitorsMax .. ", now " .. RES.PARK.visitors .. ", stuck " .. #ps)
+	for i = 1, math.min(5, #ps) do say("  " .. ps[i]) end
+	-- a player asks to go to the park
+	local torso = p1.Character.Torso
+	G.remote.OnServerEvent:fire(p1, "resort")
+	MOCK.run(1)
+	say(string.format("player sent to the park: at (%.0f, %.0f, %.0f)", torso.CFrame.p.X, torso.CFrame.p.Y, torso.CFrame.p.Z))
 end
 
 -- a south (rotated) plot too

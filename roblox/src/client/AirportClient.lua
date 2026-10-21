@@ -198,7 +198,7 @@ UI.nextLines = {}
 for i = 1, 5 do UI.nextLines[i] = label(goals, UDim2.new(0, 16, 0, 392 + (i - 1) * 22), UDim2.new(1, -32, 0, 22), "", 18, C.white, 6, Enum.TextXAlignment.Left, false) end
 
 -- AIRPORTS (claim / visit)
-local plotsP = panel("plots", 420, 470, "AIRPORTS", C.orange)
+local plotsP = panel("plots", 420, 524, "AIRPORTS", C.orange)
 label(plotsP, UDim2.new(0, 16, 0, 48), UDim2.new(1, -32, 0, 22), "Go to a free airport and step on its green pad to claim it.", 14, C.white, 6, Enum.TextXAlignment.Left, false)
 UI.plotRows = {}
 for i = 1, 10 do
@@ -211,9 +211,15 @@ for i = 1, 10 do
 	end)
 	UI.plotRows[i] = { label = l, btn = b }
 end
+-- every plane flies to Paradise Island; this takes you straight to its theme park
+local park = button(plotsP, UDim2.new(0, 16, 0, 458), UDim2.new(1, -32, 0, 52), "FLY TO PARADISE PARK  (10 rides!)", rgb(230, 70, 160), 6, 22)
+park.MouseButton1Click:connect(function()
+	pcall(function() remote:FireServer("resort") end)
+	plotsP.Visible = false
+end)
 
 -- HELP
-local help = panel("help", 540, 470, "HOW TO PLAY", C.white)
+local help = panel("help", 540, 540, "HOW TO PLAY", C.white)
 local helpText = label(help, UDim2.new(0, 16, 0, 52), UDim2.new(1, -32, 1, -60),
 	"1. Press AIRPORTS, go to a free airport, step on its green CLAIM pad.\n" ..
 	"2. Step on the gold pads to build. New pads appear as you build.\n" ..
@@ -228,7 +234,10 @@ local helpText = label(help, UDim2.new(0, 16, 0, 52), UDim2.new(1, -32, 1, -60),
 	"8. Floors 2 and 3: lounges, duty free, cinema, food hall and more.\n" ..
 	"9. The hotel: themed rooms, suites and a penthouse. Guests sleep\n" ..
 	"    there and pay for every night. Planes, cargo jets, buses,\n" ..
-	"    tugs and the sky train all move on their own!",
+	"    tugs and the sky train all move on their own!\n" ..
+	"10. Every plane flies to PARADISE ISLAND and back. Its theme park\n" ..
+	"    has 10 rides: sit in a seat to ride, jump to get off. Go there\n" ..
+	"    with AIRPORTS > FLY TO PARADISE PARK or the pink pad by spawn.",
 	18, C.white, 6, Enum.TextXAlignment.Left, false)
 helpText.TextWrapped = true
 helpText.TextYAlignment = Enum.TextYAlignment.Top

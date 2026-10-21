@@ -112,13 +112,16 @@ function FLY.initGlobal()
 end
 
 ------------------------------------------------------------------ airliners at your gates: board, push back, taxi, take off,
--- fly around for about 5 minutes, come back, land, let everyone off, board again.
+-- fly to Paradise Island (s29_resort.lua), land there, let everyone off at the theme park, take off again, fly home,
+-- land, let everyone off, board again. The round trip takes about 5 minutes. If every stand at Paradise is taken the
+-- plane flies a sightseeing loop near home instead.
 -- Every gate/stand has a small fleet (opt.count planes): one at the gate, the others in the sky. A plane only comes in
 -- to land when its gate is free. Pilots sit in the cockpit; passengers board through the jet bridge.
 -- opt (all optional): z = where it parks, dep/arr = path makers (default: the main runway), rz = that runway's z,
 -- needs = the plot flag that must be true before it departs, tail = colour, cargo = freighter look, name, count
 FLY.CRUISE = 300      -- seconds in the air, usually
 FLY.MINCRUISE = 240   -- never called back sooner than this
+FLY.DWELL = 25        -- seconds parked at Paradise (more if planes are taxiing past)
 function A.gatePlane(plot, n, x, opt)
 	if plot.gates[n] then return end
 	opt = opt or {}
@@ -138,7 +141,7 @@ function FLY.newPlane(plot, g, state)
 		dep = g.dep, arr = g.arr, needs = g.needs, pax = 0 }
 	table.insert(g.planes, gp)
 	plot.gatePlanes[g.n * 10 + g.made] = gp
-	if state == "cruising" then FLY.startCruise(gp, math.random() * 0.8) end
+	if state == "cruising" and not FLY.homeFromResort(gp, math.random() * 0.7) then FLY.startCruise(gp, math.random() * 0.8) end
 	return gp
 end
 function A.startDepartures(plot)
@@ -240,6 +243,84 @@ function FLY.boardTime(plot)
 	return math.max(50, 90 - 6 * pilots - 4 * atc)
 end
 
+------------------------------------------------------------------ the trip to Paradise Island and back
+-- states: departing -> outbound -> (resortHold ->) resortLanding -> resortParked -> resortTakeoff -> inbound
+--         -> (cruising: holding near home until the gate is free ->) arriving -> parked
+local function homeDir(plot) return (plot.cf * Vector3.new(1, 0, 0)) - plot.cf.p end
+local function homeEntry(gp) return gp.plot.cf * Vector3.new(-1300, 320, gp.g.rz) end
+function FLY.toResort(gp)
+	if not RESORT.ready then return false end
+	local now = tick()
+	local leg = RESORT.leg(gp.root.CFrame.p, homeDir(gp.plot), RESORT.approachStart, Vector3.new(1, 0, 0))
+	if not RESORT.book(gp, leg, now) then return false end   -- too busy there: a sightseeing loop near home instead
+	gp.state, gp.t0, gp.path, gp.lastT = "outbound", now, leg, nil
+	return true
+end
+-- a plane that joins the fleet starts on its way home from Paradise (frac = how far along it already is)
+function FLY.homeFromResort(gp, frac)
+	if not RESORT.ready then return false end
+	gp.path = RESORT.leg(RESORT.departEnd, Vector3.new(1, 0, 0), homeEntry(gp), homeDir(gp.plot))
+	gp.state, gp.t0, gp.speed, gp.lastT = "inbound", tick() - (frac or 0) * gp.path.total, 1, nil
+	FLY.place(gp, gp.path, tick() - gp.t0, 1)
+	return true
+end
+-- at the approach point: lap the holding pattern if the landing slot isn't due yet, else land
+local function nextAtResort(gp, now)
+	gp.lastT = nil
+	if gp.state == "outbound" and gp.holdPath then
+		gp.state, gp.t0, gp.path, gp.speed = "resortHold", now, gp.holdPath, gp.holdSpeed or 1
+	else
+		gp.state, gp.t0, gp.path, gp.speed = "resortLanding", now, RESORT.landing(gp.stand, gp.root.CFrame.p), 1
+	end
+end
+-- back near home: land if the gate is free, otherwise wait in the holding loop
+local function homeHold(gp, now)
+	local plot = gp.plot
+	if plot[gp.needs] and FLY.gateFree(gp.g, gp) then
+		gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x, gp.root.CFrame.p)
+		gp.speed, gp.lastT = 1, nil
+	else
+		local P = FLY.loop(plot, gp.g.rz)
+		gp.state, gp.t0, gp.loop = "cruising", now, P
+		gp.qoff = (P.tA or 0) - now
+		gp.until_ = now
+		gp.lastQ, gp.nextPlace = nil, nil
+	end
+end
+FLY.MOVING = { departing = true, arriving = true, outbound = true, resortHold = true, resortLanding = true, resortTakeoff = true, inbound = true }
+local function legDone(gp, now)
+	local s = gp.state
+	if s == "departing" then
+		if not FLY.toResort(gp) then FLY.startCruise(gp, 0) end
+	elseif s == "outbound" or s == "resortHold" then
+		nextAtResort(gp, now)
+	elseif s == "resortLanding" then
+		gp.state, gp.t0 = "resortParked", now
+		gp.root.CFrame = RESORT.standCF(gp.stand)
+		-- everyone gets off and heads for the theme park
+		if RESORT.PARK then
+			for i = 1, math.random(2, 4) do
+				local ok, err = pcall(RESORT.PARK.visitor, gp.stand.x + math.random(-10, 10))
+				if not ok then print("Airport: park visitor failed: " .. tostring(err)) break end
+			end
+		end
+	elseif s == "resortTakeoff" then
+		gp.path, gp.t0, gp.speed, gp.lastT = RESORT.leg(gp.root.CFrame.p, Vector3.new(1, 0, 0), homeEntry(gp), homeDir(gp.plot)), now, 1, nil
+		gp.state, gp.waitingFor = "inbound", nil
+		RESORT.planes[gp] = nil
+	elseif s == "inbound" then
+		homeHold(gp, now)
+	elseif s == "arriving" then
+		local plot = gp.plot
+		gp.state, gp.t0 = "parked", now
+		gp.leaveAt = now + FLY.boardTime(plot)
+		FLY.callNext(gp.g, gp)   -- the next plane comes in as this one leaves
+		-- everyone gets off: passengers to baggage claim and the exit, the crew back to the terminal
+		if NPC.arrivals then pcall(NPC.arrivals, plot, gp) end
+		if NPC.crew then pcall(NPC.crew, plot, gp, false) end
+	end
+end
+
 function FLY.gateStep(gp, dt)
 	local plot, now = gp.plot, tick()
 	if not gp.model.Parent then return end
@@ -254,23 +335,36 @@ function FLY.gateStep(gp, dt)
 		end
 		if plot[gp.needs] and now > gp.leaveAt then
 			gp.state, gp.t0, gp.path = "departing", now, gp.dep(plot, gp.x)
+			gp.speed, gp.lastT = 1, nil
 			gp.crewIn, gp.pax = false, 0
 			FLY.callNext(gp.g, gp)
 		end
-	elseif gp.state == "departing" or gp.state == "arriving" then
-		local t = now - gp.t0
-		FLY.place(gp, gp.path, t, dt)
-		if t >= gp.path.total then
-			if gp.state == "departing" then
-				FLY.startCruise(gp, 0)
+	elseif FLY.MOVING[gp.state] then
+		local sp = gp.speed or 1
+		local t = (now - gp.t0) * sp
+		local held = false
+		-- at Paradise's holding point the clock stops until the take-off runway is free
+		if gp.state == "resortTakeoff" and not gp.cleared and t >= gp.path.holdT then
+			if now >= RESORT.nextTakeoff then
+				gp.cleared = true
+				RESORT.nextTakeoff = now + RESORT.takeoffGap
 			else
-				gp.state, gp.t0 = "parked", now
-				gp.leaveAt = now + FLY.boardTime(plot)
-				FLY.callNext(gp.g, gp)   -- the next plane comes in as this one leaves
-				-- everyone gets off: passengers to baggage claim and the exit, the crew back to the terminal
-				if NPC.arrivals then pcall(NPC.arrivals, plot, gp) end
-				if NPC.crew then pcall(NPC.crew, plot, gp, false) end
+				t, held = gp.path.holdT, true
 			end
+		end
+		-- taxiing at Paradise: stop behind the plane in front
+		if not held and ((gp.state == "resortTakeoff" and not gp.cleared) or (gp.state == "resortLanding" and gp.root.CFrame.p.y < 12)) then
+			gp.waitingFor = RESORT.blocker(gp, t, now)
+			if gp.waitingFor then t, held = gp.lastT or t, true end
+		end
+		if held then gp.t0 = now - t / sp end
+		gp.lastT = t
+		FLY.place(gp, gp.path, t, dt)
+		if t >= gp.path.total then legDone(gp, now) end
+	elseif gp.state == "resortParked" then
+		if now - gp.t0 > FLY.DWELL and RESORT.clearToPush(gp.stand) then
+			gp.state, gp.t0, gp.path, gp.cleared, gp.speed, gp.lastT = "resortTakeoff", now, RESORT.takeoff(gp.stand), false, 1, nil
+			gp.stand = nil   -- the stand is free for the next plane once this one pushes back
 		end
 	elseif gp.state == "cruising" then
 		local P = gp.loop
@@ -283,6 +377,7 @@ function FLY.gateStep(gp, dt)
 		-- time to come home? when its gate is (about to be) free: fly straight to the approach and land
 		if now > gp.until_ and plot[gp.needs] and FLY.gateFree(gp.g, gp) then
 			gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x, gp.root.CFrame.p)
+			gp.speed, gp.lastT = 1, nil
 		end
 	end
 end

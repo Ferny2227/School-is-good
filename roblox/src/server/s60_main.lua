@@ -2,6 +2,11 @@
 ------------------------------------------------------------------ start
 A.init()
 FLY.initGlobal()
+-- Paradise Island: the airport every plane flies to, and its theme park
+do
+	local ok, err = pcall(RESORT.build)
+	if not ok then print("Airport: building Paradise Island failed: " .. tostring(err)) end
+end
 -- text on the plaza's welcome board and the hub
 pcall(function()
 	local board = MAP.Plaza:FindFirstChild("WelcomeBoard")
@@ -12,7 +17,7 @@ pcall(function()
 	local hs = MAP.Hub:FindFirstChild("HubSign")
 	if hs then U.text(hs, "INTERNATIONAL HUB", Color3.new(1, 1, 1), Color3.new(0.03, 0.08, 0.25), "Back") U.text(hs, "INTERNATIONAL HUB", Color3.new(1, 1, 1), Color3.new(0.03, 0.08, 0.25), "Front") end
 end)
-_G.AirportDebug = { G = G, A = A, FLY = FLY, NPC = NPC, CATALOG = CATALOG, STAFF = STAFF }   -- for the test harness
+_G.AirportDebug = { G = G, A = A, FLY = FLY, NPC = NPC, CATALOG = CATALOG, STAFF = STAFF, RESORT = RESORT }   -- for the test harness
 
 local function teleport(player, cf)
 	local char = player.Character
@@ -81,6 +86,8 @@ G.remote.OnServerEvent:connect(function(player, what, a, b)
 	elseif what == "visit" then
 		local plot = G.plots[tonumber(a) or 0]
 		if plot then teleport(player, home(plot)) end
+	elseif what == "resort" then
+		if RESORT.ready then RESORT.toPark(player) end
 	elseif what == "plaza" then
 		local sp = MAP:FindFirstChild("Spawn")
 		if sp then teleport(player, sp.CFrame + Vector3.new(0, 4, 0)) end
@@ -101,6 +108,7 @@ spawn(function()
 		NPC.step(dt)
 		FLY.step(dt)
 		OPS.step(dt)
+		RESORT.step(dt)
 		for _, g in ipairs(G.global) do FLY.place(g, g.path, now + g.off, dt) end
 		for _, plot in ipairs(G.plots) do
 			for _, gp in pairs(plot.gatePlanes) do FLY.gateStep(gp, dt) end
@@ -129,7 +137,9 @@ end)
 
 ------------------------------------------------------------------ flight information screens
 local DEST = { "LONDON", "TOKYO", "PARIS", "NEW YORK", "DUBAI", "SYDNEY", "ROME", "CAIRO", "RIO" }
-local STATUS = { parked = "BOARDING", departing = "DEPARTED", cruising = "IN FLIGHT", arriving = "LANDING" }
+local STATUS = { parked = "BOARDING", departing = "DEPARTED", cruising = "IN FLIGHT", arriving = "LANDING",
+	outbound = "EN ROUTE", resortHold = "HOLDING", resortLanding = "LANDING THERE", resortParked = "AT PARADISE",
+	resortTakeoff = "LEAVING PARADISE", inbound = "COMING BACK" }
 function A.fidsText(plot)
 	local list = {}
 	for n, gp in pairs(plot.gatePlanes) do table.insert(list, gp) end
@@ -137,11 +147,10 @@ function A.fidsText(plot)
 	local lines = { "FLIGHT  TO        GATE  STATUS" }
 	for _, gp in ipairs(list) do
 		local gate = gp.n <= 4 and ("G" .. gp.n) or (gp.n <= 6 and ("S" .. (gp.n - 4)) or "CGO")
-		local dest = DEST[(gp.n - 1) % #DEST + 1]
 		local status = STATUS[gp.state] or "ON TIME"
 		if gp.state == "parked" and tick() - gp.t0 < 6 then status = "ARRIVED" end
 		if gp.state == "cruising" and tick() > gp.until_ then status = "LANDING SOON" end
-		dest = DEST[(gp.n + gp.k - 2) % #DEST + 1]
+		local dest = RESORT.ready and "PARADISE" or DEST[(gp.n + gp.k - 2) % #DEST + 1]
 		table.insert(lines, string.format("SKY%d%d%d %-9s %-5s %s", plot.i, gp.n, gp.k, dest, gate, status))
 	end
 	if #list == 0 then table.insert(lines, "NO FLIGHTS YET - BUILD GATES") end
@@ -231,6 +240,11 @@ spawn(function()
 		end
 		for _, p in ipairs(Players:GetPlayers()) do
 			pcall(function() G.remote:FireClient(p, "state", A.state(p)) end)
+		end
+		-- the theme park always has some visitors, even before any planes fly there
+		if RESORT.ready and screenLines % 5 == 0 and RESORT.PARK.visitors < 14 then
+			local ok, err = pcall(RESORT.PARK.visitor)
+			if not ok then print("Airport: park visitor failed: " .. tostring(err)) end
 		end
 	end
 end)
