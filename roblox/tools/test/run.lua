@@ -106,6 +106,7 @@ local inv = plot.cf:inverse()
 local levels, states, guestRooms, maxPeople = {}, {}, 0, 0
 local liftStats, progress, stuck = {}, {}, {}
 local maxPax = {}
+local gateWaitSum, walkSum, boardSum, gaveUp = 0, 0, 0, 0
 local seenKinds = {}
 local T = SIM_SECONDS or 240
 for s = 1, T do
@@ -128,7 +129,16 @@ for s = 1, T do
 		end
 		if gp.state == "parked" and gp.pax > (maxPax[gp.n] or 0) then maxPax[gp.n] = gp.pax end
 	end
-	for _, w in ipairs(G.walkers) do if w.plot == plot and w.kind then seenKinds[w.kind] = true end end
+	for _, w in ipairs(G.walkers) do
+		if w.plot == plot and w.kind then seenKinds[w.kind] = true end
+		if w.plot == plot and w.kind == "passenger" then
+			local t = w.route[w.i]
+			if t and t.planeWait and w.waiting then gateWaitSum = gateWaitSum + 1 else walkSum = walkSum + 1 end
+			if t and t == w.route[1] and w.route[1].p and w.giveUpSeen == nil and w.route ~= w.origRoute and w.origRoute then gaveUp = gaveUp + 1 w.giveUpSeen = true end
+			w.origRoute = w.origRoute or w.route
+		end
+	end
+	for _, g in pairs(plot.gates) do if g.n <= 4 and D.FLY.boarding(g) then boardSum = boardSum + 1 end end
 	for id, L in pairs(plot.lifts) do
 		local st = liftStats[id] or { stops = {}, opens = 0, last = nil }
 		liftStats[id] = st
@@ -174,6 +184,8 @@ local mp = {}
 for n, v in pairs(maxPax) do table.insert(mp, n .. "=" .. v) end
 table.sort(mp)
 say("most passengers on board a parked plane, per gate: " .. table.concat(mp, " "))
+say(string.format("passengers: on average %.1f walking around and %.1f waiting at a gate; gates boarding %.0f%% of the time; %d gave up",
+	walkSum / T, gateWaitSum / T, 100 * boardSum / (4 * T), gaveUp))
 local kinds = {}
 for k in pairs(seenKinds) do table.insert(kinds, k) end
 say("walker kinds: " .. table.concat(kinds, " ") .. "  guest-in-room samples: " .. guestRooms .. "  max people: " .. maxPeople)

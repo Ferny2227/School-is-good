@@ -45,11 +45,14 @@ function NPC.step(dt)
 				local d = target.p - w.pos
 				local dist = d.magnitude
 				local step = w.speed * dt
-				if dist <= step and target.planeWait and not FLY.boarding(target.planeWait) and now - (w.waitStart or now) < 180 then
-					-- at the gate: wait for a plane to board
+				if dist <= step and target.planeWait and not FLY.boarding(target.planeWait) then
+					-- at the gate: wait for a plane to board; after a minute, give up and go home
 					w.pos = target.p
 					w.waiting = true
 					w.waitStart = w.waitStart or now
+					if now - w.waitStart > 60 and target.giveUp then
+						w.route, w.i, w.waiting = target.giveUp, 1, false
+					end
 				elseif dist <= step and target.liftWait and not LIFT.ready(target.liftWait, target.level) then
 					-- at the elevator door: call it and wait
 					w.pos = target.p
@@ -277,7 +280,12 @@ function NPC.passenger(plot)
 			if plane then plane.pax = plane.pax + 1 end
 		end
 		if bridge and fleet then
-			moveTo(g.p, 1, nil, { planeWait = fleet })
+			-- the way out if no plane comes
+			local giveUp = {}
+			for _, v in ipairs({ W(aisle, F, 300), W(aisle, F, 140), W(0, F, 131), W(0, F, 122), W(math.random(-4, 4), F, 64), W(math.random(-6, 6), 0.5, 50) }) do
+				table.insert(giveUp, { p = v })
+			end
+			moveTo(g.p, 1, nil, { planeWait = fleet, giveUp = giveUp })
 			go(g.door)
 			go(bridge.a)
 			go(bridge.e, 0.2, board)

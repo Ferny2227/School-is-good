@@ -204,7 +204,7 @@ end
 function FLY.gateFree(g, me)
 	local now = tick()
 	for _, p in ipairs(g.planes) do
-		if p ~= me and p.model.Parent and (p.state == "parked" or p.state == "arriving" or (p.state == "departing" and now - p.t0 < 30)) then return false end
+		if p ~= me and p.model.Parent and (p.state == "parked" or p.state == "arriving" or (p.state == "departing" and now - p.t0 < 10)) then return false end
 	end
 	return true
 end
@@ -216,6 +216,15 @@ function FLY.boarding(g)
 		if p.state == "parked" and p.model.Parent and now - p.t0 > 6 and now < (p.leaveAt or 0) - 4 and p.pax < 40 then return p end
 	end
 	return nil
+end
+-- a plane just left this gate: the fleet's plane that has been up longest comes in next, so the gate is soon busy
+-- again (planes take turns, so each one still spends about 5 minutes in the air)
+function FLY.callNext(g, leaving)
+	local best
+	for _, p in ipairs(g.planes) do
+		if p ~= leaving and p.state == "cruising" and p.model.Parent and (not best or p.t0 < best.t0) then best = p end
+	end
+	if best then best.until_ = 0 end
 end
 function FLY.boardTime(plot)
 	local pilots, atc = plot.staff.pilot or 0, plot.staff.atc or 0
@@ -237,6 +246,7 @@ function FLY.gateStep(gp, dt)
 		if plot[gp.needs] and now > gp.leaveAt then
 			gp.state, gp.t0, gp.path = "departing", now, gp.dep(plot, gp.x)
 			gp.crewIn, gp.pax = false, 0
+			FLY.callNext(gp.g, gp)
 		end
 	elseif gp.state == "departing" or gp.state == "arriving" then
 		local t = now - gp.t0
