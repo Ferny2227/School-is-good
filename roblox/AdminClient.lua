@@ -6,7 +6,7 @@ local player = Players.LocalPlayer
 while not player do wait() player = Players.LocalPlayer end
 if player.Name:lower() ~= "asdasda" then return end
 local pg = player:WaitForChild("PlayerGui")
-local remote = game:GetService("ReplicatedStorage"):WaitForChild("AdminCmd")
+local remote
 
 local old = pg:FindFirstChild("AdminUI")
 if old then old:Destroy() end
@@ -18,7 +18,7 @@ local function box(parent, x, y, w, h, color)
 	local f = Instance.new("Frame")
 	f.Position = UDim2.new(0, x, 0, y) f.Size = UDim2.new(0, w, 0, h)
 	f.BackgroundColor3 = color or Color3.new(0.1, 0.1, 0.14)
-	f.BorderSizePixel = 0 f.Parent = parent
+	f.BorderSizePixel = 0 f.ZIndex = 10 f.Parent = parent
 	return f
 end
 local function label(parent, text, x, y, w, h, size)
@@ -26,7 +26,7 @@ local function label(parent, text, x, y, w, h, size)
 	l.Position = UDim2.new(0, x, 0, y) l.Size = UDim2.new(0, w, 0, h)
 	l.BackgroundTransparency = 1 l.TextColor3 = Color3.new(1, 1, 1)
 	l.Text = text l.FontSize = size or Enum.FontSize.Size14 l.Font = Enum.Font.SourceSans
-	l.TextXAlignment = Enum.TextXAlignment.Left l.Parent = parent
+	l.TextXAlignment = Enum.TextXAlignment.Left l.ZIndex = 10 l.Parent = parent
 	return l
 end
 local function button(parent, text, x, y, w, h, color)
@@ -34,7 +34,7 @@ local function button(parent, text, x, y, w, h, color)
 	b.Position = UDim2.new(0, x, 0, y) b.Size = UDim2.new(0, w, 0, h)
 	b.BackgroundColor3 = color or Color3.new(0.25, 0.3, 0.45) b.BorderSizePixel = 0
 	b.TextColor3 = Color3.new(1, 1, 1) b.Text = text b.FontSize = Enum.FontSize.Size14
-	b.Font = Enum.Font.SourceSansBold b.Parent = parent
+	b.Font = Enum.Font.SourceSansBold b.ZIndex = 10 b.Parent = parent
 	return b
 end
 local function input(parent, hint, x, y, w, h)
@@ -42,12 +42,14 @@ local function input(parent, hint, x, y, w, h)
 	t.Position = UDim2.new(0, x, 0, y) t.Size = UDim2.new(0, w, 0, h)
 	t.BackgroundColor3 = Color3.new(0.2, 0.2, 0.26) t.BorderSizePixel = 0
 	t.TextColor3 = Color3.new(1, 1, 1) t.Text = "" t.FontSize = Enum.FontSize.Size14
-	t.Font = Enum.Font.SourceSans t.Parent = parent
+	t.Font = Enum.Font.SourceSans t.ZIndex = 10 t.Parent = parent
 	return t
 end
 
-local toggle = button(gui, "ADMIN", 10, 200, 70, 28, Color3.new(0.7, 0.15, 0.15))
-local panel = box(gui, 10, 232, 360, 420)
+local toggle = button(gui, "ADMIN", 6, 330, 120, 36, Color3.new(0.8, 0.1, 0.1))
+toggle.ZIndex = 10
+local panel = box(gui, 140, 120, 360, 420)
+panel.ZIndex = 10
 panel.Visible = false
 toggle.MouseButton1Click:connect(function() panel.Visible = not panel.Visible end)
 
@@ -59,6 +61,7 @@ label(panel, "Reason / value:", 10, 94, 200, 16)
 local extra = input(panel, "", 10, 112, 340, 24)
 
 local function send(cmd)
+	if not remote then status.Text = "Waiting for server..." return end
 	remote:FireServer(cmd, target.Text, extra.Text)
 end
 local cmds = {
@@ -75,7 +78,7 @@ for i, c in ipairs(cmds) do
 	b.MouseButton1Click:connect(function() send(c[2]) end)
 end
 local ann = button(panel, "Announce (uses Reason box)", 10, 298, 340, 26, Color3.new(0.2, 0.45, 0.25))
-ann.MouseButton1Click:connect(function() remote:FireServer("announce", "", extra.Text) end)
+ann.MouseButton1Click:connect(function() if remote then remote:FireServer("announce", "", extra.Text) end end)
 
 label(panel, "Players (click to select):", 10, 328, 200, 16)
 local listFrame = box(panel, 10, 346, 168, 66, Color3.new(0.15, 0.15, 0.2))
@@ -89,6 +92,7 @@ local function fill(frame, items, fn)
 	end
 end
 
+local function hook()
 remote.OnClientEvent:connect(function(kind, a, b)
 	if kind == "msg" then
 		status.Text = tostring(a)
@@ -98,3 +102,12 @@ remote.OnClientEvent:connect(function(kind, a, b)
 	end
 end)
 remote:FireServer("list", "", "")
+end
+status.Text = "Waiting for server..."
+local rs = game:GetService("ReplicatedStorage")
+while not remote do
+	remote = rs:FindFirstChild("AdminCmd")
+	if not remote then wait(0.5) end
+end
+status.Text = "Ready."
+hook()
