@@ -129,16 +129,20 @@ end)
 
 ------------------------------------------------------------------ flight information screens
 local DEST = { "LONDON", "TOKYO", "PARIS", "NEW YORK", "DUBAI", "SYDNEY", "ROME", "CAIRO", "RIO" }
-local STATUS = { parked = "BOARDING", departing = "DEPARTED", away = "IN FLIGHT", arriving = "LANDING" }
+local STATUS = { parked = "BOARDING", departing = "DEPARTED", cruising = "IN FLIGHT", arriving = "LANDING" }
 function A.fidsText(plot)
 	local list = {}
 	for n, gp in pairs(plot.gatePlanes) do table.insert(list, gp) end
-	table.sort(list, function(a, b) return a.n < b.n end)
+	table.sort(list, function(a, b) if a.n ~= b.n then return a.n < b.n end return a.k < b.k end)
 	local lines = { "FLIGHT  TO        GATE  STATUS" }
 	for _, gp in ipairs(list) do
 		local gate = gp.n <= 4 and ("G" .. gp.n) or (gp.n <= 6 and ("S" .. (gp.n - 4)) or "CGO")
 		local dest = DEST[(gp.n - 1) % #DEST + 1]
-		table.insert(lines, string.format("SKY%d%02d %-9s %-5s %s", plot.i, gp.n, dest, gate, STATUS[gp.state] or "ON TIME"))
+		local status = STATUS[gp.state] or "ON TIME"
+		if gp.state == "parked" and tick() - gp.t0 < 6 then status = "ARRIVED" end
+		if gp.state == "cruising" and tick() > gp.until_ then status = "LANDING SOON" end
+		dest = DEST[(gp.n + gp.k - 2) % #DEST + 1]
+		table.insert(lines, string.format("SKY%d%d%d %-9s %-5s %s", plot.i, gp.n, gp.k, dest, gate, status))
 	end
 	if #list == 0 then table.insert(lines, "NO FLIGHTS YET - BUILD GATES") end
 	return table.concat(lines, "\n")
@@ -192,6 +196,7 @@ spawn(function()
 						pcall(NPC.inspector, plot)
 					end
 				end
+				FLY.fleetStep(plot)
 				-- leaderboard + the big screen
 				local ls = owner:FindFirstChild("leaderstats")
 				if ls and ls:FindFirstChild("Rating") then

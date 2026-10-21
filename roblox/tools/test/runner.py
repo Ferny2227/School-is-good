@@ -10,6 +10,7 @@ g = lua.globals()
 g.SERVER_SOURCE = src
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
 g.SIM_SECONDS = int(args[0]) if args else 240
+g.CRUISE_SECONDS = int(args[1]) if len(args) > 1 else 45
 lua.execute("math.randomseed(7)")
 lua.execute(open(os.path.join(HERE, "mockrbx.lua")).read())
 t0 = time.time()

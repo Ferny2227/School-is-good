@@ -82,6 +82,7 @@ local function buyAll(plot, player)
 	return n, rounds
 end
 
+D.FLY.CRUISE = CRUISE_SECONDS or D.FLY.CRUISE   -- shorter flights so the test sees whole trips
 local p1 = MOCK.addPlayer("tester", 111)
 MOCK.run(1)
 MOCK.makeCharacter(p1)
@@ -104,6 +105,7 @@ say("visit points: " .. table.concat(npts, " "))
 local inv = plot.cf:inverse()
 local levels, states, guestRooms, maxPeople = {}, {}, 0, 0
 local liftStats, progress, stuck = {}, {}, {}
+local maxPax = {}
 local seenKinds = {}
 local T = SIM_SECONDS or 240
 for s = 1, T do
@@ -119,8 +121,14 @@ for s = 1, T do
 		end
 	end
 	for k, gp in pairs(plot.gatePlanes) do
-		states[tostring(k) .. ":" .. gp.state] = true
+		states[tostring(gp.n) .. ":" .. gp.state] = true
+		if gp.state == "cruising" then
+			local h = (plot.cf:inverse() * gp.root.CFrame.p).Y
+			minCruise = math.min(minCruise or 1e9, h)
+		end
+		if gp.state == "parked" and gp.pax > (maxPax[gp.n] or 0) then maxPax[gp.n] = gp.pax end
 	end
+	for _, w in ipairs(G.walkers) do if w.plot == plot and w.kind then seenKinds[w.kind] = true end end
 	for id, L in pairs(plot.lifts) do
 		local st = liftStats[id] or { stops = {}, opens = 0, last = nil }
 		liftStats[id] = st
@@ -131,7 +139,7 @@ for s = 1, T do
 		if w.plot == plot then
 			local pr = progress[w]
 			if not pr or pr.i ~= w.i then progress[w] = { i = w.i, t = s }
-			elseif s - pr.t > 90 then stuck[w] = (w.kind or "?") .. " stuck at route point " .. w.i .. "/" .. #w.route .. (w.route[w.i] and (w.route[w.i].liftWait and " (waiting for lift)" or (w.route[w.i].ride and " (riding lift)" or "")) or "") end
+			elseif s - pr.t > 200 then stuck[w] = (w.kind or "?") .. " stuck at route point " .. w.i .. "/" .. #w.route .. (w.route[w.i] and (w.route[w.i].liftWait and " (waiting for lift)" or (w.route[w.i].ride and " (riding lift)" or "")) or "") end
 		end
 	end
 end
@@ -158,6 +166,14 @@ local st = {}
 for k in pairs(states) do table.insert(st, k) end
 table.sort(st)
 say("plane states seen: " .. table.concat(st, " "))
+local fl = {}
+for n, g in pairs(plot.gates) do table.insert(fl, n .. "=" .. #g.planes) end
+table.sort(fl)
+say("fleets (planes per gate/stand): " .. table.concat(fl, " ") .. "   lowest cruising height " .. tostring(minCruise and math.floor(minCruise)))
+local mp = {}
+for n, v in pairs(maxPax) do table.insert(mp, n .. "=" .. v) end
+table.sort(mp)
+say("most passengers on board a parked plane, per gate: " .. table.concat(mp, " "))
 local kinds = {}
 for k in pairs(seenKinds) do table.insert(kinds, k) end
 say("walker kinds: " .. table.concat(kinds, " ") .. "  guest-in-room samples: " .. guestRooms .. "  max people: " .. maxPeople)

@@ -1,7 +1,7 @@
 # Airport Tycoon
 
 `AirportTycoon-Admin.rbxl` is the place file to open in Studio. It is built from the sources in `src/`.
-The text at the bottom of the screen ("build 6") tells you which build is running.
+The text at the bottom of the screen ("build 7") tells you which build is running.
 
 ## What's in it
 - **Bigger land**: every airport is 600 x 900 studs (was 420 x 620). The ground is cloned, resized and swapped in
@@ -28,7 +28,11 @@ The text at the bottom of the screen ("build 6") tells you which build is runnin
 - **Elevators that really move**: a car slides up and down the shaft and sliding doors open on each floor. Step on
   the green CALL pad (or click CALL), walk in, then click a floor button or stand on UP/DOWN. Passengers and hotel
   guests wait for the car and ride it too. Terminal: 2 elevators (ground, 2, 3, roof). Hotel: lobby to roof.
-- **Planes take off and land on their own** (gate, remote stand and cargo airliners).
+- **Real flights**: every gate has a fleet of 3 airliners (remote stands and cargo stands 2). Two pilots sit in each
+  see-through cockpit and fly it. At the gate, arriving passengers get off through the jet bridge (to baggage claim and
+  out the front), the crew walks off, then new passengers board (they wait at the gate if no plane is in), the crew
+  walks back on, and the plane pushes back, taxis, takes off, flies a big loop around the airport for about
+  5 minutes (`FLY.CRUISE`), and comes back to land as soon as its gate is free. The flight screens show it all.
 - **Roblox-style people** with swinging arms and legs; the visible body is welded to an invisible root part.
 - New staff: Receptionist, Housekeeper, Bellhop.
 
@@ -53,9 +57,10 @@ The text at the bottom of the screen ("build 6") tells you which build is runnin
 ```
 pip install lz4 lupa
 python3 tools/build.py                          # writes AirportTycoon-Admin.rbxl (syntax-checks every script)
-python3 tools/test/runner.py 150 --client --geo  # runs the server in a mock Roblox
+python3 tools/test/runner.py 300 45 --client --geo  # runs the server in a mock Roblox (300 s, 45 s flights)
 ```
 The test claims airports, buys all 311 items on two of them, and simulates play. It checks that passengers reach every
-floor, guests stay in rooms, elevators stop at every level, nobody gets stuck, and planes depart and land. A player
+floor, guests stay in rooms, elevators stop at every level, nobody gets stuck, and planes board, depart, cruise
+high and land. A player
 uses the hotel elevator (CALL pad, then a floor button). It also saves, rejoins and checks everything rebuilds, runs the
 client UI, and looks for buy pads blocked by parts and people walking through walls.

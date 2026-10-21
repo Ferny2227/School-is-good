@@ -31,7 +31,7 @@ function A.init()
 		local pm = plots:WaitForChild("Plot" .. i)
 		local plot = { i = i, cf = pm:WaitForChild("Origin").CFrame, color = PLOT_COLORS[i] }
 		plot.root = folder(workspace, "Airport" .. i)
-		for _, n in ipairs({ "Items", "Pads", "Staff", "People", "Guests", "Planes" }) do plot[n] = folder(plot.root, n) end
+		for _, n in ipairs({ "Items", "Pads", "Staff", "People", "Guests", "Crowd", "Planes" }) do plot[n] = folder(plot.root, n) end
 		A.enlarge(plot, pm)
 		-- the pylon at the front-left corner shows who owns it
 		local b = { model = plot.root, cf = plot.cf, plot = plot }
@@ -80,12 +80,12 @@ function A.enlarge(plot, pm)
 end
 
 function A.reset(plot)
-	for _, n in ipairs({ "Items", "Pads", "Staff", "People", "Guests", "Planes" }) do plot[n]:ClearAllChildren() end
+	for _, n in ipairs({ "Items", "Pads", "Staff", "People", "Guests", "Crowd", "Planes" }) do plot[n]:ClearAllChildren() end
 	for _, f in pairs(G.flyers) do if f.plot == plot then pcall(function() f.model:Destroy() end) end end
 	plot.owner = nil
 	plot.bought, plot.staff, plot.spots, plot.pts, plot.cnt, plot.items, plot.pads = {}, {}, {}, {}, {}, {}, {}
 	plot.reviews, plot.served, plot.earnLog, plot.incomeRate = {}, 0, {}, 0
-	plot.gatePlanes, plot.flyPads = {}, {}
+	plot.gatePlanes, plot.flyPads, plot.gates, plot.loops = {}, {}, {}, {}
 	plot.hasRunway, plot.intl, plot.fireworks = false, false, false
 	plot.hasRunway2, plot.hasHotel, plot.guestT = false, false, 5
 	plot.lifts, plot.movers, plot.fids = {}, {}, {}

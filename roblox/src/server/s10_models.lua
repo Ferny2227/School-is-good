@@ -90,30 +90,60 @@ end
 
 ------------------------------------------------------------------ an airliner (NPC). cf = centre of the body; nose points -z.
 -- lowest point (wheels) is 7 studs below the centre. Returns model, root (anchored; the rest is welded to it).
-function M.airliner(parent, cf, tail, name, cargo)
+-- crew = true puts two pilots in the glass cockpit (they fly it). cargo = freighter look (no windows, a hump).
+local function seatedPilot(b, x, z, shirt)
+	-- sitting down, facing -z: legs forward, hands forward on the controls
+	U.P(b, "PilotSeat", Vector3.new(1.8, 2.6, 0.4), U.L(x, -0.9, z + 0.8), "Really black", "Fabric", { nc = true })
+	U.P(b, "PilotBody", Vector3.new(1.6, 1.8, 0.8), U.L(x, -0.3, z), shirt, "SmoothPlastic", { nc = true })
+	local head = U.P(b, "PilotHead", Vector3.new(1.6, 0.8, 0.8), U.L(x, 1.05, z), "Nougat", "SmoothPlastic", { nc = true })
+	local mesh = Instance.new("SpecialMesh")
+	pcall(function() mesh.MeshType = Enum.MeshType.Head end)
+	mesh.Scale = Vector3.new(1.25, 1.25, 1.25)
+	mesh.Parent = head
+	local face = Instance.new("Decal")
+	face.Texture = "rbxasset://textures/face.png"
+	pcall(function() face.Face = Enum.NormalId.Front end)
+	face.Parent = head
+	U.P(b, "PilotCap", Vector3.new(1.3, 0.35, 1.3), U.L(x, 1.65, z), "Navy blue", "SmoothPlastic", { nc = true })
+	U.P(b, "PilotCapBadge", Vector3.new(0.5, 0.25, 0.1), U.L(x, 1.65, z - 0.66), "Gold", "Metal", { nc = true })
+	for _, dx in ipairs({ -0.35, 0.35 }) do U.P(b, "PilotLeg", Vector3.new(0.7, 0.7, 1.8), U.L(x + dx, -1.55, z - 0.6), "Really black", "SmoothPlastic", { nc = true }) end
+	for _, dx in ipairs({ -1, 1 }) do U.P(b, "PilotArm", Vector3.new(0.6, 0.6, 1.6), U.L(x + dx, 0.1, z - 0.7), shirt, "SmoothPlastic", { nc = true }) end
+end
+function M.airliner(parent, cf, tail, name, cargo, crew)
 	local m = Instance.new("Model")
 	m.Name = name or "Airliner"
 	local b = { model = m, cf = cf }
 	-- an invisible, unrotated root: moving it moves the plane (the body cylinder itself is turned 90 degrees)
 	local root = U.P(b, "Root", Vector3.new(1, 1, 1), U.L(0, 0, 0), "Institutional white", nil, { tr = 1, nc = true })
-	U.P(b, "Body", Vector3.new(50, 7, 7), U.L(0, 0, 0, 90), "Institutional white", "SmoothPlastic", { shape = "cyl" })
+	-- fuselage behind a see-through flight deck (z -23..-17), the nose radome in front of it
+	U.P(b, "Body", Vector3.new(42, 7, 7), U.L(0, 0, 4, 90), "Institutional white", "SmoothPlastic", { shape = "cyl" })
+	U.P(b, "FlightDeck", Vector3.new(6, 7, 7), U.L(0, 0, -20, 90), "Pastel light blue", "Glass", { shape = "cyl", tr = 0.45 })
+	U.P(b, "DeckFloor", Vector3.new(6, 0.4, 6.6), U.L(0, -2.6, -20), "Dark stone grey", "SmoothPlastic")
+	U.P(b, "Panel", Vector3.new(5, 1.2, 0.6), U.L(0, -0.6, -22.4), "Really black", "SmoothPlastic")
+	U.P(b, "PanelLights", Vector3.new(4, 0.4, 0.1), U.L(0, -0.3, -22.1), "Lime green", "Neon", { nc = true })
 	U.P(b, "Nose", Vector3.new(7, 7, 7), U.L(0, 0, -25), "Institutional white", "SmoothPlastic", { shape = "ball" })
 	U.P(b, "TailCone", Vector3.new(6.6, 6.6, 6.6), U.L(0, 0.3, 25), "Institutional white", "SmoothPlastic", { shape = "ball" })
 	U.P(b, "Cockpit", Vector3.new(4, 1.2, 1.4), U.L(0, 1.6, -27.4, 0, -25), "Really black", "Glass")
+	if crew then
+		seatedPilot(b, -1.3, -19.4, "Institutional white")
+		seatedPilot(b, 1.3, -19.4, "Institutional white")
+	end
 	for _, x in ipairs({ -1, 1 }) do
-		if not cargo then U.P(b, "Windows", Vector3.new(0.2, 0.9, 40), U.L(3.52 * x, 1.1, -1), "Really black", "SmoothPlastic") end
-		U.P(b, "Stripe", Vector3.new(0.2, 1, 46), U.L(3.5 * x, -0.6, 0), tail, "SmoothPlastic")
+		if not cargo then U.P(b, "Windows", Vector3.new(0.2, 0.9, 34), U.L(3.52 * x, 1.1, 3), "Really black", "SmoothPlastic") end
+		U.P(b, "Stripe", Vector3.new(0.2, 1, 40), U.L(3.5 * x, -0.6, 4), tail, "SmoothPlastic")
 		U.P(b, "Wing", Vector3.new(20, 0.9, 9), U.L(12.5 * x, -1.8, 4, -18 * x), "Light stone grey", "SmoothPlastic")
 		U.P(b, "Engine", Vector3.new(7, 3.6, 3.6), U.L(9 * x, -4, 0, 90), "Light stone grey", "Metal", { shape = "cyl" })
 		U.P(b, "EngineFront", Vector3.new(0.4, 3, 3), U.L(9 * x, -4, -3.6, 90), tail, "Metal", { shape = "cyl" })
 		U.P(b, "Gear", Vector3.new(1.4, 2, 2), U.L(3 * x, -6, 4, 0, 0, 90), "Really black", nil, { shape = "cyl" })
 	end
+	-- the passenger door (left side, front) where the jet bridge or stairs meet the plane
+	if not cargo then U.P(b, "Door", Vector3.new(0.3, 4, 2.4), U.L(-3.55, 0.6, -13), "Light stone grey", "SmoothPlastic") end
 	U.P(b, "Gear", Vector3.new(1.4, 2, 2), U.L(0, -6, -18, 0, 0, 90), "Really black", nil, { shape = "cyl" })
 	U.P(b, "Stabiliser", Vector3.new(16, 0.8, 5), U.L(0, 0.8, 26.5), "Light stone grey", "SmoothPlastic")
 	U.P(b, "Fin", Vector3.new(0.8, 10, 9), U.L(0, 8, 25.5), tail, "SmoothPlastic", { class = "WedgePart" })
 	if cargo then
 		U.P(b, "CargoDoor", Vector3.new(0.3, 4, 8), U.L(-3.55, 0.5, -12), tail, "SmoothPlastic")
-		U.P(b, "Hump", Vector3.new(5, 2.4, 14), U.L(0, 3.4, -16), "Institutional white", "SmoothPlastic")
+		U.P(b, "Hump", Vector3.new(5, 2.4, 12), U.L(0, 3.4, -14), "Institutional white", "SmoothPlastic")
 	end
 	U.rig(m, root, false)
 	m.Parent = parent

@@ -63,7 +63,7 @@ function K.xstand(b, o)
 	local s = U.blk(b, "StandSign", 8, 3, 0.4, x, 1, 352, "Bright yellow", "SmoothPlastic")
 	U.text(s, "STAND " .. (o.n == 5 and "A" or "B"), Color3.new(0, 0, 0), nil, "Back")
 	U.blk(b, "Stairs", 4, 6, 10, x - 9, 0.3, 380, "Institutional white", "SmoothPlastic")
-	A.gatePlane(b.plot, o.n, x)
+	A.gatePlane(b.plot, o.n, x, { count = 2 })
 end
 
 ------------------------------------------------------------------ the back: second runway, cargo, maintenance
@@ -106,7 +106,7 @@ function K.xcargoapron(b)
 end
 function K.xcargojet(b, o)
 	U.blk(b, "StandMark", 10, 0.05, 2, o.x, 0.3, 672, "Institutional white", nil, { nc = true })
-	A.gatePlane(b.plot, o.n, o.x, { z = 700, dep = FLY.cargoDeparture, arr = FLY.cargoArrival, needs = "hasRunway2",
+	A.gatePlane(b.plot, o.n, o.x, { z = 700, rz = 820, count = 2, dep = FLY.cargoDeparture, arr = FLY.cargoArrival, needs = "hasRunway2",
 		tail = U.pick({ "Bright orange", "Brown", "Navy blue" }), cargo = true, name = "Cargo " .. (o.n - 6) })
 end
 function K.xmhangar(b)

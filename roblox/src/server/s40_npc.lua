@@ -45,7 +45,12 @@ function NPC.step(dt)
 				local d = target.p - w.pos
 				local dist = d.magnitude
 				local step = w.speed * dt
-				if dist <= step and target.liftWait and not LIFT.ready(target.liftWait, target.level) then
+				if dist <= step and target.planeWait and not FLY.boarding(target.planeWait) and now - (w.waitStart or now) < 180 then
+					-- at the gate: wait for a plane to board
+					w.pos = target.p
+					w.waiting = true
+					w.waitStart = w.waitStart or now
+				elseif dist <= step and target.liftWait and not LIFT.ready(target.liftWait, target.level) then
 					-- at the elevator door: call it and wait
 					w.pos = target.p
 					w.waiting = true
@@ -158,13 +163,13 @@ function NPC.passenger(plot)
 	end
 	local aisle = (math.random() < 0.5 and -12 or 12) + math.random(-2, 2)
 	-- walk along the central aisle, then across to the target (keeps people out of the rooms)
-	local function moveTo(v, wait, act)
+	local function moveTo(v, wait, act, extra)
 		local l = loc(v)
 		if cur and cur.z > 58 and math.abs(l.z - cur.z) > 6 then
 			go(W(aisle, l.y, cur.z))
 			go(W(aisle, l.y, l.z))
 		end
-		go(v, wait, act)
+		go(v, wait, act, extra)
 	end
 	-- the terminal elevator on this side of the aisle: walk to its door, wait for the car, ride, step out
 	local lift = plot.lifts and plot.lifts[aisle < 0 and "TL" or "TR"]
@@ -258,13 +263,29 @@ function NPC.passenger(plot)
 	end
 	-- board a flight
 	if pts.gate and #pts.gate > 0 then
-		local g = U.pick(pts.gate)
-		moveTo(g.p, 2)
-		go(g.door)
+		-- a gate whose plane is boarding now if there is one; otherwise wait at the gate for the next plane
+		local open = {}
+		for _, gg in ipairs(pts.gate) do if FLY.boarding(plot.gates[gg.n]) then table.insert(open, gg) end end
+		local g = #open > 0 and U.pick(open) or U.pick(pts.gate)
 		local bridge
 		for _, br in ipairs(pts.bridge or {}) do if br.n == g.n then bridge = br end end
-		local function board(w) flew = true A.pay(plot, A.ticket(plot), w.model) end
-		if bridge then go(bridge.e, 0.2, board) else route[#route].act = board end
+		local fleet = plot.gates[g.n]
+		local function board(w)
+			flew = true
+			A.pay(plot, A.ticket(plot), w.model)
+			local plane = FLY.boarding(fleet)
+			if plane then plane.pax = plane.pax + 1 end
+		end
+		if bridge and fleet then
+			moveTo(g.p, 1, nil, { planeWait = fleet })
+			go(g.door)
+			go(bridge.a)
+			go(bridge.e, 0.2, board)
+		else
+			moveTo(g.p, 2)
+			go(g.door)
+			route[#route].act = board
+		end
 	else
 		moveTo(W(aisle, F, 250), 2)
 		moveTo(W(aisle, F, 134))
@@ -277,6 +298,83 @@ function NPC.passenger(plot)
 	U.rig(model, root, false)
 	local w = NPC.walk(plot, model, root, route, CONST.walkSpeed + math.random() * 2, function() NPC.review(plot, flew) end)
 	w.kind = "passenger"
+end
+
+------------------------------------------------------------------ people getting off a plane that just landed
+-- route from the plane door to the street: jet bridge, gate, down the aisle, through the gap in the security wall,
+-- baggage claim, out the front doors
+local function gateOf(plot, n)
+	local g, br
+	for _, x in ipairs(plot.pts.gate or {}) do if x.n == n then g = x end end
+	for _, x in ipairs(plot.pts.bridge or {}) do if x.n == n then br = x end end
+	return g, br
+end
+local function walkOut(plot, gp, delay, look, name, kind, bags)
+	local g, br = gateOf(plot, gp.n)
+	if not g or not br then return end
+	local function W(x, y, z) return plot.cf * Vector3.new(x, y, z) end
+	local aisle = (math.random() < 0.5 and -12 or 12) + math.random(-2, 2)
+	local route = {}
+	local function go(v, wait, act) table.insert(route, { p = v, wait = wait, act = act }) end
+	go(br.e, delay)
+	go(br.a)
+	go(g.door)
+	go(g.p)
+	go(W(aisle, F, 300))
+	go(W(aisle, F, 140))
+	go(W(0, F, 131)) go(W(0, F, 122))
+	if bags and plot.bought.belt then
+		local bx = U.pick({ -100, -60, 60, 100 }) + math.random(-4, 4)
+		go(W(bx, F, 117), 3, function(w) A.pay(plot, CONST.checkinFee, w.model) end)
+		go(W(0, F, 117))
+	end
+	go(W(math.random(-4, 4), F, 64))
+	go(W(math.random(-6, 6), 0.5, 52))
+	local pts = plot.pts.arrive
+	if pts and #pts > 0 and math.random() < 0.7 then
+		local a = U.pick(pts).p
+		local l = plot.cf:inverse() * a
+		go(W(l.x, 0.5, 51))
+		go(a)
+	else
+		go(W(math.random(-40, 40), 0.5, 50))
+	end
+	local model, root = M.person(plot.Crowd, CFrame.new(route[1].p), look, name)
+	U.rig(model, root, false)
+	local w = NPC.walk(plot, model, root, route, CONST.walkSpeed + math.random() * 2)
+	w.kind = kind
+end
+function NPC.arrivals(plot, gp)
+	if #plot.Crowd:GetChildren() > 30 then return end
+	for i = 1, math.random(3, 6) do walkOut(plot, gp, 0.5 + (i - 1) * 1.4, M.passengerLook(), "Arriving Passenger", "arrival", true) end
+end
+local CREW = {
+	{ shirt = "Institutional white", pants = "Really black", hat = "cap", hatColor = "Navy blue", tie = "Really black", name = "Captain" },
+	{ shirt = "Institutional white", pants = "Really black", hat = "cap", hatColor = "Navy blue", tie = "Really black", name = "First Officer" },
+	{ shirt = "Navy blue", pants = "Navy blue", hat = "bun", hatColor = "Brown", tie = "Really red", name = "Flight Attendant" },
+}
+-- boarding = true: the crew walks from the gate desk out to the plane; false: they walk off it and out
+function NPC.crew(plot, gp, boarding)
+	local g, br = gateOf(plot, gp.n)
+	if not g or not br then return end
+	for i, c in ipairs(CREW) do
+		local look = {}
+		for k, v in pairs(c) do look[k] = v end
+		look.bag = "Really black"
+		if boarding then
+			local route = {
+				{ p = plot.cf * Vector3.new(gp.x + 10, F, 311), wait = (i - 1) * 1.2 },
+				{ p = g.door }, { p = br.a }, { p = br.e } }
+			local model, root = M.person(plot.Crowd, CFrame.new(route[1].p), look, c.name)
+			local head = model:FindFirstChild("Head")
+			if head and i == 1 then U.bill(head, "CAPTAIN", 5, 1, 2.2, Color3.new(1, 0.85, 0.3)) end
+			U.rig(model, root, false)
+			local w = NPC.walk(plot, model, root, route, CONST.walkSpeed)
+			w.kind = "crew"
+		else
+			walkOut(plot, gp, 9 + i * 1.2, look, c.name, "crew", false)
+		end
+	end
 end
 
 ------------------------------------------------------------------ the airport inspector: walks everything, gives an official rating and a bonus

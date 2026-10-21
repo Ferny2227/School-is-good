@@ -111,19 +111,37 @@ function FLY.initGlobal()
 	end
 end
 
------------------------------------------------------------------- airliners at your gates: board, push back, taxi, take off, come back, land
--- opt (all optional): z = where it parks, dep/arr = path makers (default: the main runway), needs = the plot flag
--- that must be true before it departs, tail = colour, cargo = freighter look, name
+------------------------------------------------------------------ airliners at your gates: board, push back, taxi, take off,
+-- fly around for about 5 minutes, come back, land, let everyone off, board again.
+-- Every gate/stand has a small fleet (opt.count planes): one at the gate, the others in the sky. A plane only comes in
+-- to land when its gate is free. Pilots sit in the cockpit; passengers board through the jet bridge.
+-- opt (all optional): z = where it parks, dep/arr = path makers (default: the main runway), rz = that runway's z,
+-- needs = the plot flag that must be true before it departs, tail = colour, cargo = freighter look, name, count
+FLY.CRUISE = 300   -- seconds in the air
 function A.gatePlane(plot, n, x, opt)
-	if plot.gatePlanes[n] then return end
+	if plot.gates[n] then return end
 	opt = opt or {}
-	local park = plot.cf * U.L(x, H, opt.z or 388)
-	local m, root = M.airliner(plot.Planes, park, opt.tail or plot.color, opt.name or ("Flight " .. plot.i .. "0" .. n), opt.cargo)
-	plot.gatePlanes[n] = { plot = plot, n = n, x = x, model = m, root = root, state = "parked", t0 = tick(), park = park, look = park.lookVector,
-		dep = opt.dep or FLY.departure, arr = opt.arr or FLY.arrival, needs = opt.needs or "hasRunway" }
+	local g = { n = n, x = x, z = opt.z or 388, rz = opt.rz or 525, opt = opt, planes = {}, made = 0, count = opt.count or 3,
+		dep = opt.dep or FLY.departure, arr = opt.arr or FLY.arrival, needs = opt.needs or "hasRunway", nextSpawn = 0 }
+	plot.gates[n] = g
+	FLY.newPlane(plot, g, "parked")
+end
+local NAMES = { "SKY", "AIR", "JET" }
+function FLY.newPlane(plot, g, state)
+	g.made = g.made + 1
+	local park = plot.cf * U.L(g.x, H, g.z)
+	local name = (g.opt.name or ("Flight " .. NAMES[(g.made - 1) % 3 + 1] .. plot.i .. g.n)) .. (g.made > 1 and ("-" .. g.made) or "")
+	local tail = g.opt.tail or (g.made == 1 and plot.color or U.pick({ "Bright red", "Bright blue", "Bright green", "Royal purple", "Bright orange", "Navy blue" }))
+	local m, root = M.airliner(plot.Planes, park, tail, name, g.opt.cargo, true)
+	local gp = { plot = plot, g = g, n = g.n, k = g.made, x = g.x, model = m, root = root, state = state, t0 = tick(), park = park, look = park.lookVector,
+		dep = g.dep, arr = g.arr, needs = g.needs, pax = 0 }
+	table.insert(g.planes, gp)
+	plot.gatePlanes[g.n * 10 + g.made] = gp
+	if state == "cruising" then FLY.startCruise(gp, math.random() * 0.8) end
+	return gp
 end
 function A.startDepartures(plot)
-	for _, gp in pairs(plot.gatePlanes) do gp.t0 = tick() - math.random(0, 20) end
+	for _, gp in pairs(plot.gatePlanes) do if gp.state == "parked" then gp.t0 = tick() - math.random(0, 20) end end
 end
 local function localPath(plot, list)
 	local out = {}
@@ -153,32 +171,112 @@ function FLY.cargoArrival(plot, x)
 		{ -1300, 320, 820, 120 }, { -600, 150, 820, 105 }, { -285, H + 0.3, 820, 90 }, { -100, H, 820, 65 }, { 150, H, 820, 30 },
 		{ 265, H, 820, 14 }, { 280, H, 800, 10 }, { 270, H, 775, 10 }, { x + 14, H, 775, 8 }, { x, H, 755, 6 }, { x, H, 700, 4 } })
 end
+
+-- the holding loop: straight along the runway line (where departures end at D and arrivals start at A), then a big
+-- rectangle out over the sea and back. One lap takes about 70 seconds.
+function FLY.loop(plot, rz)
+	plot.loops = plot.loops or {}
+	if plot.loops[rz] then return plot.loops[rz] end
+	local pts = {}
+	for _, q in ipairs({ { -1800, 330, rz }, { -1300, 320, rz }, { 1200, 320, rz }, { 1800, 330, rz }, { 1800, 360, rz + 900 }, { -1800, 360, rz + 900 } }) do
+		table.insert(pts, { p = plot.cf * Vector3.new(q[1], q[2], q[3]), v = 120 })
+	end
+	local P = FLY.path(FLY.round(pts, 250), true)
+	local A_, D_ = plot.cf * Vector3.new(-1300, 320, rz), plot.cf * Vector3.new(1200, 320, rz)
+	for i, q in ipairs(P.pts) do
+		if (q.p - A_).magnitude < 0.5 then P.tA = P.t[i] end
+		if (q.p - D_).magnitude < 0.5 then P.tD = P.t[i] end
+	end
+	plot.loops[rz] = P
+	return P
+end
+-- frac = where on the loop to start, as a fraction of a lap ahead of D (0 = just took off)
+function FLY.startCruise(gp, frac)
+	local P = FLY.loop(gp.plot, gp.g.rz)
+	local now = tick()
+	gp.state, gp.t0 = "cruising", now
+	gp.loop = P
+	gp.qoff = (P.tD or 0) + (frac or 0) * P.total - now
+	gp.until_ = now + FLY.CRUISE * (0.85 + math.random() * 0.3) - (frac or 0) * 120
+	gp.lastQ = nil
+	gp.look = nil
+end
+function FLY.gateFree(g, me)
+	local now = tick()
+	for _, p in ipairs(g.planes) do
+		if p ~= me and p.model.Parent and (p.state == "parked" or p.state == "arriving" or (p.state == "departing" and now - p.t0 < 30)) then return false end
+	end
+	return true
+end
+-- the plane at this gate that passengers can board now (parked, everyone off, not about to leave)
+function FLY.boarding(g)
+	if not g then return nil end
+	local now = tick()
+	for _, p in ipairs(g.planes) do
+		if p.state == "parked" and p.model.Parent and now - p.t0 > 6 and now < (p.leaveAt or 0) - 4 and p.pax < 40 then return p end
+	end
+	return nil
+end
+function FLY.boardTime(plot)
+	local pilots, atc = plot.staff.pilot or 0, plot.staff.atc or 0
+	return math.max(30, 70 - 6 * pilots - 4 * atc)
+end
+
 function FLY.gateStep(gp, dt)
 	local plot, now = gp.plot, tick()
 	if not gp.model.Parent then return end
 	if gp.state == "parked" then
 		gp.root.CFrame = gp.park
 		gp.look = gp.park.lookVector
-		local pilots, atc = plot.staff.pilot or 0, plot.staff.atc or 0
-		local wait = math.max(18, 50 - 6 * pilots - 4 * atc)
-		if plot[gp.needs] and now - gp.t0 > wait then
+		gp.leaveAt = gp.t0 + FLY.boardTime(plot)
+		-- the crew walks out to the plane a little before it leaves
+		if not gp.crewIn and now > gp.leaveAt - 10 and NPC.crew then
+			gp.crewIn = true
+			pcall(NPC.crew, plot, gp, true)
+		end
+		if plot[gp.needs] and now > gp.leaveAt then
 			gp.state, gp.t0, gp.path = "departing", now, gp.dep(plot, gp.x)
+			gp.crewIn, gp.pax = false, 0
 		end
 	elseif gp.state == "departing" or gp.state == "arriving" then
 		local t = now - gp.t0
 		FLY.place(gp, gp.path, t, dt)
 		if t >= gp.path.total then
 			if gp.state == "departing" then
-				gp.state, gp.t0 = "away", now
-				gp.root.CFrame = CFrame.new(plot.cf.p + Vector3.new(0, 5000, 0))
+				FLY.startCruise(gp, 0)
 			else
 				gp.state, gp.t0 = "parked", now
+				-- everyone gets off: passengers to baggage claim and the exit, the crew back to the terminal
+				if NPC.arrivals then pcall(NPC.arrivals, plot, gp) end
+				if NPC.crew then pcall(NPC.crew, plot, gp, false) end
 			end
 		end
-	elseif gp.state == "away" then
-		if now - gp.t0 > 12 then
-			gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x)
-			gp.look = nil
+	elseif gp.state == "cruising" then
+		local P = gp.loop
+		local q = (now + gp.qoff) % P.total
+		-- far away in the sky: 15 updates a second is plenty
+		if now >= (gp.nextPlace or 0) then
+			gp.nextPlace = now + 1 / 15
+			FLY.place(gp, P, now + gp.qoff, dt)
+		end
+		-- time to come home? only when the gate is free, and only from the point where the approach starts
+		local last = gp.lastQ
+		gp.lastQ = q
+		if now > gp.until_ and plot[gp.needs] and last and P.tA and FLY.gateFree(gp.g, gp) then
+			local passed = (last <= P.tA and q >= P.tA) or (last > q and (P.tA >= last or P.tA <= q))
+			if passed then
+				gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x)
+			end
+		end
+	end
+end
+-- more planes join each fleet once its runway exists (they appear somewhere on the holding loop)
+function FLY.fleetStep(plot)
+	local now = tick()
+	for _, g in pairs(plot.gates) do
+		if plot[g.needs] and #g.planes < g.count and now > g.nextSpawn then
+			g.nextSpawn = now + 25
+			FLY.newPlane(plot, g, "cruising")
 		end
 	end
 end
