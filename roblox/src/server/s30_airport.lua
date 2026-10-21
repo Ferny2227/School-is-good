@@ -46,8 +46,9 @@ end
 
 -- every airport gets more land: the base and curbs grow to PLOT_W x PLOT_D and trees on it are cleared
 function A.enlarge(plot, pm)
-	-- clear the trees first, and always place parts with CFrame after changing Size: old Roblox pushes a part
-	-- upwards out of anything it overlaps when its Size changes, so heights are read before resizing
+	-- Never resize a part that is already in the world: old Roblox shoves it upwards out of whatever it overlaps
+	-- (that is what lifted the ground over the runway). Instead each part is cloned, sized and placed while it is
+	-- outside the world, then swapped in for the original.
 	local trees = MAP:FindFirstChild("Trees")
 	if trees then
 		local inv = plot.cf:inverse()
@@ -58,22 +59,23 @@ function A.enlarge(plot, pm)
 			end
 		end
 	end
-	local base = pm:FindFirstChild("Base")
-	if base then
-		local y = base.CFrame.p.Y - plot.cf.p.Y
-		base.Size = Vector3.new(PLOT_W, base.Size.Y, PLOT_D)
-		base.CFrame = plot.cf * CFrame.new(0, y, PLOT_D / 2)
+	local function swap(old, size, x, z)
+		local y = old.CFrame.p.Y - plot.cf.p.Y
+		local new = old:Clone()
+		new.Size = size
+		new.CFrame = plot.cf * CFrame.new(x, y, z)
+		new.Anchored = true
+		old:Destroy()
+		new.Parent = pm
 	end
+	local base = pm:FindFirstChild("Base")
+	if base then swap(base, Vector3.new(PLOT_W, base.Size.Y, PLOT_D), 0, PLOT_D / 2) end
 	local curbs = {}
 	for _, c in ipairs(pm:GetChildren()) do if c.Name == "Curb" then table.insert(curbs, c) end end
 	local spec = { { -PLOT_W / 2, PLOT_D / 2, 2, PLOT_D }, { PLOT_W / 2, PLOT_D / 2, 2, PLOT_D }, { 0, 0.5, PLOT_W + 2, 1 }, { 0, PLOT_D - 0.5, PLOT_W + 2, 1 } }
 	for k, c in ipairs(curbs) do
 		local sp = spec[k]
-		if sp then
-			local y = c.CFrame.p.Y - plot.cf.p.Y
-			c.Size = Vector3.new(sp[3], c.Size.Y, sp[4])
-			c.CFrame = plot.cf * CFrame.new(sp[1], y, sp[2])
-		end
+		if sp then swap(c, Vector3.new(sp[3], c.Size.Y, sp[4]), sp[1], sp[2]) end
 	end
 end
 
@@ -86,6 +88,7 @@ function A.reset(plot)
 	plot.gatePlanes, plot.flyPads = {}, {}
 	plot.hasRunway, plot.intl, plot.fireworks = false, false, false
 	plot.hasRunway2, plot.hasHotel, plot.guestT = false, false, 5
+	plot.lifts, plot.movers, plot.fids = {}, {}, {}
 	plot.signLabel, plot.screenLabel, plot.lastReport = nil, nil, nil
 	plot.spawnT, plot.nextInspect = 3, tick() + 150
 	plot.header.Text = "AIRPORT " .. plot.i .. "\nFREE"

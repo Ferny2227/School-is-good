@@ -97,8 +97,10 @@ spawn(function()
 		local now = tick()
 		local dt = math.min(0.2, now - last)
 		last = now
+		LIFT.step(dt)
 		NPC.step(dt)
 		FLY.step(dt)
+		OPS.step(dt)
 		for _, g in ipairs(G.global) do FLY.place(g, g.path, now + g.off, dt) end
 		for _, plot in ipairs(G.plots) do
 			for _, gp in pairs(plot.gatePlanes) do FLY.gateStep(gp, dt) end
@@ -124,6 +126,23 @@ spawn(function()
 		end
 	end
 end)
+
+------------------------------------------------------------------ flight information screens
+local DEST = { "LONDON", "TOKYO", "PARIS", "NEW YORK", "DUBAI", "SYDNEY", "ROME", "CAIRO", "RIO" }
+local STATUS = { parked = "BOARDING", departing = "DEPARTED", away = "IN FLIGHT", arriving = "LANDING" }
+function A.fidsText(plot)
+	local list = {}
+	for n, gp in pairs(plot.gatePlanes) do table.insert(list, gp) end
+	table.sort(list, function(a, b) return a.n < b.n end)
+	local lines = { "FLIGHT  TO        GATE  STATUS" }
+	for _, gp in ipairs(list) do
+		local gate = gp.n <= 4 and ("G" .. gp.n) or (gp.n <= 6 and ("S" .. (gp.n - 4)) or "CGO")
+		local dest = DEST[(gp.n - 1) % #DEST + 1]
+		table.insert(lines, string.format("SKY%d%02d %-9s %-5s %s", plot.i, gp.n, dest, gate, STATUS[gp.state] or "ON TIME"))
+	end
+	if #list == 0 then table.insert(lines, "NO FLIGHTS YET - BUILD GATES") end
+	return table.concat(lines, "\n")
+end
 
 ------------------------------------------------------------------ every second: income, passengers, inspector, UI
 local screenLines = 0
@@ -182,6 +201,10 @@ spawn(function()
 					local lines = { "WELCOME TO " .. string.upper(owner.Name) .. "'S AIRPORT",
 						"RATING " .. string.format("%.1f", A.rating(plot)) .. " / 5", plot.served .. " HAPPY PASSENGERS", "HAVE A NICE FLIGHT!" }
 					plot.screenLabel.Text = lines[(math.floor(screenLines / 5) % #lines) + 1]
+				end
+				if #plot.fids > 0 and screenLines % 3 == 0 then
+					local text = A.fidsText(plot)
+					for _, l in ipairs(plot.fids) do l.Text = text end
 				end
 				if plot.fireworks and screenLines % 20 == 0 then
 					for k = 1, 5 do

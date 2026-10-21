@@ -185,8 +185,8 @@ end
 -- GOALS
 local goals = panel("goals", 520, 520, "GOALS", C.purple)
 UI.phaseRows = {}
-for i = 1, 12 do
-	local y = 52 + (i - 1) * 26
+for i = 1, 13 do
+	local y = 50 + (i - 1) * 24
 	local name = label(goals, UDim2.new(0, 16, 0, y), UDim2.new(0, 180, 0, 24), "", 18, C.white, 6, Enum.TextXAlignment.Left)
 	local back = frame(goals, UDim2.new(0, 200, 0, y + 6), UDim2.new(0, 220, 0, 12), C.line, 6)
 	local fill = frame(back, UDim2.new(0, 0, 0, 0), UDim2.new(0, 0, 1, 0), C.purple, 7)
@@ -223,12 +223,12 @@ local helpText = label(help, UDim2.new(0, 16, 0, 52), UDim2.new(1, -32, 1, -60),
 	"5. The Airport Inspector visits and pays a bonus for a good airport.\n" ..
 	"6. Build a runway + hangar, then step on a blue FLY pad to fly!\n" ..
 	"    W/S speed, A/D turn, E up, Q down, Space to jump out.\n" ..
-	"7. Build the Terminal Elevators, then a 2nd and 3rd floor full of\n" ..
-	"    shops, food and fun. Step on the green UP / red DOWN pads.\n" ..
-	"8. Build the Airport Hotel: guests check in, sleep in the rooms\n" ..
-	"    you buy, swim in the pool and pay you for every night.\n" ..
-	"9. Remote stands, cargo jets and a 2nd runway: planes take off\n" ..
-	"    and land on their own. Can you build all of it?",
+	"7. Elevators: step on the green CALL pad, walk in when the doors\n" ..
+	"    open, then click a floor button (or stand on UP / DOWN).\n" ..
+	"8. Floors 2 and 3: lounges, duty free, cinema, food hall and more.\n" ..
+	"9. The hotel: themed rooms, suites and a penthouse. Guests sleep\n" ..
+	"    there and pay for every night. Planes, cargo jets, buses,\n" ..
+	"    tugs and the sky train all move on their own!",
 	18, C.white, 6, Enum.TextXAlignment.Left, false)
 helpText.TextWrapped = true
 helpText.TextYAlignment = Enum.TextYAlignment.Top

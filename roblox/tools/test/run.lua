@@ -103,6 +103,7 @@ table.sort(npts)
 say("visit points: " .. table.concat(npts, " "))
 local inv = plot.cf:inverse()
 local levels, states, guestRooms, maxPeople = {}, {}, 0, 0
+local liftStats, progress, stuck = {}, {}, {}
 local seenKinds = {}
 local T = SIM_SECONDS or 240
 for s = 1, T do
@@ -120,7 +121,33 @@ for s = 1, T do
 	for k, gp in pairs(plot.gatePlanes) do
 		states[tostring(k) .. ":" .. gp.state] = true
 	end
+	for id, L in pairs(plot.lifts) do
+		local st = liftStats[id] or { stops = {}, opens = 0, last = nil }
+		liftStats[id] = st
+		if L.state == "open" and st.last ~= L.idx then st.opens = st.opens + 1 st.stops[L.idx] = true end
+		st.last = L.state == "open" and L.idx or nil
+	end
+	for _, w in ipairs(G.walkers) do
+		if w.plot == plot then
+			local pr = progress[w]
+			if not pr or pr.i ~= w.i then progress[w] = { i = w.i, t = s }
+			elseif s - pr.t > 90 then stuck[w] = (w.kind or "?") .. " stuck at route point " .. w.i .. "/" .. #w.route .. (w.route[w.i] and (w.route[w.i].liftWait and " (waiting for lift)" or (w.route[w.i].ride and " (riding lift)" or "")) or "") end
+		end
+	end
 end
+local ls = {}
+for id, st in pairs(liftStats) do
+	local stops = {}
+	for i in pairs(st.stops) do table.insert(stops, i) end
+	table.sort(stops)
+	table.insert(ls, id .. ": opened " .. st.opens .. " times at levels " .. table.concat(stops, ","))
+end
+table.sort(ls)
+say("lifts: " .. table.concat(ls, " | "))
+local sk = {}
+for w, why in pairs(stuck) do if w.model.Parent then table.insert(sk, why) end end
+say("stuck walkers: " .. #sk)
+for i = 1, math.min(8, #sk) do say("  " .. sk[i]) end
 local ys = {}
 for y, c in pairs(levels) do table.insert(ys, y) end
 table.sort(ys)
@@ -135,6 +162,24 @@ local kinds = {}
 for k in pairs(seenKinds) do table.insert(kinds, k) end
 say("walker kinds: " .. table.concat(kinds, " ") .. "  guest-in-room samples: " .. guestRooms .. "  max people: " .. maxPeople)
 say("served " .. plot.served .. "  reviews " .. #plot.reviews .. "  income/s " .. tostring(plot.incomeRate) .. "  cash " .. cashOf(p1).Value)
+
+-- a player uses the hotel elevator: step on the CALL pad on floor 3, then click the "R" button in the car
+do
+	local L = plot.lifts.H
+	local pad, btn
+	for _, p in ipairs(plot.Items:GetDescendants()) do
+		if p.Name == "CallPad" and math.abs((plot.cf:inverse() * p.CFrame.p).Y - 25.1) < 0.5 and math.abs((plot.cf:inverse() * p.CFrame.p).X - 256) < 1 then pad = p end
+		if p.Name == "Button" and p.Parent == L.cab and p:FindFirstChild("Text") and p.Text.Label.Text == "R" then btn = p end
+	end
+	local torso = p1.Character.Torso
+	pad.Touched:fire(torso)
+	for _ = 1, 40 do MOCK.run(0.5) if L.state == "open" and L.idx == 3 then break end end
+	local okCall = L.idx == 3 and L.state == "open"
+	btn.ClickDetector.MouseClick:fire(p1)
+	for _ = 1, 60 do MOCK.run(0.5) if L.state == "open" and L.idx == 7 then break end end
+	say("player elevator test: called to floor 3 = " .. tostring(okCall) .. ", rode to roof = " .. tostring(L.idx == 7) ..
+		", car floor height " .. string.format("%.1f", (plot.cf:inverse() * L.parts[1].part.CFrame.p).Y) .. ", door open " .. string.format("%.1f", L.doors[7].t))
+end
 
 -- a south (rotated) plot too
 local p2 = MOCK.addPlayer("tester2", 222)

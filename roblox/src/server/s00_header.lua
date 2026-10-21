@@ -14,7 +14,7 @@ local STAFF = {{key = "agent", name = "Check-in Agent", fee = 400, need = "desk"
 local CATS = {"checkin", "security", "food", "shopping", "comfort", "clean", "gates"}
 local CONST = {startCash = 250, baseTicket = 15, walkSpeed = 10, clean_base = 0.15, paxMult = 6, checkinFee = 8}
 local PHASES = {"Arrival", "Check-in", "Security", "Gates & Planes", "Food Court", "Shops & Comfort", "Business", "Mega Airport",
-	"Second Floor", "Third Floor", "Hotel", "Expansion"}
+	"Second Floor", "Third Floor", "Hotel", "Expansion", "Ground Operations"}
 
 
 local MAP = workspace:WaitForChild("AirportMap")

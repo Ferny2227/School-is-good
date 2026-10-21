@@ -1,6 +1,8 @@
 -- ==== s40_npc.lua
 ------------------------------------------------------------------ walking people
 -- route = list of { p = feet position (world), wait = seconds, act = function(walker) }
+-- elevator points (see LIFT.route): { liftWait = L, level = i } wait there until the car is open at level i;
+-- { ride = L, level = j } ride inside the car until it opens at level j
 function NPC.walk(plot, model, root, route, speed, onDone)
 	local w = { plot = plot, model = model, root = root, route = route, i = 1, pos = route[1].p, wt = 0,
 		speed = speed or CONST.walkSpeed, onDone = onDone, dir = Vector3.new(0, 0, -1), face = Vector3.new(0, 0, -1),
@@ -20,15 +22,38 @@ function NPC.step(dt)
 			w.wt = w.wt - dt
 		else
 			local target = w.route[w.i]
+			w.waiting = false
 			if not target then
 				done = true
+			elseif target.ride then
+				-- inside the elevator car: move with it until it opens at our floor
+				local L = target.ride
+				if not w.riding then
+					w.riding = true
+					L.boarding[w] = nil
+					w.rideOff = w.pos - L.plot.cf * Vector3.new(L.x, L.y, L.z)
+				end
+				if L.dead or LIFT.arrived(L, target.level) then
+					w.riding = false
+					if not L.dead then w.pos = L.plot.cf * Vector3.new(L.x, L.y, L.z) + w.rideOff end
+					w.i = w.i + 1
+				else
+					LIFT.call(L, target.level)
+					w.pos = L.plot.cf * Vector3.new(L.x, L.y, L.z) + w.rideOff
+				end
 			else
 				local d = target.p - w.pos
 				local dist = d.magnitude
 				local step = w.speed * dt
-				if dist <= step then
+				if dist <= step and target.liftWait and not LIFT.ready(target.liftWait, target.level) then
+					-- at the elevator door: call it and wait
+					w.pos = target.p
+					w.waiting = true
+					LIFT.call(target.liftWait, target.level)
+				elseif dist <= step then
 					w.pos = target.p
 					if dist > 0.05 then w.dir = d.unit end
+					if target.liftWait then target.liftWait.boarding[w] = tick() end
 					w.wt = target.wait or 0
 					w.i = w.i + 1
 					if target.act then
@@ -48,7 +73,7 @@ function NPC.step(dt)
 		elseif w.model.Parent then
 			-- face the way they walk (riding an elevator straight up/down keeps the old direction)
 			local flat = Vector3.new(w.dir.x, 0, w.dir.z)
-			local walking = w.wt <= 0 and flat.magnitude > 0.3
+			local walking = w.wt <= 0 and not w.riding and not w.waiting and flat.magnitude > 0.3
 			if flat.magnitude > 0.3 then w.face = flat.unit end
 			local bob = walking and math.abs(math.sin(now * 8 + w.ph)) * 0.15 or 0
 			local p = w.pos + Vector3.new(0, 3 + bob, 0)
@@ -125,7 +150,12 @@ function NPC.passenger(plot)
 	local function loc(v) return inv * v end
 	local route = {}
 	local cur
-	local function go(v, wait, act) table.insert(route, { p = v, wait = wait, act = act }) cur = loc(v) end
+	local function go(v, wait, act, extra)
+		local t = { p = v, wait = wait, act = act }
+		if extra then for k, x in pairs(extra) do t[k] = x end end
+		table.insert(route, t)
+		cur = loc(v)
+	end
 	local aisle = (math.random() < 0.5 and -12 or 12) + math.random(-2, 2)
 	-- walk along the central aisle, then across to the target (keeps people out of the rooms)
 	local function moveTo(v, wait, act)
@@ -136,25 +166,38 @@ function NPC.passenger(plot)
 		end
 		go(v, wait, act)
 	end
-	-- the terminal elevators: walk to the one on this side of the aisle, ride, step back out to the aisle
-	local liftX = aisle < 0 and -30 or 30
-	local function rideTo(y)
+	-- the terminal elevator on this side of the aisle: walk to its door, wait for the car, ride, step out
+	local lift = plot.lifts and plot.lifts[aisle < 0 and "TL" or "TR"]
+	local level = 1
+	local function rideTo(j)
 		if math.abs(cur.z - LIFT_Z) > 1 then
 			go(W(aisle, cur.y, cur.z))
 			go(W(aisle, cur.y, LIFT_Z))
 		end
-		go(W(liftX, cur.y, LIFT_Z), 0.5)
-		go(W(liftX, y, LIFT_Z), 0.3)
-		go(W(aisle, y, LIFT_Z))
+		LIFT.route(go, plot, lift, level, j)
+		level = j
+		go(W(aisle, cur.y, LIFT_Z))
 	end
 	local function pay(s) return function(w) if (s.spend or 0) > 0 then A.pay(plot, s.spend, w.model) end end end
+	-- rooms: walk the lane to the door, go in, sit/shop/eat, come back out; islands: just go there
+	local function visit(s)
+		if s.door then
+			moveTo(s.p)
+			go(s.door)
+			go(s.e, s.wait or 4, pay(s))
+			go(s.door)
+			go(s.p)
+		else
+			moveTo(s.p, s.wait or 3, pay(s))
+		end
+	end
 	local function visitFloor(list, n)
 		local picked = {}
 		for _ = 1, n do
 			local s = U.pick(list)
 			if not picked[s] then
 				picked[s] = true
-				moveTo(s.p, s.wait or 3, pay(s))
+				visit(s)
 			end
 		end
 	end
@@ -204,14 +247,14 @@ function NPC.passenger(plot)
 		moveTo(U.pick(pts.seat).p, 4)
 	end
 	-- up the elevators to the sky mall (2nd floor) and the sky deck (3rd floor)
-	if pts.up2 and #pts.up2 > 0 and math.random() < 0.75 then
-		rideTo(LV[2])
+	if lift and pts.up2 and #pts.up2 > 0 and math.random() < 0.75 then
+		rideTo(2)
 		visitFloor(pts.up2, math.random(1, 3))
 		if pts.up3 and #pts.up3 > 0 and math.random() < 0.65 then
-			rideTo(LV[3])
+			rideTo(3)
 			visitFloor(pts.up3, math.random(1, 3))
 		end
-		rideTo(LV[1])
+		rideTo(1)
 	end
 	-- board a flight
 	if pts.gate and #pts.gate > 0 then

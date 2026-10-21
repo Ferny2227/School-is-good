@@ -230,7 +230,7 @@ MOCK.Event = Event
 local EVENTS = { Touched = true, Changed = true, ChildAdded = true, ChildRemoved = true, PlayerAdded = true, PlayerRemoving = true,
 	CharacterAdded = true, Chatted = true, OnServerEvent = true, OnClientEvent = true, MouseButton1Click = true, Error = true,
 	MessageOut = true, Died = true, AncestryChanged = true, DescendantAdded = true, MouseButton1Down = true, MouseButton1Up = true,
-	MouseLeave = true, MouseEnter = true, KeyDown = true, KeyUp = true, FocusLost = true }
+	MouseLeave = true, MouseEnter = true, KeyDown = true, KeyUp = true, FocusLost = true, MouseClick = true }
 local Inst = {}
 local imt = {}
 local allParts = {}
