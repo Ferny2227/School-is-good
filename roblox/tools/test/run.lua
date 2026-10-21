@@ -39,6 +39,7 @@ MOCK.part(map, "Spawn", Vector3.new(14, 1, 14), CFrame.new(0, 1, -215))
 local ground = MOCK.new("Model", map) ground.Name = "Ground"
 
 -- run the server
+MOCK.pushOnResize = true
 local fn, err = loadstring(SERVER_SOURCE, "=AirportServer")
 if not fn then error(err) end
 spawn(fn)
@@ -49,6 +50,16 @@ local G, A, CATALOG = D.G, D.A, D.CATALOG
 local out = {}
 local function say(s) table.insert(out, s) end
 say("catalog items: " .. #CATALOG)
+-- the enlarged ground must stay on the ground
+for i, pl in ipairs(G.plots) do
+	local pm = plots:FindFirstChild("Plot" .. i)
+	for _, part in ipairs(pm:GetChildren()) do
+		local l = pl.cf:inverse() * part.CFrame.p
+		if math.abs(l.Y) > 1 then table.insert(MOCK.errors, "Plot" .. i .. "." .. part.Name .. " is at height " .. l.Y) end
+	end
+	local base = pm:FindFirstChild("Base")
+	if i == 1 then say(string.format("plot 1 base: size %s, centre local %s", tostring(base.Size), tostring(pl.cf:inverse() * base.CFrame.p))) end
+end
 
 local function cashOf(p) return p.leaderstats.Cash end
 local function buyAll(plot, player)

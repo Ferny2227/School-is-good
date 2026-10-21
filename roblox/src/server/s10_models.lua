@@ -7,7 +7,7 @@ local PANTS = { "Navy blue", "Really black", "Dark stone grey", "Brown", "Sand b
 local BAGS = { "Bright red", "Really black", "Bright blue", "Royal purple", "Bright orange", "Lime green", "Hot pink" }
 
 -- a Roblox-style character standing at feet CFrame `cf` (facing -z): separate arms and legs, the classic head
--- mesh and face. look = { shirt, pants, skin, arms, hat, hatColor, bag, tie, clipboard, mop }. Returns model, torso.
+-- mesh and face. look = { shirt, pants, skin, arms, hat, hatColor, bag, tie, clipboard, mop }. Returns model, root.
 function M.person(parent, cf, look, name)
 	look = look or {}
 	local m = Instance.new("Model")
@@ -17,7 +17,9 @@ function M.person(parent, cf, look, name)
 	local arms = look.arms or shirt
 	U.P(b, "Left Leg", Vector3.new(1, 2, 1), U.L(-0.5, 1, 0), pants)
 	U.P(b, "Right Leg", Vector3.new(1, 2, 1), U.L(0.5, 1, 0), pants)
-	local torso = U.P(b, "Torso", Vector3.new(2, 2, 1), U.L(0, 3, 0), shirt)
+	-- an invisible root carries the body (walkers move it); the visible torso is welded to it like the limbs
+	local root = U.P(b, "Root", Vector3.new(2, 2, 1), U.L(0, 3, 0), shirt, nil, { tr = 1, nc = true })
+	U.P(b, "Body", Vector3.new(2, 2, 1), U.L(0, 3, 0), shirt)
 	U.P(b, "Left Arm", Vector3.new(1, 2, 1), U.L(-1.5, 3, 0), arms)
 	U.P(b, "Right Arm", Vector3.new(1, 2, 1), U.L(1.5, 3, 0), arms)
 	local head = U.P(b, "Head", Vector3.new(2, 1, 1), U.L(0, 4.5, 0), skin)
@@ -56,10 +58,10 @@ function M.person(parent, cf, look, name)
 		U.P(b, "MopHead", Vector3.new(1.2, 0.4, 0.8), U.L(2.5, 0.2, -0.5), "Light stone grey")
 	end
 	m.Parent = parent
-	return m, torso
+	return m, root
 end
 
--- after U.rig(model, torso): remember the limb welds so walkers can swing their arms and legs
+-- after U.rig(model, root): remember the limb welds so walkers can swing their arms and legs
 local LIMBS = { ["Left Leg"] = { -0.5, -1, 1 }, ["Right Leg"] = { 0.5, -1, -1 }, ["Left Arm"] = { -1.5, 0.5, -0.8 }, ["Right Arm"] = { 1.5, 0.5, 0.8 } }
 function M.limbs(root)
 	local out = {}

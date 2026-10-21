@@ -1,7 +1,7 @@
 # Airport Tycoon
 
 `AirportTycoon-Admin.rbxl` is the place file to open in Studio. It is built from the sources in `src/`.
-The text at the bottom of the screen ("build 4: 3 floors + hotel") tells you which build is running.
+The text at the bottom of the screen ("build 5") tells you which build is running.
 
 ## What's in it
 - **Bigger land**: every airport is 600 x 900 studs (was 420 x 620). Trees on it are cleared when the server starts.

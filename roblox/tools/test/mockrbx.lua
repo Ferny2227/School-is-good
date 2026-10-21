@@ -268,7 +268,13 @@ imt.__newindex = function(o, k, v)
 		return
 	end
 	if k == "CFrame" then assert(MOCK.isCFrame(v), "CFrame property set to a non-CFrame") end
-	if k == "Size" and isPart(props.ClassName) then assert(getmetatable(v) == V3, "Size set to a non-Vector3") end
+	if k == "Size" and isPart(props.ClassName) then
+		assert(getmetatable(v) == V3, "Size set to a non-Vector3")
+		-- like old Roblox: resizing a part that is already in the world pushes it up out of whatever it overlaps
+		if MOCK.pushOnResize and o:IsDescendantOf(workspace) and props.CFrame then
+			props.CFrame = props.CFrame + Vector3.new(0, 40, 0)
+		end
+	end
 	if k == "BrickColor" then assert(type(v) == "table" and v.Name, "BrickColor set to a non-BrickColor") end
 	if k == "Material" then assert(type(v) == "table" and v.EnumType == "Material", "Material set to a non-material") end
 	props[k] = v

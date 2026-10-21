@@ -46,21 +46,8 @@ end
 
 -- every airport gets more land: the base and curbs grow to PLOT_W x PLOT_D and trees on it are cleared
 function A.enlarge(plot, pm)
-	local base = pm:FindFirstChild("Base")
-	if base then
-		base.Size = Vector3.new(PLOT_W, base.Size.Y, PLOT_D)
-		base.CFrame = plot.cf * CFrame.new(0, base.CFrame.p.Y - plot.cf.p.Y, PLOT_D / 2)
-	end
-	local curbs = {}
-	for _, c in ipairs(pm:GetChildren()) do if c.Name == "Curb" then table.insert(curbs, c) end end
-	local spec = { { -PLOT_W / 2, PLOT_D / 2, 2, PLOT_D }, { PLOT_W / 2, PLOT_D / 2, 2, PLOT_D }, { 0, 0.5, PLOT_W + 2, 1 }, { 0, PLOT_D - 0.5, PLOT_W + 2, 1 } }
-	for k, c in ipairs(curbs) do
-		local sp = spec[k]
-		if sp then
-			c.Size = Vector3.new(sp[3], c.Size.Y, sp[4])
-			c.CFrame = plot.cf * CFrame.new(sp[1], c.CFrame.p.Y - plot.cf.p.Y, sp[2])
-		end
-	end
+	-- clear the trees first, and always place parts with CFrame after changing Size: old Roblox pushes a part
+	-- upwards out of anything it overlaps when its Size changes, so heights are read before resizing
 	local trees = MAP:FindFirstChild("Trees")
 	if trees then
 		local inv = plot.cf:inverse()
@@ -69,6 +56,23 @@ function A.enlarge(plot, pm)
 				local l = inv * t.Position
 				if math.abs(l.x) < PLOT_W / 2 + 10 and l.z > -6 and l.z < PLOT_D + 10 then t:Destroy() end
 			end
+		end
+	end
+	local base = pm:FindFirstChild("Base")
+	if base then
+		local y = base.CFrame.p.Y - plot.cf.p.Y
+		base.Size = Vector3.new(PLOT_W, base.Size.Y, PLOT_D)
+		base.CFrame = plot.cf * CFrame.new(0, y, PLOT_D / 2)
+	end
+	local curbs = {}
+	for _, c in ipairs(pm:GetChildren()) do if c.Name == "Curb" then table.insert(curbs, c) end end
+	local spec = { { -PLOT_W / 2, PLOT_D / 2, 2, PLOT_D }, { PLOT_W / 2, PLOT_D / 2, 2, PLOT_D }, { 0, 0.5, PLOT_W + 2, 1 }, { 0, PLOT_D - 0.5, PLOT_W + 2, 1 } }
+	for k, c in ipairs(curbs) do
+		local sp = spec[k]
+		if sp then
+			local y = c.CFrame.p.Y - plot.cf.p.Y
+			c.Size = Vector3.new(sp[3], c.Size.Y, sp[4])
+			c.CFrame = plot.cf * CFrame.new(sp[1], y, sp[2])
 		end
 	end
 end
