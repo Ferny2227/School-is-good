@@ -50,7 +50,7 @@ function NPC.step(dt)
 					w.pos = target.p
 					w.waiting = true
 					w.waitStart = w.waitStart or now
-					if now - w.waitStart > 60 and target.giveUp then
+					if now - w.waitStart > 90 and target.giveUp then
 						w.route, w.i, w.waiting = target.giveUp, 1, false
 					end
 				elseif dist <= step and target.liftWait and not LIFT.ready(target.liftWait, target.level) then

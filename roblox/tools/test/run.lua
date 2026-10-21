@@ -107,6 +107,7 @@ local levels, states, guestRooms, maxPeople = {}, {}, 0, 0
 local liftStats, progress, stuck = {}, {}, {}
 local maxPax = {}
 local gateWaitSum, walkSum, boardSum, gaveUp = 0, 0, 0, 0
+local skyTimes, lastState = {}, {}
 local seenKinds = {}
 local T = SIM_SECONDS or 240
 for s = 1, T do
@@ -122,6 +123,14 @@ for s = 1, T do
 		end
 	end
 	for k, gp in pairs(plot.gatePlanes) do
+		-- whole trips only: from take-off (departing -> cruising) to starting the approach (cruising -> arriving)
+		local ls = lastState[gp]
+		if not ls then
+			lastState[gp] = { state = gp.state }
+		elseif ls.state ~= gp.state then
+			if ls.state == "cruising" and ls.since then table.insert(skyTimes, s - ls.since) end
+			lastState[gp] = { state = gp.state, since = (ls.state == "departing" and gp.state == "cruising") and s or nil }
+		end
 		states[tostring(gp.n) .. ":" .. gp.state] = true
 		if gp.state == "cruising" then
 			local h = (plot.cf:inverse() * gp.root.CFrame.p).Y
@@ -184,6 +193,9 @@ local mp = {}
 for n, v in pairs(maxPax) do table.insert(mp, n .. "=" .. v) end
 table.sort(mp)
 say("most passengers on board a parked plane, per gate: " .. table.concat(mp, " "))
+local sum = 0
+for _, v in ipairs(skyTimes) do sum = sum + v end
+say(string.format("%d full trips in the sky, average %.0f s in the air", #skyTimes, #skyTimes > 0 and sum / #skyTimes or 0))
 say(string.format("passengers: on average %.1f walking around and %.1f waiting at a gate; gates boarding %.0f%% of the time; %d gave up",
 	walkSum / T, gateWaitSum / T, 100 * boardSum / (4 * T), gaveUp))
 local kinds = {}

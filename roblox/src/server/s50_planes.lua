@@ -143,8 +143,10 @@ end
 function A.startDepartures(plot)
 	for _, gp in pairs(plot.gatePlanes) do if gp.state == "parked" then gp.t0 = tick() - math.random(0, 20) end end
 end
-local function localPath(plot, list)
+-- from (optional, world position): fly straight there first, e.g. from wherever the plane is on the holding loop
+local function localPath(plot, list, from)
 	local out = {}
+	if from then table.insert(out, { p = from, v = 120 }) end
 	for _, q in ipairs(list) do table.insert(out, { p = plot.cf * Vector3.new(q[1], q[2], q[3]), v = q[4], back = q[5] }) end
 	return FLY.path(FLY.round(out, 10), false)
 end
@@ -154,10 +156,10 @@ function FLY.departure(plot, x)
 		{ -192, H, 490, 12 }, { -186, H, 525, 12 }, { -150, H, 525, 25 }, { -40, H, 525, 55 }, { 110, H, 525, 85 },
 		{ 230, 40, 525, 95 }, { 600, 170, 525, 110 }, { 1200, 320, 525, 120 } })
 end
-function FLY.arrival(plot, x)
+function FLY.arrival(plot, x, from)
 	return localPath(plot, {
 		{ -1300, 320, 525, 120 }, { -600, 150, 525, 105 }, { -215, H + 0.3, 525, 90 }, { -60, H, 525, 65 }, { 110, H, 525, 30 },
-		{ 182, H, 525, 14 }, { 190, H, 490, 10 }, { 185, H, 460, 10 }, { x + 14, H, 460, 8 }, { x, H, 440, 6 }, { x, H, 388, 4 } })
+		{ 182, H, 525, 14 }, { 190, H, 490, 10 }, { 185, H, 460, 10 }, { x + 14, H, 460, 8 }, { x, H, 440, 6 }, { x, H, 388, 4 } }, from)
 end
 -- cargo jets: park on the cargo apron (z 700), push back, taxi to the second runway (z 820), take off, come back
 function FLY.cargoDeparture(plot, x)
@@ -166,10 +168,10 @@ function FLY.cargoDeparture(plot, x)
 		{ -282, H, 800, 12 }, { -276, H, 820, 12 }, { -240, H, 820, 25 }, { -120, H, 820, 55 }, { 60, H, 820, 85 },
 		{ 250, 40, 820, 95 }, { 620, 170, 820, 110 }, { 1200, 320, 820, 120 } })
 end
-function FLY.cargoArrival(plot, x)
+function FLY.cargoArrival(plot, x, from)
 	return localPath(plot, {
 		{ -1300, 320, 820, 120 }, { -600, 150, 820, 105 }, { -285, H + 0.3, 820, 90 }, { -100, H, 820, 65 }, { 150, H, 820, 30 },
-		{ 265, H, 820, 14 }, { 280, H, 800, 10 }, { 270, H, 775, 10 }, { x + 14, H, 775, 8 }, { x, H, 755, 6 }, { x, H, 700, 4 } })
+		{ 265, H, 820, 14 }, { 280, H, 800, 10 }, { 270, H, 775, 10 }, { x + 14, H, 775, 8 }, { x, H, 755, 6 }, { x, H, 700, 4 } }, from)
 end
 
 -- the holding loop: straight along the runway line (where departures end at D and arrivals start at A), then a big
@@ -201,10 +203,15 @@ function FLY.startCruise(gp, frac)
 	gp.lastQ = nil
 	gp.look = nil
 end
+-- free (or about to be): the approach takes at least 45 s, so a plane may start it when the one at the gate
+-- leaves within 25 s; it then reaches the gate after the other has pushed back
 function FLY.gateFree(g, me)
 	local now = tick()
 	for _, p in ipairs(g.planes) do
-		if p ~= me and p.model.Parent and (p.state == "parked" or p.state == "arriving" or (p.state == "departing" and now - p.t0 < 10)) then return false end
+		if p ~= me and p.model.Parent then
+			if p.state == "arriving" or (p.state == "departing" and now - p.t0 < 10) then return false end
+			if p.state == "parked" and not (p.plot[p.needs] and p.leaveAt and p.leaveAt - now <= 25) then return false end
+		end
 	end
 	return true
 end
@@ -228,7 +235,7 @@ function FLY.callNext(g, leaving)
 end
 function FLY.boardTime(plot)
 	local pilots, atc = plot.staff.pilot or 0, plot.staff.atc or 0
-	return math.max(30, 70 - 6 * pilots - 4 * atc)
+	return math.max(50, 90 - 6 * pilots - 4 * atc)
 end
 
 function FLY.gateStep(gp, dt)
@@ -256,6 +263,8 @@ function FLY.gateStep(gp, dt)
 				FLY.startCruise(gp, 0)
 			else
 				gp.state, gp.t0 = "parked", now
+				gp.leaveAt = now + FLY.boardTime(plot)
+				FLY.callNext(gp.g, gp)   -- the next plane comes in as this one leaves
 				-- everyone gets off: passengers to baggage claim and the exit, the crew back to the terminal
 				if NPC.arrivals then pcall(NPC.arrivals, plot, gp) end
 				if NPC.crew then pcall(NPC.crew, plot, gp, false) end
@@ -269,14 +278,9 @@ function FLY.gateStep(gp, dt)
 			gp.nextPlace = now + 1 / 15
 			FLY.place(gp, P, now + gp.qoff, dt)
 		end
-		-- time to come home? only when the gate is free, and only from the point where the approach starts
-		local last = gp.lastQ
-		gp.lastQ = q
-		if now > gp.until_ and plot[gp.needs] and last and P.tA and FLY.gateFree(gp.g, gp) then
-			local passed = (last <= P.tA and q >= P.tA) or (last > q and (P.tA >= last or P.tA <= q))
-			if passed then
-				gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x)
-			end
+		-- time to come home? when its gate is (about to be) free: fly straight to the approach and land
+		if now > gp.until_ and plot[gp.needs] and FLY.gateFree(gp.g, gp) then
+			gp.state, gp.t0, gp.path = "arriving", now, gp.arr(plot, gp.x, gp.root.CFrame.p)
 		end
 	end
 end
