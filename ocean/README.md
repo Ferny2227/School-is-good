@@ -32,7 +32,7 @@ Open/upload `DisasterOcean.rbxl`.
   +40 Coins for each one you live through) until only ONE player is left alive: they win (+1 Win, +150 Coins). Alone,
   it goes on until you die. Then it resets to the sky lobby. The boats can't break or sink. Fell in? Press jump to
   leap back onto the boat.
-- **Disasters** (sometimes two at once): Hailstorm, Whirlpool (spins the boat and drags it down), Iceberg (rips the
+- **Disasters** (sometimes two at once): Tsunami (a MASSIVE 250-stud wall of water that rises out of the fog), Hailstorm, Whirlpool (spins the boat and drags it down), Iceberg (rips the
   hull open), Ghost Ship (fires cannonballs), Tsunami (one giant swell rises ahead and lifts the whole boat), Tornado (picks
   the boat up out of the sea, spins it and drops it), Hurricane (even bigger seas, wind, lightning), Meteor Shower,
   the Kraken, Shark Attack.

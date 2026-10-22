@@ -40,8 +40,8 @@ local function stepSea(dt)
 end
 spawn(function() while true do seaClock.Value = seaTime() wait(5) end end)
 -- a set of bigger waves (or one giant swell) that starts far ahead of the bow and rolls through the boat
-local function rogue(height, len, bump)
-	SEA.rogueA, SEA.rogueT, SEA.rogueZ, SEA.rogueLen, SEA.rogueBump = height, seaTime(), -700, len, bump and true or false
+local function rogue(height, len, bump, from)
+	SEA.rogueA, SEA.rogueT, SEA.rogueZ, SEA.rogueLen, SEA.rogueBump = height, seaTime(), from or -700, len, bump and true or false
 	rogueVals.A.Value, rogueVals.T.Value, rogueVals.Z.Value, rogueVals.Len.Value, rogueVals.Bump.Value = SEA.rogueA, SEA.rogueT, SEA.rogueZ, len, SEA.rogueBump
 end
 local function calmRogue() SEA.rogueA = 0 rogueVals.A.Value = 0 end

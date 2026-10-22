@@ -602,7 +602,7 @@ spawn(function()
 					a, b = RIDGE_A, math.max(1, RIDGE_B * A)
 				elseif S.rogueA > 0 and S.rogueBump then       -- the tsunami
 					uc, A = S.rogueZ + 30 * (t - S.rogueT), S.rogueA
-					a, b = S.rogueLen * 1.5, S.rogueA * 1.5
+					a, b = S.rogueLen * TSU_A, S.rogueA * TSU_B
 				end
 				if uc and math.abs(uc) < 2000 + a then
 					r.part.CFrame = CFrame.new(cx + dx * uc, lv + A - b, cz + dz * uc) * turn

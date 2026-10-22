@@ -49,8 +49,10 @@ local function bigSets(height, gapMin, gapMax, first)
 	spawn(function()
 		wait(first or 6)
 		while alive do
-			toAll("toast", "Big waves ahead! Hold on!")
-			rogue(height, 600, false)
+			if not (SEA.rogueA > 0 and SEA.rogueBump) then     -- never wipe out a tsunami that's on its way
+				toAll("toast", "Big waves ahead! Hold on!")
+				rogue(height, 600, false)
+			end
 			wait(math.random(gapMin, gapMax))
 		end
 	end)
@@ -64,18 +66,31 @@ local function oceanWaves()
 end
 
 local DIS = {}
-DIS.Tsunami = { text = "TSUNAMI! A giant wave is coming!", run = function()
+DIS.Tsunami = { text = "TSUNAMI! A MASSIVE wave is coming!", run = function()
 	local alive = true
 	spawn(function()
-		wait(4)
+		wait(3)
 		if not alive then return end
-		-- one giant swell rises up out of the ocean far ahead of the bow and rolls straight through the boat
-		toAll("big", "THE SEA IS RISING...", "Get inside or hold on to something!")
-		rogue(85, 250, true)
-		wait(40)
-		if alive then
-			toAll("big", "ANOTHER ONE!", "Here comes a second tsunami!")
-			rogue(60, 250, true)
+		-- a MASSIVE wall of water (250 studs high, 1500 wide) rises out of the fog far away and comes for the boat
+		local HEIGHT, LEN = 250, 500
+		toAll("big", "LOOK AT THE HORIZON...", "A MASSIVE TSUNAMI IS COMING! Get inside and hold on!")
+		rogue(HEIGHT, LEN, true, -1700)
+		local a = LEN * TSU_A
+		local hit = false
+		while alive and SEA.rogueA > 0 do
+			wait(0.25)
+			local front = SEA.rogueZ + 30 * (seaTime() - SEA.rogueT) + a * 0.8      -- where its wall meets the sea
+			if not hit and front >= -40 then
+				hit = true
+				toAll("big", "THE TSUNAMI HITS!", "")
+				toAll("shake", 2.5)
+				for _, x in ipairs(players()) do
+					x.h:TakeDamage(25 * (1 + 0.25 * (DIFF.level - 1)))
+					if not x.h.Sit then fling(x, V(math.random(-15, 15), 30, 35), 0.3) end
+				end
+			elseif not hit and front >= -400 and math.random() < 0.3 then
+				toAll("shake", 0.4)      -- the rumble as it gets close
+			end
 		end
 	end)
 	return function() alive = false end

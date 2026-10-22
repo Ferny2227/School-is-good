@@ -22,6 +22,9 @@ local function CrestAmp(uc, t, s)
 	end
 	return A * (1 - math.min(1, math.max(0, math.abs(uc) - 1500) / 450))
 end
+-- the tsunami's shape: half as wide as 1.5 x its length, its ridge 2.5 x its height (so it rises out of the sea as a
+-- steep wall, not a bump)
+local TSU_A, TSU_B = 1.5, 2.5
 local function ridgeAt(x, A, a, b)
 	if x <= -a or x >= a then return -1e9 end
 	return A - b + b * math.sqrt(1 - (x / a) ^ 2)
@@ -37,7 +40,7 @@ local function SeaHeight(x, z, t, s)
 	-- the tsunami: one giant ridge rising out of the sea
 	if s.rogueA > 0 and s.rogueBump then
 		local c = s.rogueZ + 30 * (t - s.rogueT)
-		h = math.max(h, ridgeAt(u - c, s.rogueA, s.rogueLen * 1.5, s.rogueA * 1.5))
+		h = math.max(h, ridgeAt(u - c, s.rogueA, s.rogueLen * TSU_A, s.rogueA * TSU_B))
 	end
 	return h
 end
