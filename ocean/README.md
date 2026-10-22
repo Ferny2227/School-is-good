@@ -26,6 +26,8 @@ Open/upload `DisasterOcean.rbxl`.
   builds up, rolls through the boat (screen shake, damage, water washing over the deck) and dies down again. The
   swells are drawn on each player's computer (dark troughs, turquoise faces, white foam on the crests) with the same
   maths the server uses to move the boat (`src/shared/SeaHeight.lua`), so the boat always sits on the drawn water.
+- **It gets harder**: every 5 disasters the level goes up: one more disaster at once (up to 4), bigger waves,
+  disasters hit 25% harder per level, shorter calms, and Coins per disaster = 40 x level.
 - **Last one standing**: once the boat leaves, disasters keep coming one after another (12 s of calm in between,
   +40 Coins for each one you live through) until only ONE player is left alive: they win (+1 Win, +150 Coins). Alone,
   it goes on until you die. Then it resets to the sky lobby. The boats can't break or sink. Fell in? Press jump to

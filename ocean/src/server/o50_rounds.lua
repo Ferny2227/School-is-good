@@ -91,15 +91,29 @@ spawn(function()
 			local stops = { oceanWaves() }
 			if theme == "Normal" then toAll("weather", "storm") end
 			local n, sunkWin = 0, false
+			DIFF.level = 1
 			while not gameOver() do
 				n = n + 1
+				-- CHALLENGE: every 5 disasters it gets harder: one more disaster stacked at once (up to 4), bigger
+				-- waves, disasters hit harder, shorter calms, more Coins
+				local level = math.floor((n - 1) / 5) + 1
+				if level ~= DIFF.level then
+					DIFF.level = level
+					toAll("big", "LEVEL " .. level .. "!", "It's getting harder: " .. math.min(level, 4) .. " disasters at once, bigger waves!")
+					toAll("shake", 0.6)
+					wait(4)
+				end
+				SEA.calm = 40 + 6 * (level - 1)
+				SEA.waves = math.max(SEA.waves, SEA.calm)
 				local list = { nextDisaster() }
-				if n >= 3 and math.random() < 0.35 then
-					local second = nextDisaster(list[1])
-					if second ~= list[1] then table.insert(list, second) end
+				while #list < math.min(level, 4) do
+					local d = nextDisaster(list[#list])
+					local dup = false
+					for _, x in ipairs(list) do if x == d then dup = true end end
+					if not dup then table.insert(list, d) end
 				end
 				local names = table.concat(list, " + ")
-				STATE.phase, STATE.disaster = "disaster", names
+				STATE.phase, STATE.disaster = "disaster", "LV" .. level .. ": " .. names
 				local texts = {}
 				for _, d in ipairs(list) do table.insert(texts, DIS[d].text) end
 				toAll("big", string.upper(names), table.concat(texts, "  "))
@@ -122,15 +136,15 @@ spawn(function()
 				for _, x in ipairs(players()) do
 					if inRound[x.p] then
 						table.insert(survivors, x.p.Name)
-						addCoins(x.p, 40)
+						addCoins(x.p, 40 * DIFF.level)
 						local sv = stats(x.p):FindFirstChild("Survived")
 						if sv then sv.Value = sv.Value + 1 end
-						toAll("toastTo", x.p.Name, "You survived the " .. names .. "! +40 Coins")
+						toAll("toastTo", x.p.Name, "You survived the " .. names .. "! +" .. 40 * DIFF.level .. " Coins")
 					end
 				end
 				toAll("survivors", survivors, false)
 				STATE.phase, STATE.disaster = "calm", ""
-				for s = 12, 1, -1 do
+				for s = math.max(4, 12 - 2 * (DIFF.level - 1)), 1, -1 do
 					STATE.left = s
 					status()
 					wait(1)

@@ -164,6 +164,9 @@ for _, p in ipairs(ps) do p.Character.Humanoid.MaxHealth = 1e6 p.Character.Human
 local c0, sv0 = ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value
 for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "calm" then break end end
 say(string.format("survived a disaster: phase %s, player 2 coins %d -> %d, survived +%d", D.STATE.phase, c0, ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value - sv0))
+-- harder every 5 disasters: level 2 stacks two at once
+for _ = 1, 1200 do MOCK.run(0.5) if D.STATE.disaster:sub(1, 3) == "LV2" then break end end
+say("after 5 disasters: '" .. D.STATE.disaster .. "', waves " .. D.SEA.calm)
 -- someone joins mid-game: they're in the lobby and can choose to play as a ghost (doesn't count)
 local late = MOCK.addPlayer("late", 99)
 MOCK.run(0.5)
@@ -217,6 +220,10 @@ D.SEA.waves, D.SEA.amp = 7, 7
 local top
 for _, o in ipairs(csh.model:GetDescendants()) do if o:IsA("BasePart") and (not top or o.Position.Y > top.Position.Y) then top = o end end
 local hull0, top0 = csh.root.Position, top.Position
+spawn(function()      -- the mock has no frames: fire RenderStepped like a 30 fps screen would
+	local rs = game:GetService("RunService")
+	while true do wait(0.03) rs.RenderStepped:fireNow(0.03) end
+end)
 spawn(assert(loadstring(CLIENT_SOURCE, "=OceanClient")))
 MOCK.run(3)
 spawn(assert(loadstring(CLIENT_SOURCE, "=OceanClient")))   -- respawned: a second copy of the script starts

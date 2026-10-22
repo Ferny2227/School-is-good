@@ -395,7 +395,7 @@ spawn(function()
 				-- check the welds really carry the boat here (a welded part must be where the last move put it)
 				if not perPart and lastMove then
 					for p, w in pairs(welds) do
-						if p.Parent and ((lastMove * tracked[p]).p - p.Position).magnitude > 1 then
+						if p.Parent and ((lastMove * tracked[p]).p - p.Position).magnitude > 0.3 then
 							perPart = true
 							for q in pairs(welds) do pcall(function() q.Anchored = true end) unweld(q) end
 						end
@@ -553,6 +553,15 @@ spawn(function()
 	-- only the newest copy of this script runs (an old copy stops and takes its water with it)
 	local RUN = {}
 	_G.OceanClientRun = RUN
+	-- SMOOTH: the boat (one hull move, it's all welded) and you on it are moved every single rendered frame, not in
+	-- steps of a few times a second
+	local rsConn
+	local okRS = pcall(function()
+		rsConn = game:GetService("RunService").RenderStepped:connect(function(step)
+			if _G.OceanClientRun ~= RUN then if rsConn then rsConn:disconnect() end return end
+			pcall(moveBoat, tick() + offset, math.min(0.1, step or 0.016))
+		end)
+	end)
 	local lastTheme, foamPal
 	local last = tick()
 	local tick2 = 0
@@ -563,8 +572,8 @@ spawn(function()
 		local dt = math.min(0.2, now - last)
 		last = now
 		if _G.OceanClientRun ~= RUN then pcall(function() folder:Destroy() end) return end
+		if not okRS or not rsConn then pcall(moveBoat, now + offset, dt) end    -- (no RenderStepped: move it here)
 		offset = offset + (goalOffset - offset) * math.min(1, dt * 0.5)
-		pcall(moveBoat, now + offset, dt)
 		local cx, cz = S.shipX, S.shipZ
 		local lv = v.Level.Value - 0.6     -- the top of the flat ocean
 		local cam = workspace.CurrentCamera

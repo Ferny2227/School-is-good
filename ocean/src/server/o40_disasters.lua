@@ -18,7 +18,10 @@ local function fling(x, vel, time, flat)
 	bv.Parent = x.t
 	Debris:AddItem(bv, time or 0.4)
 end
+-- how hard the game is right now: goes up every 5 disasters (o50). Disasters hit harder at higher levels.
+local DIFF = { level = 1 }
 local function hurtNear(pos, radius, dmg, shipDmg)
+	dmg = dmg * (1 + 0.25 * (DIFF.level - 1))
 	for _, x in ipairs(players()) do
 		local d = (x.t.Position - pos).magnitude
 		if d < radius then x.h:TakeDamage(dmg * (1 - 0.5 * d / radius)) end
