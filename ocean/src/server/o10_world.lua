@@ -258,6 +258,9 @@ local function stats(p)
 		local c = Instance.new("IntValue")
 		c.Name = "Coins"
 		c.Parent = ls
+		local w = Instance.new("IntValue")
+		w.Name = "Wins"
+		w.Parent = ls
 		local s = Instance.new("IntValue")
 		s.Name = "Survived"
 		s.Parent = ls

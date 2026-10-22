@@ -3,12 +3,14 @@
 local inRound = {}
 local function status() toAll("status", STATE.phase, STATE.left, STATE.disaster) end
 local function sendShip()
+	if SHIP_UNBREAKABLE then toAll("ship", nil) return end      -- no health bar: the boat can't break
 	if ship and ship.model.Parent then toAll("ship", math.max(0, math.floor(ship.hp)), ship.max, ship.sinking ~= nil, ship.kind)
 	else toAll("ship", nil) end
 end
--- No rounds: once the boat leaves, disasters keep coming one after another (with a short calm in between) until
--- EVERYONE is dead - then it resets: back to the sky lobby, vote, and a new boat. Every disaster you live through pays
--- Coins. If the boat sinks and someone is still alive (in a lifeboat or swimming) a minute later, they win big.
+-- LAST ONE STANDING: once the boat leaves, disasters keep coming one after another (with a short calm in between)
+-- until only ONE player is left alive - they win (+1 Win, +150 Coins). Playing alone, it goes on until you die.
+-- Then it resets: back to the sky lobby, vote, and a new boat. Every disaster you live through pays Coins.
+local multi = false     -- did this game start with (or get) more than one player?
 local diedThisGame = {}
 -- disasters come out of a shuffled bag: every one of them comes up once before any repeats (and never twice in a row)
 local bag, lastDisaster = {}, nil
@@ -28,11 +30,15 @@ local function aliveAtSea()
 	for _, x in ipairs(players()) do if inRound[x.p] then n = n + 1 end end
 	return n
 end
+local function gameOver() return aliveAtSea() <= (multi and 1 or 0) end
 local function board(p)
 	local t = torsoOf(p.Character)
 	if t and ship then
 		inRound[p] = true
 		t.CFrame = shipFrame() * deckSpot()
+		local n = 0
+		for _ in pairs(inRound) do n = n + 1 end
+		if n > 1 then multi = true end
 	end
 end
 spawn(function()
@@ -58,14 +64,14 @@ spawn(function()
 			seaShipLen.Value = ship.len
 			STATE.phase, STATE.left = "boarding", 5
 			status()
-			inRound, diedThisGame = {}, {}
+			inRound, diedThisGame, multi = {}, {}, false
 			for _, x in ipairs(players()) do board(x.p) end
 			toAll("big", "ALL ABOARD THE " .. string.upper(kind) .. "!", "Survive as long as you can - it only ends when EVERYONE is dead!")
 			wait(6)
 			local stops = { oceanWaves() }
 			if theme == "Normal" then toAll("weather", "storm") end
 			local n, sunkWin = 0, false
-			while aliveAtSea() > 0 do
+			while not gameOver() do
 				n = n + 1
 				local list = { nextDisaster() }
 				if n >= 3 and math.random() < 0.35 then
@@ -86,12 +92,11 @@ spawn(function()
 					STATE.left = s
 					status()
 					wait(1)
-					if aliveAtSea() == 0 then break end
-					if ship and ship.sinking and tick() - ship.sinking > 60 then sunkWin = true break end
+					if gameOver() then break end
 				end
 				for _, stop in ipairs(dstops) do pcall(stop) end
 				junk:ClearAllChildren()
-				if aliveAtSea() == 0 or sunkWin then break end
+				if gameOver() then break end
 				-- lived through it: Coins for everyone still at sea
 				local survivors = {}
 				for _, x in ipairs(players()) do
@@ -109,18 +114,19 @@ spawn(function()
 					STATE.left = s
 					status()
 					wait(1)
-					if aliveAtSea() == 0 then break end
+					if gameOver() then break end
 				end
 			end
 			for _, stop in ipairs(stops) do pcall(stop) end
 			toAll("weather", "clear")
-			if sunkWin then
-				local survivors = {}
-				for _, x in ipairs(players()) do
-					if inRound[x.p] then table.insert(survivors, x.p.Name) addCoins(x.p, 100) toAll("toastTo", x.p.Name, "You survived the sinking! +100 Coins") end
-				end
-				toAll("survivors", survivors, true)
-				toAll("big", "YOU SURVIVED THE SINKING!", "Back to the lobby for a new boat")
+			local winner
+			for _, x in ipairs(players()) do if inRound[x.p] then winner = x.p end end
+			if multi and winner then
+				addCoins(winner, 150)
+				local w = stats(winner):FindFirstChild("Wins")
+				if w then w.Value = w.Value + 1 end
+				toAll("big", string.upper(winner.Name) .. " WINS!", "Last one standing! +1 Win, +150 Coins")
+				toAll("survivors", { winner.Name }, false)
 			else
 				toAll("big", "EVERYONE IS DEAD!", "The game resets - vote for the next boat!")
 			end

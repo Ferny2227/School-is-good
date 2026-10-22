@@ -17,8 +17,10 @@ local function breakOff(n)
 		end)
 	end
 end
+-- The boats can't break or sink: it's last one standing. (Disasters still call this; it does nothing.)
+local SHIP_UNBREAKABLE = true
 local function damageShip(n)
-	if not ship or ship.sinking then return end
+	if SHIP_UNBREAKABLE or not ship or ship.sinking then return end
 	ship.hp = ship.hp - n
 	ship.lostSince = (ship.lostSince or 0) + n
 	while ship.lostSince > ship.max * 0.05 do   -- a piece breaks off for every 5% of its health

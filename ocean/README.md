@@ -22,9 +22,10 @@ Open/upload `DisasterOcean.rbxl`.
   builds up, rolls through the boat (screen shake, damage, water washing over the deck) and dies down again. The
   swells are drawn on each player's computer (dark troughs, turquoise faces, white foam on the crests) with the same
   maths the server uses to move the boat (`src/shared/SeaHeight.lua`), so the boat always sits on the drawn water.
-- **No rounds**: once the boat leaves, disasters keep coming one after another (12 s of calm in between, +40 Coins
-  for each one you live through) until EVERYONE is dead - then it resets to the sky lobby. If the boat sinks and
-  someone is still alive a minute later, they win +100. Fell in? Press jump to leap back onto the boat.
+- **Last one standing**: once the boat leaves, disasters keep coming one after another (12 s of calm in between,
+  +40 Coins for each one you live through) until only ONE player is left alive: they win (+1 Win, +150 Coins). Alone,
+  it goes on until you die. Then it resets to the sky lobby. The boats can't break or sink. Fell in? Press jump to
+  leap back onto the boat.
 - **Disasters** (sometimes two at once): Hailstorm, Whirlpool (spins the boat and drags it down), Iceberg (rips the
   hull open), Ghost Ship (fires cannonballs), Tsunami (one giant swell rises ahead and lifts the whole boat), Tornado (picks
   the boat up out of the sea, spins it and drops it), Hurricane (even bigger seas, wind, lightning), Meteor Shower,

@@ -174,10 +174,16 @@ local bv
 for _, c in ipairs(sw:GetChildren()) do if c.ClassName == "BodyVelocity" then bv = c end end
 say(string.format("swimming %s, jump -> leap up %.0f towards the boat %.0f, still swimming %s", tostring(wasSwimming), bv and bv.velocity.Y or 0,
 	bv and -bv.velocity.X or 0, tostring(D.swimmers[ps[1]] ~= nil)))
--- everyone dies -> reset
-for _, p in ipairs(ps) do p.Character.Humanoid.Health = 0 end
+-- last one standing: two die -> the third wins and it resets
+local hp0b = D.getShip().hp
+D.damageShip(99999)
+local w0 = ps[1].leaderstats.Wins.Value
+ps[2].Character.Humanoid.Health = 0
+ps[3].Character.Humanoid.Health = 0
 for _ = 1, 100 do MOCK.run(0.5) if D.STATE.phase == "results" then break end end
 local resetOk = D.STATE.phase == "results"
+say(string.format("boat can't break: hp %d -> %d, sinking %s; last one standing: player 1 wins +%d", hp0b, D.getShip() and D.getShip().hp or -1,
+	tostring(D.getShip() and D.getShip().sinking ~= nil), ps[1].leaderstats.Wins.Value - w0))
 MOCK.run(7)
 for _, p in ipairs(ps) do p.Character.Humanoid.Health = 100 end
 D.STATE.hold = true
