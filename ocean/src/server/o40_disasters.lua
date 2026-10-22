@@ -19,9 +19,10 @@ local function fling(x, vel, time, flat)
 	Debris:AddItem(bv, time or 0.4)
 end
 -- how hard the game is right now: goes up every 5 disasters (o50). Disasters hit harder at higher levels.
-local DIFF = { level = 1 }
+local DIFF = { level = 1, mult = 3 }     -- mult: everything hurts 3x (the game was too easy)
+local function power() return DIFF.mult * (1 + 0.25 * (DIFF.level - 1)) end
 local function hurtNear(pos, radius, dmg, shipDmg)
-	dmg = dmg * (1 + 0.25 * (DIFF.level - 1))
+	dmg = dmg * power()
 	for _, x in ipairs(players()) do
 		local d = (x.t.Position - pos).magnitude
 		if d < radius then x.h:TakeDamage(dmg * (1 - 0.5 * d / radius)) end
@@ -85,7 +86,7 @@ DIS.Tsunami = { text = "TSUNAMI! A MASSIVE wave is coming!", run = function()
 				toAll("big", "THE TSUNAMI HITS!", "")
 				toAll("shake", 2.5)
 				for _, x in ipairs(players()) do
-					x.h:TakeDamage(25 * (1 + 0.25 * (DIFF.level - 1)))
+					x.h:TakeDamage(25 * power())
 					if not x.h.Sit then fling(x, V(math.random(-15, 15), 30, 35), 0.3) end
 				end
 			elseif not hit and front >= -400 and math.random() < 0.3 then
@@ -123,7 +124,7 @@ DIS.Tornado = { text = "TORNADO! It's heading for the ship!", run = function()
 			for _, x in ipairs(players()) do
 				local dd = V(x.t.Position.X - pos.X, 0, x.t.Position.Z - pos.Z)
 				if dd.magnitude < 32 then
-					x.h:TakeDamage(6 * dt)
+					x.h:TakeDamage(6 * dt * power())
 					local around = dd.magnitude > 0.1 and dd.unit:Cross(V(0, 1, 0)) or V(1, 0, 0)
 					fling(x, around * 55 + V(0, 40, 0) - dd.unit * 15, 0.3)
 				end
@@ -157,7 +158,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 	local stopSets = bigSets(22, 25, 35, 5)
 	spawn(function()
 		while alive do
-			wait(math.random(15, 35) / 10)
+			wait(math.random(8, 20) / 10)
 			local at = onDeck()
 			local bolt = P(junk, "Lightning", V(1.2, 300, 1.2), CFrame.new(at + V(0, 150, 0)), "Institutional white", "Neon", { nc = true })
 			light(bolt, Color3.new(0.8, 0.9, 1), 60, 5)
@@ -179,7 +180,7 @@ DIS["Meteor Shower"] = { text = "METEOR SHOWER! Watch the sky and keep moving!",
 	local alive = true
 	spawn(function()
 		while alive do
-			wait(1.2)
+			wait(0.6)
 			local at = math.random() < 0.6 and onDeck() or (function() local x, z = SHIP_AT.X + math.random(-150, 150), SHIP_AT.Z + math.random(-200, 200) return V(x, SEA.level + waveAt(x, z), z) end)()
 			local m = P(junk, "Meteor", V(6, 6, 6), CFrame.new(at.X + 60, 420, at.Z), "Black", "Slate", { shape = "ball", nc = true })
 			local f = Instance.new("Fire")
@@ -287,7 +288,7 @@ DIS.Hailstorm = { text = "HAILSTORM! Giant hailstones are falling - keep moving!
 	pcall(function() Lighting.FogEnd = 700 Lighting.FogColor = Color3.new(0.6, 0.65, 0.7) end)
 	spawn(function()
 		while alive do
-			wait(0.25)
+			wait(0.12)
 			local huge = math.random() < 0.15
 			local at = onDeck()
 			local size = huge and 5 or 1.6
@@ -343,7 +344,7 @@ DIS.Whirlpool = { text = "WHIRLPOOL! The sea is spinning the ship and pulling it
 				if swimmers[x.p] then     -- swimmers get sucked round and round
 					local dd = V(SHIP_AT.X - x.t.Position.X, 0, SHIP_AT.Z - x.t.Position.Z)
 					if dd.magnitude > 1 then fling(x, dd.unit:Cross(V(0, 1, 0)) * 30 + dd.unit * 15, 0.15, true) end
-					x.h:TakeDamage(4 * dt)
+					x.h:TakeDamage(4 * dt * power())
 				end
 			end
 		end
@@ -399,7 +400,7 @@ DIS["Ghost Ship"] = { text = "GHOST SHIP! Phantom pirates are firing cannons at 
 			hull.CFrame = cf
 			mast.CFrame = cf * CFrame.new(0, 35, 0)
 			sail.CFrame = cf * CFrame.new(0, 40, 0) * CFrame.Angles(0, math.pi / 2, 0)
-			if now - lastShot > 2.5 then
+			if now - lastShot > 1.4 then
 				lastShot = now
 				local from, to = cf.p + V(0, 6, 0), onDeck()
 				local ball = P(junk, "Cannonball", V(3, 3, 3), CFrame.new(from), "Really black", "SmoothPlastic", { shape = "ball", nc = true })

@@ -94,19 +94,19 @@ spawn(function()
 			DIFF.level = 1
 			while not gameOver() do
 				n = n + 1
-				-- CHALLENGE: every 5 disasters it gets harder: one more disaster stacked at once (up to 4), bigger
+				-- CHALLENGE: every 3 disasters it gets harder: one more disaster stacked at once (up to 5), bigger
 				-- waves, disasters hit harder, shorter calms, more Coins
-				local level = math.floor((n - 1) / 5) + 1
+				local level = math.floor((n - 1) / 3) + 1
 				if level ~= DIFF.level then
 					DIFF.level = level
-					toAll("big", "LEVEL " .. level .. "!", "It's getting harder: " .. math.min(level, 4) .. " disasters at once, bigger waves!")
+					toAll("big", "LEVEL " .. level .. "!", "It's getting harder: " .. math.min(level, 5) .. " disasters at once, bigger waves!")
 					toAll("shake", 0.6)
 					wait(4)
 				end
-				SEA.calm = 40 + 6 * (level - 1)
+				SEA.calm = 40 + 8 * (level - 1)
 				SEA.waves = math.max(SEA.waves, SEA.calm)
 				local list = { nextDisaster() }
-				while #list < math.min(level, 4) do
+				while #list < math.min(level, 5) do
 					local d = nextDisaster(list[#list])
 					local dup = false
 					for _, x in ipairs(list) do if x == d then dup = true end end
@@ -144,7 +144,7 @@ spawn(function()
 				end
 				toAll("survivors", survivors, false)
 				STATE.phase, STATE.disaster = "calm", ""
-				for s = math.max(4, 12 - 2 * (DIFF.level - 1)), 1, -1 do
+				for s = math.max(3, 8 - 2 * (DIFF.level - 1)), 1, -1 do
 					STATE.left = s
 					status()
 					wait(1)

@@ -132,7 +132,7 @@ end
 local swimmers = {}
 local swimJumpAt = {}     -- when each player last leapt out of the water (filled in by the remote handler)
 local washed = {}
-local WATER_DPS = 7
+local WATER_DPS = 15
 local STATE = { phase = "intermission", left = 0, disaster = "" }
 local function toLobby(p)
 	local t = torsoOf(p.Character)
