@@ -77,6 +77,9 @@ local ship = D.getShip()
 local aboard = 0
 for _, p in ipairs(ps) do if ship and D.onShip(p.Character.Torso.Position) then aboard = aboard + 1 end end
 say(string.format("votes cast: %s; round started with the %s, theme %s, players on board %d/3", tostring(okv), ship and ship.kind or "?", D.getTheme(), aboard))
+-- hold the round loop so the next tests aren't mixed up with a real round's disaster
+D.STATE.hold = true
+for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "intermission" then break end end
 -- each disaster on its own, against a fresh cruise liner
 local results = {}
 for _, name in ipairs({ "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack" }) do
@@ -88,9 +91,15 @@ for _, name in ipairs({ "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kra
 		p.Character.Torso.CFrame = D.shipFrame() * D.deckSpot()
 	end
 	local stop = D.DIS[name].run()
-	MOCK.run(40)
+	local hi, lo, air, maxPitch = -1e9, 1e9, 0, 0
+	for _ = 1, 100 do
+		MOCK.run(0.5)
+		hi, lo = math.max(hi, ship.dy), math.min(lo, ship.dy)
+		air, maxPitch = math.max(air, ship.air or 0), math.max(maxPitch, math.abs(ship.pitch))
+	end
 	stop()
-	table.insert(results, string.format("%s: ship lost %d%%%s, new errors %d", name, math.floor(100 * (ship.max - ship.hp) / ship.max), ship.sinking and " (SANK)" or "", #MOCK.errors - before))
+	table.insert(results, string.format("%s: ship lost %d%%%s, boat went up %.0f / down %.0f studs, lifted into the air %.0f, max pitch %.0f deg, new errors %d",
+		name, math.floor(100 * (ship.max - ship.hp) / ship.max), ship.sinking and " (SANK)" or "", hi, -lo, air, math.deg(maxPitch), #MOCK.errors - before))
 	MOCK.run(2)
 end
 for _, r in ipairs(results) do say(r) end
@@ -100,17 +109,37 @@ ship = D.getShip()
 D.damageShip(ship.max + 10)
 MOCK.run(15)
 local floating = 0
-for _, lb in ipairs(ship.lifeboats) do if lb.hull and math.abs(lb.hull.Position.Y - (D.SEA.level + 1.2)) < 4 then floating = floating + 1 end end
+for _, lb in ipairs(ship.lifeboats) do
+	local p = lb.hull and lb.hull.Position
+	if p and math.abs(p.Y - (D.SEA.level + 1.2 + D.waveAt(p.X, p.Z))) < 2 then floating = floating + 1 end
+end
 say(string.format("sinking: destroyer went down to y %.0f, lifeboats floating %d/%d", ship.root.Position.Y, floating, #ship.lifeboats))
--- the boat rocks
+-- the boat rocks with every swell: bow up, then stern up, again and again
 D.buildShip("Pirate Galleon")
-D.SEA.waves = 3
-local rolls, pitches = {}, {}
-for _ = 1, 40 do MOCK.run(0.5) local sh = D.getShip() table.insert(rolls, sh.roll) table.insert(pitches, sh.pitch) end
-local function range(t) local lo, hi = 1e9, -1e9 for _, v in ipairs(t) do lo = math.min(lo, v) hi = math.max(hi, v) end return hi - lo end
-say(string.format("galleon rocking over 20 s: roll %.1f deg, pitch %.1f deg", math.deg(range(rolls)), math.deg(range(pitches))))
+D.SEA.waves, D.SEA.amp = 7, 7
+local function rock(seconds)
+	local pitches, rolls, flips, lastSign = {}, {}, 0, 0
+	local sh = D.getShip()
+	for _ = 1, seconds * 4 do
+		MOCK.run(0.25)
+		table.insert(pitches, sh.pitch) table.insert(rolls, sh.roll)
+		local sg = sh.pitch > 0.02 and 1 or sh.pitch < -0.02 and -1 or 0
+		if sg ~= 0 and sg ~= lastSign then flips = flips + 1 lastSign = sg end
+	end
+	local function range(t) local lo, hi = 1e9, -1e9 for _, v in ipairs(t) do lo = math.min(lo, v) hi = math.max(hi, v) end return hi - lo end
+	return math.deg(range(pitches)), math.deg(range(rolls)), flips
+end
+local p1, r1, f1 = rock(30)
+say(string.format("galleon in normal swells (30 s): pitch range %.1f deg, roll range %.1f deg, bow-up/bow-down changes %d", p1, r1, f1))
+local hp0 = D.getShip().hp
+D.rogue(6, 170, false)
+local p2, r2, f2 = rock(45)
+say(string.format("a set of big waves rolls through (45 s): pitch range %.1f deg, roll %.1f deg, changes %d, ship lost %d hp of %d", p2, r2, f2, hp0 - D.getShip().hp, D.getShip().max))
+-- the server's sea and the drawn sea agree: water height under the bow equals what the client maths gives
+say(string.format("sea height at the bow now: %.1f studs (amp %.1f)", D.waveAt(0, -650 - 60), D.SEA.amp))
 -- a whole round, coins, back to the lobby
-for _, p in ipairs(ps) do p.Character.Humanoid.Health = 100 end
+D.STATE.hold = false
+for _, p in ipairs(ps) do p.Character.Humanoid.MaxHealth = 1e6 p.Character.Humanoid.Health = 1e6 end
 local c0, sv0 = ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value
 for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "results" then break end end
 MOCK.run(7)
@@ -130,6 +159,13 @@ cam.CoordinateFrame = CFrame.new(0, 40, -600)
 spawn(assert(loadstring(CLIENT_SOURCE, "=OceanClient")))
 MOCK.run(3)
 local fx = cam:FindFirstChild("SeaFX")
+-- the drawn surface follows the swells: slabs at many different heights, several colours
+local ys, cols, n = {}, {}, 0
+if fx then for _, c in ipairs(fx:GetChildren()) do
+	if c.Size.Y > 5 then n = n + 1 ys[math.floor(c.Position.Y / 2)] = true cols[c.BrickColor.Name or tostring(c.BrickColor)] = true end
+end end
+local ny, nc = 0, 0 for _ in pairs(ys) do ny = ny + 1 end for _ in pairs(cols) do nc = nc + 1 end
+say(string.format("client surface: %d slabs at %d different heights, %d colours", n, ny, nc))
 say(string.format("client sea effects: %d parts, ship bar shown: %s, new errors %d", fx and #fx:GetChildren() or 0,
 	tostring(ps[1].PlayerGui:FindFirstChild("OceanUI") ~= nil), #MOCK.errors - before))
 say("errors: " .. #MOCK.errors)

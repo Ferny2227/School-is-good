@@ -7,8 +7,9 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 lua = lupa.LuaRuntime()
 g = lua.globals()
 import glob
-g.SERVER_SOURCE = "\n".join(open(f, encoding="utf8").read() for f in sorted(glob.glob(os.path.join(ROOT, "src", "server", "o*.lua"))))
-g.CLIENT_SOURCE = open(os.path.join(ROOT, "src", "OceanClient.lua"), encoding="utf8").read()
+SHARED = open(os.path.join(ROOT, "src", "shared", "SeaHeight.lua"), encoding="utf8").read() + "\n"
+g.SERVER_SOURCE = SHARED + "\n".join(open(f, encoding="utf8").read() for f in sorted(glob.glob(os.path.join(ROOT, "src", "server", "o*.lua"))))
+g.CLIENT_SOURCE = SHARED + open(os.path.join(ROOT, "src", "OceanClient.lua"), encoding="utf8").read()
 lua.execute("math.randomseed(5)")
 lua.execute(open(os.path.join(ROOT, "..", "roblox", "tools", "test", "mockrbx.lua")).read())
 lua.execute(open(os.path.join(HERE, "run.lua")).read())

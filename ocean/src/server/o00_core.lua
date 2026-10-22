@@ -2,9 +2,11 @@
 -- DISASTER OCEAN (2016 edition), Natural Disaster Survival style:
 --  * the lobby is a house floating high in the sky. Inside you vote for the BOAT (Cruise Liner, Pirate Galleon,
 --    Navy Destroyer) and the THEME of the whole map (Normal, Sunset, Halloween).
---  * every round the whole lobby goes aboard the winning boat, out on a rough ocean (real Terrain water; the boat
---    rolls and pitches, wave crests and foam roll past it so it looks like it's sailing). The boats have real rooms.
---  * waves hit the boat every round, plus a disaster: Tsunami, Tornado, Hurricane, Meteor Shower, Kraken, Sharks.
+--  * every round the whole lobby goes aboard the winning boat, out on the open ocean. Huge swells roll in from ahead
+--    one after another (each one lifts the bow, then the middle, then the stern, so the boat rocks with every wave),
+--    and every so often a set of even bigger ones rolls through. The boats have real rooms.
+--  * plus a disaster every round: Tsunami (one giant swell), Tornado (lifts the boat out of the sea and drops it),
+--    Hurricane (even bigger seas), Meteor Shower, Kraken, Sharks.
 --  * the boat has a health bar; pieces break off; at 0 it sinks and its lifeboats drop. The water hurts.
 -- Written for 2016 Roblox: lowercase :connect, ypcall, no TweenService / GetDescendants (U.desc instead).
 local pcall = ypcall or pcall

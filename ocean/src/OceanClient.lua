@@ -175,88 +175,136 @@ spawn(function()
 	end
 end)
 ------------------------------------------------------------------ the sea round the boat (only drawn here)
--- The water itself is real Terrain water (it ripples and reflects). On top of it this computer draws rolling wave
--- crests (long ridges with white tops) and streaks of foam that stream from the bow to the stern, so the boat looks
--- like it's ploughing straight ahead through a rough sea, plus spray at the bow. Same wave maths as the server.
+-- The swells are drawn on this computer from the SeaState values, with the same maths (SeaHeight, at the top) the
+-- server uses to rock the boat. The surface is a grid of slabs across the boat's path. Every frame each slab is put at
+-- the height of the water under it and tilted to its slope, and coloured by height: dark in the troughs, lighter up
+-- the faces, turquoise near the top and white foam on the crests. The swells roll from the bow to the stern, so the
+-- boat looks like it's sailing into them, and every swell lifts the bow, then the middle, then the stern.
 spawn(function()
 	local st = game:GetService("ReplicatedStorage"):WaitForChild("SeaState")
-	local amp, speed, level, clock, shipAt, sailing = st:WaitForChild("Amp"), st:WaitForChild("Speed"), st:WaitForChild("Level"),
-		st:WaitForChild("Clock"), st:WaitForChild("ShipAt"), st:WaitForChild("Sailing")
-	local offset = clock.Value - tick()
-	clock.Changed:connect(function() offset = clock.Value - tick() end)
+	local v = {}
+	for _, n in ipairs({ "Amp", "Speed", "Level", "Clock", "ShipAt", "ShipLen", "Sailing", "Theme", "RogueA", "RogueT", "RogueZ", "RogueLen", "RogueBump" }) do
+		v[n] = st:WaitForChild(n)
+	end
+	local S = { shipX = 0, shipZ = 0, amp = 1, speed = 16, rogueA = 0, rogueT = 0, rogueZ = 0, rogueLen = 150, rogueBump = false }
+	local function read()
+		S.shipX, S.shipZ = v.ShipAt.Value.X, v.ShipAt.Value.Z
+		S.amp, S.speed = v.Amp.Value, v.Speed.Value
+		S.rogueA, S.rogueT, S.rogueZ, S.rogueLen, S.rogueBump = v.RogueA.Value, v.RogueT.Value, v.RogueZ.Value, math.max(1, v.RogueLen.Value), v.RogueBump.Value
+	end
+	read()
+	for _, o in pairs(v) do o.Changed:connect(read) end
+	-- the server's sea clock: jump to it when far off, otherwise slide to it gently (no jerks in the waves)
+	local offset = v.Clock.Value - tick()
+	local goalOffset = offset
+	v.Clock.Changed:connect(function()
+		goalOffset = v.Clock.Value - tick()
+		if math.abs(goalOffset - offset) > 1 then offset = goalOffset end
+	end)
+	local PAL = {
+		Normal = { "Navy blue", "Earth blue", "Steel blue", "Medium blue", "Bright bluish green", "Institutional white" },
+		Sunset = { "Navy blue", "Earth blue", "Sand blue", "Medium blue", "Pastel blue", "Institutional white" },
+		Halloween = { "Really black", "Black", "Earth green", "Dark green", "Bright bluish green", "Lime green" },
+	}
 	local folder = Instance.new("Model")
 	folder.Name = "SeaFX"
 	folder.Parent = workspace.CurrentCamera
-	local function part(size, color, tr, wedge)
-		local p = Instance.new(wedge and "WedgePart" or "Part")
+	local function part(size, color)
+		local p = Instance.new("Part")
 		p.Anchored = true
 		p.CanCollide = false
+		pcall(function() p.FormFactor = Enum.FormFactor.Custom end)
 		p.Size = size
 		p.BrickColor = BrickColor.new(color)
-		p.Transparency = tr
 		pcall(function() p.Material = Enum.Material.SmoothPlastic end)
 		p.TopSurface = Enum.SurfaceType.Smooth
 		p.BottomSurface = Enum.SurfaceType.Smooth
 		p.Parent = folder
 		return p
 	end
-	-- wave crests: ridges across the boat's path, one every SPACING studs, sliding towards the stern
-	local SPACING, RIDGES, WIDTH = 70, 12, 700
-	local ridges = {}
-	for i = 1, RIDGES do
-		local r = { front = part(Vector3.new(WIDTH, 2, 14), "Bright blue", 0.35, true), back = part(Vector3.new(WIDTH, 2, 26), "Steel blue", 0.4, true),
-			cap = part(Vector3.new(WIDTH, 0.6, 5), "Institutional white", 0.3), k = i, wobble = math.random() * 6 }
-		table.insert(ridges, r)
+	-- the grid: fine (12 studs) near the boat, coarser (30) further out; it flattens out to the flat ocean at the edges
+	local XS = { -600, -330, -120, 120, 330, 600 }
+	local ZS = { -500 }
+	while ZS[#ZS] < 500 do
+		local z = ZS[#ZS]
+		table.insert(ZS, z + ((z >= -200 and z < 200) and 12 or 30))
 	end
-	-- foam streaks
+	local THICK = 6
+	local cells = {}
+	for k = 1, #ZS - 1 do
+		for i = 1, #XS - 1 do
+			table.insert(cells, { k = k, i = i, part = part(Vector3.new(XS[i + 1] - XS[i] + 2, THICK, ZS[k + 1] - ZS[k] + 1.5), "Steel blue"), col = 0 })
+		end
+	end
+	local H = {}       -- heights at the grid's corners
+	for k = 1, #ZS do H[k] = {} end
+	-- bits of foam floating on the swells, streaming past the boat
 	local foams = {}
-	for i = 1, 70 do
-		table.insert(foams, { part = part(Vector3.new(math.random(4, 10), 0.3, math.random(10, 26)), "Institutional white", 0.45), x = math.random(-300, 300), z = math.random(-400, 400) })
+	for i = 1, 40 do
+		table.insert(foams, { part = part(Vector3.new(math.random(4, 10), 0.4, math.random(8, 20)), "Institutional white"), x = math.random(-250, 250), z = math.random(-450, 450) })
 	end
-	-- spray at the bow
+	-- spray where the bow cuts into the waves
 	local spray = {}
-	for i = 1, 10 do table.insert(spray, { part = part(Vector3.new(2, 2, 2), "Institutional white", 0.5), t = math.random() }) end
-	for _, s in ipairs(spray) do pcall(function() s.part.Shape = Enum.PartType.Ball end) end
+	for i = 1, 10 do
+		local s = { part = part(Vector3.new(2, 2, 2), "Institutional white"), t = math.random() }
+		s.part.Transparency = 0.5
+		pcall(function() s.part.Shape = Enum.PartType.Ball end)
+		table.insert(spray, s)
+	end
 	local last = tick()
 	while true do
-		wait(0.05)
+		wait(0.03)
 		local now = tick()
-		local dt = now - last
+		local dt = math.min(0.2, now - last)
 		last = now
-		local c = shipAt.Value
-		local lv = level.Value
-		local a = math.max(0.6, amp.Value)
+		offset = offset + (goalOffset - offset) * math.min(1, dt * 0.5)
+		local cx, cz = S.shipX, S.shipZ
+		local lv = v.Level.Value - 0.6     -- the top of the flat ocean
 		local cam = workspace.CurrentCamera
-		local near = cam and (cam.CoordinateFrame.p - c).magnitude < 1600
-		folder.Parent = near and cam or nil
+		local near = cam and (cam.CoordinateFrame.p - Vector3.new(cx, lv, cz)).magnitude < 1600
+		if folder.Parent ~= (near and cam or nil) then folder.Parent = near and cam or nil end
 		if near then
-			local moving = sailing.Value
-			local flow = (moving and speed.Value or 4) * 2.2
 			local t = now + offset
-			-- crests: height follows the sea's roughness
-			local h = a * 1.8
-			for _, r in ipairs(ridges) do
-				local z = ((r.k * SPACING + t * flow) % (SPACING * RIDGES)) - SPACING * RIDGES / 2
-				local y = lv - 2 + h / 2
-				local base = CFrame.new(c.X + math.sin(t * 0.3 + r.wobble) * 30, y, c.Z + z)
-				r.front.Size = Vector3.new(WIDTH, h, 14)
-				r.back.Size = Vector3.new(WIDTH, h, 26)
-				r.cap.Size = Vector3.new(WIDTH, 0.6, 5)
-				r.front.CFrame = base * CFrame.new(0, 0, 7) * CFrame.Angles(0, math.pi, 0)
-				r.back.CFrame = base * CFrame.new(0, 0, -13)
-				r.cap.CFrame = base * CFrame.new(0, h / 2, 1)
+			local pal = PAL[v.Theme.Value] or PAL.Normal
+			local norm = 1 / math.max(1, S.amp * 1.4)
+			for k = 1, #ZS do
+				local row = H[k]
+				for i = 1, #XS do row[i] = SeaHeight(cx + XS[i], cz + ZS[k], t, S) end
+			end
+			for _, c in ipairs(cells) do
+				local k, i = c.k, c.i
+				local a, b, d, e = H[k][i], H[k][i + 1], H[k + 1][i], H[k + 1][i + 1]
+				local dz, dx = ZS[k + 1] - ZS[k], XS[i + 1] - XS[i]
+				local h = (a + b + d + e) / 4
+				local sz = ((d + e) - (a + b)) / (2 * dz)       -- slope along the boat (+z = towards the stern)
+				local sx = ((b + e) - (a + d)) / (2 * dx)       -- slope across
+				c.part.CFrame = CFrame.new(cx + (XS[i] + XS[i + 1]) / 2, lv + h, cz + (ZS[k] + ZS[k + 1]) / 2)
+					* CFrame.Angles(-math.atan(sz), 0, math.atan(sx)) * CFrame.new(0, -THICK / 2, 0)
+				local r = h * norm
+				local col = r < -0.5 and 1 or r < -0.15 and 2 or r < 0.2 and 3 or r < 0.45 and 4 or r < 0.7 and 5 or 6
+				if col == 5 and sz < -0.15 then col = 6 end    -- the steep front of a big wave breaks white
+				if col ~= c.col then
+					c.col = col
+					c.part.BrickColor = BrickColor.new(pal[col])
+				end
 			end
 			for _, f in ipairs(foams) do
-				f.z = f.z + flow * dt
-				if f.z > 400 then f.z = f.z - 800 f.x = math.random(-300, 300) end
-				f.part.CFrame = CFrame.new(c.X + f.x, lv + 0.2, c.Z + f.z)
+				f.z = f.z + S.speed * 1.3 * dt
+				if f.z > 450 then f.z = f.z - 900 f.x = math.random(-250, 250) end
+				local x, z = cx + f.x, cz + f.z
+				local h = SeaHeight(x, z, t, S)
+				local s = (SeaHeight(x, z + 6, t, S) - h) / 6
+				f.part.CFrame = CFrame.new(x, lv + h + 0.5, z) * CFrame.Angles(-math.atan(s), 0, 0)
 			end
+			local bowZ = cz - v.ShipLen.Value / 2 - 5
+			local bowH = SeaHeight(cx, bowZ, t, S)
+			local moving = v.Sailing.Value
 			for i, s in ipairs(spray) do
 				s.t = s.t + dt * 0.8
 				if s.t > 1 then s.t = s.t - 1 end
 				local side = i % 2 == 0 and 1 or -1
 				local u = s.t
-				s.part.CFrame = CFrame.new(c.X + side * (4 + u * 16), lv + 2 + math.sin(u * math.pi) * (3 + a * 2), c.Z - 120 + u * 25)
+				s.part.CFrame = CFrame.new(cx + side * (4 + u * 16), lv + bowH + 2 + math.sin(u * math.pi) * (3 + S.amp), bowZ + u * 25)
 				s.part.Transparency = moving and (0.35 + u * 0.6) or 1
 			end
 		end

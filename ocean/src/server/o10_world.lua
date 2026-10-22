@@ -1,10 +1,12 @@
------------------------------------------------------------------- the sea: real Terrain water near the ship, a flat sea to the horizon
--- Rolling swells: they travel from the boat's bow to its stern at SEA.speed, so the boat (which stays put) looks like
--- it's sailing straight ahead. Players' computers draw wave crests and foam with the same maths (OceanClient).
+------------------------------------------------------------------ the sea (see SeaHeight above): big rolling swells round the boat
+-- Players' computers draw the surface (OceanClient) from the SeaState values; the server uses the same maths to
+-- rock the boat, float swimmers and lifeboats, and wash people off the deck.
 local SHIP_AT = V(0, 0, -650)
-local function waveAt(x, z, t)
-	return SEA.amp * (0.55 * math.sin(0.018 * x + 0.7 * t) + 0.45 * math.sin(0.024 * (z + SEA.speed * t) + 0.5 * t))
-end
+local EPOCH = tick()
+local function seaTime() return tick() - EPOCH end
+SEA.waves, SEA.amp, SEA.rogueA, SEA.rogueT, SEA.rogueZ, SEA.rogueLen, SEA.rogueBump = 3, 3, 0, 0, 0, 150, false
+SEA.shipX, SEA.shipZ = SHIP_AT.X, SHIP_AT.Z
+local function waveAt(x, z, t) return SeaHeight(x, z, t or seaTime(), SEA) end
 local seaState = Instance.new("Model")
 seaState.Name = "SeaState"
 local function value(cls, name, v)
@@ -14,51 +16,57 @@ local function value(cls, name, v)
 	o.Parent = seaState
 	return o
 end
-local seaAmp = value("NumberValue", "Amp", 1)
+local seaAmp = value("NumberValue", "Amp", SEA.amp)
 value("NumberValue", "Speed", SEA.speed)
 local seaLevel = value("NumberValue", "Level", 0)
-local seaClock = value("NumberValue", "Clock", tick())
+local seaClock = value("NumberValue", "Clock", 0)
 value("Vector3Value", "ShipAt", SHIP_AT)
+local seaShipLen = value("NumberValue", "ShipLen", 200)
 local seaTheme = value("StringValue", "Theme", "Normal")
 local seaSailing = value("BoolValue", "Sailing", false)
+local rogueVals = { A = value("NumberValue", "RogueA", 0), T = value("NumberValue", "RogueT", 0), Z = value("NumberValue", "RogueZ", 0),
+	Len = value("NumberValue", "RogueLen", 150), Bump = value("BoolValue", "RogueBump", false) }
 seaState.Parent = RS
 local function stepSea(dt)
-	SEA.amp = SEA.amp + clamp(SEA.waves - SEA.amp, -0.6 * dt, 0.6 * dt)
+	SEA.amp = SEA.amp + clamp(SEA.waves - SEA.amp, -0.8 * dt, 0.8 * dt)
 	if math.abs(seaAmp.Value - SEA.amp) > 0.05 then seaAmp.Value = SEA.amp end
 	if seaLevel.Value ~= SEA.level then seaLevel.Value = SEA.level end
 end
-spawn(function() while true do seaClock.Value = tick() wait(5) end end)
-
-local oceanTiles = {}
-for ix = -2, 1 do
-	for iz = -2, 1 do
-		table.insert(oceanTiles, P(WORLD, "Ocean", V(1000, 2, 1000), CFrame.new(ix * 1000 + 500, -1.6, iz * 1000 + 500), "Navy blue", "SmoothPlastic", { nc = true }))
-		P(WORLD, "Seabed", V(1000, 4, 1000), CFrame.new(ix * 1000 + 500, -62, iz * 1000 + 500), "Brick yellow", "Sand")
-	end
+spawn(function() while true do seaClock.Value = seaTime() wait(5) end end)
+-- a set of bigger waves (or one giant swell) that starts far ahead of the bow and rolls through the boat
+local function rogue(height, len, bump)
+	SEA.rogueA, SEA.rogueT, SEA.rogueZ, SEA.rogueLen, SEA.rogueBump = height, seaTime(), SHIP_AT.Z - 700, len, bump and true or false
+	rogueVals.A.Value, rogueVals.T.Value, rogueVals.Z.Value, rogueVals.Len.Value, rogueVals.Bump.Value = SEA.rogueA, SEA.rogueT, SEA.rogueZ, len, SEA.rogueBump
 end
--- real water round the boat: it ripples, sparkles and you can swim in it
-local terrainWater = pcall(function()
-	local T = workspace.Terrain
-	for x = -700, 500, 400 do
-		for z = -1300, -100, 400 do
-			T:FillBlock(CFrame.new(x + 200, -16, z + 200), V(400, 32, 400), Enum.Material.Water)
-		end
-	end
-	T.WaterWaveSize = 0.9
-	T.WaterWaveSpeed = 22
-	T.WaterReflectance = 0.8
-	T.WaterTransparency = 0.35
-end)
+local function calmRogue() SEA.rogueA = 0 rogueVals.A.Value = 0 end
+
+-- the far, flat ocean all round. Around the boat (the hole in the middle) each player's computer draws the moving
+-- swells (OceanClient), which flatten out at the edges to meet this. Under the hole: a deep blue floor.
+local HOLE = { x0 = SHIP_AT.X - 600, x1 = SHIP_AT.X + 600, z0 = SHIP_AT.Z - 500, z1 = SHIP_AT.Z + 500 }
+local oceanTiles = {}
+local function oceanTile(x0, x1, z0, z1, y, color)
+	local t = P(WORLD, "Ocean", V(x1 - x0, 2, z1 - z0), CFrame.new((x0 + x1) / 2, y, (z0 + z1) / 2), color or "Deep blue", "SmoothPlastic", { nc = true })
+	table.insert(oceanTiles, { part = t, dy = y })
+end
+oceanTile(-2000, 2000, -2000, HOLE.z0, -1.6)
+oceanTile(-2000, 2000, HOLE.z1, 2000, -1.6)
+oceanTile(-2000, HOLE.x0, HOLE.z0, HOLE.z1, -1.6)
+oceanTile(HOLE.x1, 2000, HOLE.z0, HOLE.z1, -1.6)
+oceanTile(HOLE.x0, HOLE.x1, HOLE.z0, HOLE.z1, -30, "Navy blue")
+for ix = -2, 1 do
+	for iz = -2, 1 do P(WORLD, "Seabed", V(1000, 4, 1000), CFrame.new(ix * 1000 + 500, -62, iz * 1000 + 500), "Brick yellow", "Sand") end
+end
+local terrainWater = false
 local function setSea(level)
 	SEA.level = level
-	for _, t in ipairs(oceanTiles) do t.CFrame = CFrame.new(t.Position.X, level - 1.6, t.Position.Z) end
+	for _, t in ipairs(oceanTiles) do t.part.CFrame = CFrame.new(t.part.Position.X, level + t.dy, t.part.Position.Z) end
 end
 
 ------------------------------------------------------------------ themes: the look of the whole map (voted in the lobby)
 local THEMES = {
-	Normal = { time = "14:00:00", amb = Color3.new(0.5, 0.5, 0.5), out = Color3.new(0.55, 0.55, 0.6), fog = Color3.new(0.75, 0.82, 0.9), fogEnd = 2500, bright = 1, water = Color3.new(0.05, 0.32, 0.45) },
-	Sunset = { time = "18:05:00", amb = Color3.new(0.55, 0.42, 0.38), out = Color3.new(0.65, 0.48, 0.42), fog = Color3.new(0.95, 0.62, 0.45), fogEnd = 1800, bright = 1, water = Color3.new(0.12, 0.25, 0.42) },
-	Halloween = { time = "23:30:00", amb = Color3.new(0.32, 0.2, 0.38), out = Color3.new(0.38, 0.25, 0.45), fog = Color3.new(0.22, 0.08, 0.28), fogEnd = 650, bright = 0.6, water = Color3.new(0.04, 0.18, 0.14) },
+	Normal = { time = "14:00:00", amb = Color3.new(0.5, 0.5, 0.5), out = Color3.new(0.55, 0.55, 0.6), fog = Color3.new(0.75, 0.82, 0.9), fogEnd = 2500, bright = 1, water = Color3.new(0.05, 0.32, 0.45) , sea = "Steel blue" },
+	Sunset = { time = "18:05:00", amb = Color3.new(0.55, 0.42, 0.38), out = Color3.new(0.65, 0.48, 0.42), fog = Color3.new(0.95, 0.62, 0.45), fogEnd = 1800, bright = 1, water = Color3.new(0.12, 0.25, 0.42) , sea = "Sand blue" },
+	Halloween = { time = "23:30:00", amb = Color3.new(0.32, 0.2, 0.38), out = Color3.new(0.38, 0.25, 0.45), fog = Color3.new(0.22, 0.08, 0.28), fogEnd = 650, bright = 0.6, water = Color3.new(0.04, 0.18, 0.14) , sea = "Earth green" },
 }
 local THEME_ORDER = { "Normal", "Sunset", "Halloween" }
 local theme = "Normal"
@@ -74,6 +82,7 @@ local function applyLighting()
 		Lighting.Brightness = t.bright
 	end)
 	pcall(function() workspace.Terrain.WaterColor = t.water end)
+	for i, tile in ipairs(oceanTiles) do if i < #oceanTiles then tile.part.BrickColor = BrickColor.new(t.sea) end end
 end
 local function pumpkin(parent, cf, size)
 	size = size or 2.4

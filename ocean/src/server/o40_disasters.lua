@@ -39,73 +39,41 @@ local function onDeck(spread)
 	local l = V(math.random(-ship.wid / 2, ship.wid / 2), ship.deck + 1, math.random(-ship.len / 2, ship.len / 2))
 	return shipFrame() * l
 end
--- a wave that rolls across the boat from one side: a sloped ridge of water with a white foaming crest. When it
--- reaches the boat: damage, a big lurch, and people on the open deck get washed about.
-local function waveWall(height, shipDmg, dmg, fromSide)
-	local m = model(junk, "Wave")
-	local dir = fromSide or (math.random() < 0.5 and 1 or -1)
-	local x = dir * 400
-	local depth = height * 2.2
-	local front = P(m, "WaveFront", V(600, height, depth * 0.35), CFrame.new(), theme == "Halloween" and "Teal" or "Bright blue", "SmoothPlastic", { class = "WedgePart", tr = 0.25, nc = true })
-	local back = P(m, "WaveBack", V(600, height, depth * 0.65), CFrame.new(), theme == "Halloween" and "Teal" or "Steel blue", "SmoothPlastic", { class = "WedgePart", tr = 0.25, nc = true })
-	local crest = P(m, "Crest", V(600, height * 0.18, height * 0.3), CFrame.new(), "Institutional white", "SmoothPlastic", { tr = 0.15, nc = true })
-	local spray = P(m, "Spray", V(600, height * 0.12, height * 0.45), CFrame.new(), "Institutional white", "SmoothPlastic", { tr = 0.55, nc = true })
-	local function place()
-		-- the wave travels along -dir in x; its steep face leads
-		local base = CFrame.new(SHIP_AT.X + x, SEA.level - 2 + height / 2, SHIP_AT.Z) * CFrame.Angles(0, dir > 0 and math.rad(90) or math.rad(-90), 0)
-		front.CFrame = base * CFrame.new(0, 0, -depth * 0.175) * CFrame.Angles(0, math.pi, 0)
-		back.CFrame = base * CFrame.new(0, 0, depth * 0.325)
-		crest.CFrame = base * CFrame.new(0, height / 2, -depth * 0.02)
-		spray.CFrame = base * CFrame.new(0, height / 2 + height * 0.12, -depth * 0.12)
-	end
-	place()
-	local hitShip, hit = false, {}
-	spawn(function()
-		while m.Parent and x * dir > -420 do
-			local dt = wait(0.05)
-			x = x - dir * 70 * dt
-			place()
-			if not hitShip and ship and math.abs(x) < ship.wid / 2 + 20 then
-				hitShip = true
-				damageShip(shipDmg)
-				ship.lift = height * 0.25
-				ship.kick = 0.04 * dir
-				toAll("shake", 0.6)
-			end
-			for _, p in ipairs(players()) do
-				if not hit[p.p] and math.abs(p.t.Position.X - (SHIP_AT.X + x)) < 25 and math.abs(p.t.Position.Z - SHIP_AT.Z) < 300 and p.t.Position.Y < SEA.level + height - 2 then
-					hit[p.p] = true
-					p.h:TakeDamage(dmg)
-					if not p.h.Sit then fling(p, V(-dir * 45, 20, 0), 0.25) end
-				end
-			end
-		end
-		m:Destroy()
-	end)
-end
--- normal waves in every round (not a disaster): the open ocean keeps rolling into the boat
-local function oceanWaves()
+-- normal waves every round (not a disaster): big rolling swells all the time, and every so often a SET of even
+-- bigger ones builds up ahead of the bow, rolls through the boat one after another and dies down again.
+local function bigSets(height, gapMin, gapMax, first)
 	local alive = true
-	SEA.calm = 3
-	SEA.waves = math.max(SEA.waves, 3)
 	spawn(function()
-		wait(4)
+		wait(first or 6)
 		while alive do
-			waveWall(math.random(12, 20), 35, 4)
-			wait(math.random(9, 15))
+			toAll("toast", "Big waves ahead! Hold on!")
+			rogue(height, 170, false)
+			wait(math.random(gapMin, gapMax))
 		end
 	end)
-	return function() alive = false SEA.calm = 1 SEA.waves = 1 end
+	return function() alive = false end
+end
+local function oceanWaves()
+	SEA.calm = 7
+	SEA.waves = math.max(SEA.waves, 7)
+	local stopSets = bigSets(6, 28, 40, 10)
+	return function() stopSets() SEA.calm = 3 SEA.waves = 3 calmRogue() end
 end
 
 local DIS = {}
 DIS.Tsunami = { text = "TSUNAMI! A giant wave is coming!", run = function()
 	local alive = true
 	spawn(function()
-		wait(8)
-		if alive then waveWall(85, 380, 40) end
-		wait(25)
-		if alive then waveWall(60, 200, 30, -1) end
+		wait(4)
+		if not alive then return end
+		-- one giant swell rises up out of the ocean far ahead of the bow and rolls straight through the boat
+		toAll("big", "THE SEA IS RISING...", "Get inside or hold on to something!")
+		rogue(32, 90, true)
+		wait(40)
+		if alive then
+			toAll("big", "ANOTHER ONE!", "Here comes a second tsunami!")
+			rogue(22, 90, true)
+		end
 	end)
 	return function() alive = false end
 end }
@@ -123,13 +91,17 @@ DIS.Tornado = { text = "TORNADO! It's heading for the ship!", run = function()
 			local dt = wait(0.1)
 			local now = tick()
 			-- wander over the ship, back and forth
-			local goal = SHIP_AT + V(math.sin(now * 0.15) * 30, 0, math.sin(now * 0.11) * 100)
+			local goal = SHIP_AT + V(math.sin(now * 0.15) * 30, 0, math.sin(now * 0.09) * 160)
 			local d = V(goal.X - pos.X, 0, goal.Z - pos.Z)
 			if d.magnitude > 1 then pos = pos + d.unit * 18 * dt end
 			for i, r in ipairs(rings) do
 				r.part.CFrame = CFrame.new(pos.X + math.sin(now * 2 + i) * i * 0.6, SEA.level + r.y, pos.Z) * CFrame.Angles(0, now * 4 + i, math.rad(90))
 			end
-			if ship and (V(pos.X, 0, pos.Z) - V(SHIP_AT.X, 0, SHIP_AT.Z)).magnitude < ship.len / 2 then damageShip(11 * dt) end
+			if ship and (V(pos.X, 0, pos.Z) - V(SHIP_AT.X, 0, SHIP_AT.Z)).magnitude < ship.len / 3 then
+				damageShip(8 * dt)
+				if not ship.twister then toAll("big", "THE TORNADO HAS THE BOAT!", "Hold on - it's lifting us out of the water!") end
+				ship.twister = now      -- stepShip lifts and spins it while this is fresh
+			end
 			for _, x in ipairs(players()) do
 				local dd = V(x.t.Position.X - pos.X, 0, x.t.Position.Z - pos.Z)
 				if dd.magnitude < 32 then
@@ -151,7 +123,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 		Lighting.OutdoorAmbient = Color3.new(0.35, 0.35, 0.4)
 	end)
 	toAll("weather", "storm")
-	SEA.waves = 6
+	SEA.waves = 12
 	spawn(function()
 		local a = math.random() * 6
 		while alive do
@@ -164,13 +136,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 			damageShip(1.2)
 		end
 	end)
-	spawn(function()
-		wait(5)
-		while alive do
-			waveWall(math.random(20, 32), 55, 6)
-			wait(math.random(8, 14))
-		end
-	end)
+	local stopSets = bigSets(9, 18, 26, 5)
 	spawn(function()
 		while alive do
 			wait(math.random(15, 35) / 10)
@@ -184,8 +150,9 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 	end)
 	return function()
 		alive = false
+		stopSets()
 		WIND.v = V()
-		SEA.waves = SEA.calm or 1
+		SEA.waves = SEA.calm or 3
 		toAll("weather", "clear")
 		applyLighting()
 	end
@@ -267,14 +234,8 @@ DIS["Shark Attack"] = { text = "SHARK ATTACK! Don't fall in the water!", run = f
 		table.insert(sharks, { m = m, root = body, pos = at, look = V(0, 0, -1), next = 0 })
 	end
 	local alive = true
-	SEA.waves = 3
-	spawn(function()
-		wait(4)
-		while alive do   -- the waves knock people around: some might fall in...
-			waveWall(math.random(16, 24), 30, 5)
-			wait(math.random(10, 15))
-		end
-	end)
+	SEA.waves = 9       -- rough sea: the waves wash people off the deck... into the sharks
+	local stopSets = bigSets(7, 15, 22, 6)
 	spawn(function()
 		while alive do
 			local dt = wait(0.05)
@@ -300,7 +261,7 @@ DIS["Shark Attack"] = { text = "SHARK ATTACK! Don't fall in the water!", run = f
 			end
 		end
 	end)
-	return function() alive = false SEA.waves = SEA.calm or 1 for _, s in ipairs(sharks) do s.m:Destroy() end end
+	return function() alive = false stopSets() SEA.waves = SEA.calm or 3 for _, s in ipairs(sharks) do s.m:Destroy() end end
 end }
 local ORDER = { "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack" }
 

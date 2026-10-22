@@ -15,10 +15,14 @@ Open/upload `DisasterOcean.rbxl`.
     hammocks under the forecastle, 3 masts with sails, cannons, the Jolly Roger, 4 rowboats.
   - Navy Destroyer: mess hall, bunk room, a bridge with radar screens, a radar mast, gun turrets, a helipad,
     6 life rafts.
-- **The sea**: real Terrain water round the boat (ripples, reflections, you can swim), rolling wave crests with white
-  tops and foam streaming past the boat so it looks like it's sailing straight ahead, spray at the bow. The boat rolls,
-  pitches and heaves on the swells. Waves crash into it every round.
-- **Disasters** (sometimes two at once): Tsunami, Tornado, Hurricane, Meteor Shower, the Kraken, Shark Attack.
+- **The sea**: huge rolling swells (like Sea of Thieves) come from ahead one after another. Each swell lifts the bow,
+  then the middle, then the stern, so the boat rocks with every wave; every so often a set of even bigger waves
+  builds up, rolls through the boat (screen shake, damage, water washing over the deck) and dies down again. The
+  swells are drawn on each player's computer (dark troughs, turquoise faces, white foam on the crests) with the same
+  maths the server uses to move the boat (`src/shared/SeaHeight.lua`), so the boat always sits on the drawn water.
+- **Disasters** (sometimes two at once): Tsunami (one giant swell rises ahead and lifts the whole boat), Tornado (picks
+  the boat up out of the sea, spins it and drops it), Hurricane (even bigger seas, wind, lightning), Meteor Shower,
+  the Kraken, Shark Attack.
 - **The boat takes damage** (health bar on screen); pieces break off; at 0 it sinks and the lifeboats drop. The water
   hurts. Survivors get Coins.
 - Admin for `asdasda` only, FilteringEnabled on.

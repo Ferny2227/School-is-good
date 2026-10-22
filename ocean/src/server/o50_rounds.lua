@@ -9,6 +9,7 @@ end
 spawn(function()
 	local round = 0
 	while true do
+		while STATE.hold do wait(1) end      -- tests only
 		STATE.phase, STATE.disaster = "intermission", ""
 		for s = 20, 1, -1 do
 			STATE.left = s
@@ -25,6 +26,7 @@ spawn(function()
 			-- build the boat and put the whole lobby on it
 			buildShip(kind)
 			seaSailing.Value = true
+			seaShipLen.Value = ship.len
 			STATE.phase = "boarding"
 			STATE.left = 5
 			status()
@@ -119,5 +121,5 @@ spawn(function()
 end)
 _G.OceanDebug = { DIS = DIS, SEA = SEA, swimmers = swimmers, STATE = STATE, getShip = function() return ship end,
 	buildShip = buildShip, damageShip = damageShip, deckSpot = deckSpot, onShip = onShip, shipFrame = shipFrame,
-	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, terrainWater = terrainWater }
+	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, rogue = rogue, waveAt = waveAt, seaTime = seaTime }
 print("OceanServer ready")

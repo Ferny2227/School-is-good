@@ -18,11 +18,13 @@ from rbxl import Place, read_strings, lstr  # noqa: E402
 p = Place(os.path.join(REPO, "roblox", "base", "AirportTycoon.rbxl"))
 import glob
 src = lambda f: open(os.path.join(ROOT, "src", f), encoding="utf8").read()
-server_source = "\n".join(open(f, encoding="utf8").read() for f in sorted(glob.glob(os.path.join(ROOT, "src", "server", "o*.lua"))))
+shared = src(os.path.join("shared", "SeaHeight.lua"))
+server_source = shared + "\n" + "\n".join(open(f, encoding="utf8").read() for f in sorted(glob.glob(os.path.join(ROOT, "src", "server", "o*.lua"))))
+client_source = shared + "\n" + src("OceanClient.lua")
 admin = lambda f: open(os.path.join(REPO, "roblox", "src", f), encoding="utf8").read()
 try:
     import lupa.lua51 as lupa
-    for code in (server_source, src("OceanClient.lua")):
+    for code in (server_source, client_source):
         lupa.LuaRuntime().execute("return function() " + code + "\nend")
     print("Lua syntax OK")
 except ImportError:
@@ -30,7 +32,7 @@ except ImportError:
 
 refs = {p.path(r): r for (cn, r, path, s) in p.scripts()}
 server, client = refs["ServerScriptService.AirportServer"], refs["StarterGui.AirportClient"]
-p.set_sources({server: server_source, client: src("OceanClient.lua")})
+p.set_sources({server: server_source, client: client_source})
 # rename them
 for cid, (cn, _, rs) in p.classes.items():
     if cn in ("Script", "LocalScript"):

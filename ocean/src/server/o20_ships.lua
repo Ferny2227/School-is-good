@@ -5,8 +5,8 @@
 -- the boat takes damage.
 local ship = nil   -- { kind, model, root, hp, max, len, wid, deck, hullY, breakable, lifeboats, spots }
 
-local function shipBase(dy, pitch, roll)
-	return CFrame.new(SHIP_AT + V(0, SEA.level + (dy or 0), 0)) * CFrame.Angles(pitch or 0, 0, roll or 0)
+local function shipBase(dy, pitch, roll, yaw)
+	return CFrame.new(SHIP_AT + V(0, SEA.level + (dy or 0), 0)) * CFrame.Angles(0, yaw or 0, 0) * CFrame.Angles(pitch or 0, 0, roll or 0)
 end
 
 -- a builder for one boat: B.part(...) in boat coordinates, rooms, furniture
