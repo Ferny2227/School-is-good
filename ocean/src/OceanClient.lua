@@ -183,7 +183,8 @@ end)
 spawn(function()
 	local st = game:GetService("ReplicatedStorage"):WaitForChild("SeaState")
 	local v = {}
-	for _, n in ipairs({ "Amp", "Speed", "Level", "Clock", "ShipAt", "ShipLen", "Sailing", "Theme", "RogueA", "RogueT", "RogueZ", "RogueLen", "RogueBump" }) do
+	for _, n in ipairs({ "Amp", "Speed", "Level", "Clock", "ShipAt", "ShipLen", "ShipWid", "ShipAir", "ShipYaw", "ShipSink", "Sailing", "Theme",
+		"RogueA", "RogueT", "RogueZ", "RogueLen", "RogueBump" }) do
 		v[n] = st:WaitForChild(n)
 	end
 	local S = { shipX = 0, shipZ = 0, amp = 1, speed = 16, rogueA = 0, rogueT = 0, rogueZ = 0, rogueLen = 150, rogueBump = false }
@@ -254,6 +255,51 @@ spawn(function()
 		pcall(function() s.part.Shape = Enum.PartType.Ball end)
 		table.insert(spray, s)
 	end
+	-- THE BOAT: every part of it is moved here, together, every frame, to sit on the waves drawn above (ShipPose, the
+	-- same maths the server uses). The server only sends the extras: tornado lift and spin, sinking. Where each part
+	-- was built is remembered once for this whole computer (_G), so a restarted copy of this script (after you
+	-- respawn) can't pick up a part that was already tilted.
+	local bases = _G.OceanShipBases or setmetatable({}, { __mode = "k" })
+	_G.OceanShipBases = bases
+	local world = workspace:WaitForChild("Ocean World")
+	local tracked, model = {}, nil
+	local function add(p)
+		if p:IsA("BasePart") and not tracked[p] then
+			if not bases[p] then bases[p] = p.CFrame end
+			tracked[p] = bases[p]
+		end
+	end
+	local function all(o) for _, c in ipairs(o:GetChildren()) do add(c) all(c) end end
+	local function findShip()
+		for _, c in ipairs(world:GetChildren()) do if c:FindFirstChild("IsShip") then return c end end
+	end
+	local air, yaw, frames = 0, 0, 0
+	local function moveBoat(t, dt)
+		frames = frames + 1
+		if frames % 15 == 0 then      -- find the boat (and parts that arrived late); drop pieces that broke off
+			local m = findShip()
+			if m ~= model then tracked, model = {}, m end
+			if m then
+				all(m)
+				for p in pairs(tracked) do if not p:IsDescendantOf(m) then tracked[p] = nil end end
+			end
+		end
+		if not model then return end
+		air = air + (v.ShipAir.Value - air) * math.min(1, dt * 8)
+		yaw = yaw + (v.ShipYaw.Value - yaw) * math.min(1, dt * 8)
+		local sink = v.ShipSink.Value
+		local dy, pitch, roll = ShipPose(t, S, v.ShipLen.Value, v.ShipWid.Value, sink >= 0 and sink or nil)
+		if air > 0.1 then
+			local k = math.min(1, air / 10)
+			pitch, roll = pitch + math.sin(t * 2) * 0.15 * k, roll + math.sin(t * 2.6) * 0.2 * k
+		end
+		local at, lv = v.ShipAt.Value, v.Level.Value
+		local move = ShipCFrame(at, lv, dy + air, pitch, roll, yaw) * ShipCFrame(at, lv, 0, 0, 0, 0):inverse()
+		for p, base in pairs(tracked) do p.CFrame = move * base end
+	end
+	-- only the newest copy of this script runs (an old copy stops and takes its water with it)
+	local RUN = {}
+	_G.OceanClientRun = RUN
 	local lastTheme
 	local last = tick()
 	while true do
@@ -261,7 +307,9 @@ spawn(function()
 		local now = tick()
 		local dt = math.min(0.2, now - last)
 		last = now
+		if _G.OceanClientRun ~= RUN then pcall(function() folder:Destroy() end) return end
 		offset = offset + (goalOffset - offset) * math.min(1, dt * 0.5)
+		pcall(moveBoat, now + offset, dt)
 		local cx, cz = S.shipX, S.shipZ
 		local lv = v.Level.Value - 0.6     -- the top of the flat ocean
 		local cam = workspace.CurrentCamera
@@ -313,54 +361,6 @@ spawn(function()
 				local u = s.t
 				s.part.CFrame = CFrame.new(cx + side * (4 + u * 16), lv + bowH + 2 + math.sin(u * math.pi) * (3 + S.amp), bowZ + u * 25)
 				s.part.Transparency = moving and (0.35 + u * 0.6) or 1
-			end
-		end
-	end
-end)
------------------------------------------------------------------- the boat: move ALL of its parts together
--- The server keeps the boat's parts still and sends how far the boat has moved (SeaState.ShipCF). Here every part of
--- the boat is put there every frame, so the whole boat - hull, decks, rooms, funnels, masts - rocks as one piece.
-spawn(function()
-	local st = game:GetService("ReplicatedStorage"):WaitForChild("SeaState")
-	local cfv, shipv = st:WaitForChild("ShipCF"), st:WaitForChild("Ship")
-	local parts, model, conn = {}, nil, nil
-	local function add(p) if p:IsA("BasePart") and not parts[p] then parts[p] = p.CFrame end end
-	local function all(o)
-		for _, c in ipairs(o:GetChildren()) do add(c) all(c) end
-	end
-	local function setModel(m)
-		if conn then conn:disconnect() conn = nil end
-		parts, model = {}, m
-		if m then
-			all(m)
-			conn = m.DescendantAdded:connect(add)
-		end
-	end
-	-- find the boat by its tag (checked twice a second, so it never gets missed), and pick up any parts that arrive late
-	local world = workspace:WaitForChild("Ocean World")
-	local function findShip()
-		for _, c in ipairs(world:GetChildren()) do if c:FindFirstChild("IsShip") then return c end end
-	end
-	local cur = cfv.Value
-	local last, frames = tick(), 0
-	while true do
-		wait()
-		local now = tick()
-		local dt = math.min(0.2, now - last)
-		last = now
-		local goal = cfv.Value
-		local ok = pcall(function() cur = cur:lerp(goal, math.min(1, dt * 10)) end)
-		if not ok then cur = goal end
-		frames = frames + 1
-		if frames % 15 == 0 then
-			local m = findShip()
-			if m ~= model then setModel(m) elseif m then all(m) end
-		end
-		if model then
-			local prune = frames % 15 == 0     -- pieces that broke off / lifeboats that dropped are the server's now
-			for p, base in pairs(parts) do
-				if prune and not p:IsDescendantOf(model) then parts[p] = nil
-				else p.CFrame = cur * base end
 			end
 		end
 	end

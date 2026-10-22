@@ -23,7 +23,11 @@ local seaClock = value("NumberValue", "Clock", 0)
 value("Vector3Value", "ShipAt", SHIP_AT)
 local seaShipLen = value("NumberValue", "ShipLen", 200)
 local seaShip = value("ObjectValue", "Ship", nil)          -- the boat's model
-local seaShipCF = value("CFrameValue", "ShipCF", CFrame.new())   -- how far the boat has moved from where it was built
+local seaShipWid = value("NumberValue", "ShipWid", 30)
+-- the boat's pose comes from the waves (ShipPose), worked out on each computer; these are the extras on top
+local seaShipAir = value("NumberValue", "ShipAir", 0)       -- lifted by the tornado
+local seaShipYaw = value("NumberValue", "ShipYaw", 0)       -- spun by the tornado
+local seaShipSink = value("NumberValue", "ShipSink", -1)    -- sea time the boat started sinking (-1: it isn't)
 local seaTheme = value("StringValue", "Theme", "Normal")
 local seaSailing = value("BoolValue", "Sailing", false)
 local rogueVals = { A = value("NumberValue", "RogueA", 0), T = value("NumberValue", "RogueT", 0), Z = value("NumberValue", "RogueZ", 0),

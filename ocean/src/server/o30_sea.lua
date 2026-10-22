@@ -59,16 +59,10 @@ local function stepShip(dt, now)
 	s.yaw = s.yaw or 0
 	s.air = s.air or 0
 	if s.sinking then
-		local st = now - s.sinking
-		s.dy = -st * 0.9
-		s.pitch = math.min(0.35, st * 0.012)
-		s.roll = s.roll * 0.98 + 0.002
+		s.sinkAt = s.sinkAt or t
+		if seaShipSink.Value ~= s.sinkAt then seaShipSink.Value = s.sinkAt end
+		s.dy, s.pitch, s.roll = ShipPose(t, SEA, s.len, s.wid, s.sinkAt)
 	else
-		local x, z = SHIP_AT.X, SHIP_AT.Z
-		local L, W = s.len * 0.35, math.max(45, s.wid / 2)   -- feel the waves over a wide area, not every little ripple
-		local h0 = waveAt(x, z, t)
-		local hb, hs = waveAt(x, z - L, t), waveAt(x, z + L, t)
-		local hp, hst = waveAt(x - W, z, t), waveAt(x + W, z, t)
 		-- the tornado: while it's over the boat, the boat is lifted and spun; then it drops back into the sea
 		if s.twister and now - s.twister < 0.5 then
 			s.air = math.min(55, s.air + 10 * dt)
@@ -83,12 +77,12 @@ local function stepShip(dt, now)
 				s.wasUp = 0
 			end
 		end
-		local MAXT = 0.28    -- ~16 degrees: big waves rock it hard, but nobody tips over
-		s.dy = follow(s.dy, (h0 + (hb + hs) / 2) / 2 * 0.95 + s.air, 2.2, dt)
-		s.pitch = follow(s.pitch, clamp(math.atan((hb - hs) / (2 * L)) * 1.1, -MAXT, MAXT) + (s.air > 0 and math.sin(now * 2) * 0.15 or 0), 2.0, dt)
-		-- side to side: the boat leans as each swell passes under it, more in big seas
-		local lean = math.sin(t * 0.85) * (0.012 + 0.002 * SEA.amp)
-		s.roll = follow(s.roll, clamp(lean + math.atan((hst - hp) / (2 * W)) * 1.3, -MAXT, MAXT) + (s.air > 0 and math.sin(now * 2.6) * 0.2 or 0), 1.6, dt)
+		local dy, pitch, roll = ShipPose(t, SEA, s.len, s.wid)
+		if s.air > 0.1 then      -- swinging about in the tornado (players' computers do the same)
+			local k = math.min(1, s.air / 10)
+			pitch, roll = pitch + math.sin(t * 2) * 0.15 * k, roll + math.sin(t * 2.6) * 0.2 * k
+		end
+		s.dy, s.pitch, s.roll = dy + s.air, pitch, roll
 		-- big waves hurt: while a set of big waves rolls through, the bow slams into them
 		if SEA.rogueA > 0 then
 			local c = SEA.rogueZ + 30 * (t - SEA.rogueT)    -- along the waves' direction; the boat is at 0
@@ -104,10 +98,11 @@ local function stepShip(dt, now)
 			if c > SEA.rogueLen * 3 then calmRogue() end
 		end
 	end
-	s.yaw = s.air > 0 and s.yaw or s.yaw * (1 - 0.15 * dt)
-	if not s.sent or now - s.sent > 0.05 then      -- 20 times a second; players' computers smooth it out
+	if s.air <= 0 then s.yaw = s.yaw * (1 - 0.15 * dt) end
+	if not s.sent or now - s.sent > 0.05 then      -- the extras, 20 times a second (players' computers smooth them)
 		s.sent = now
-		seaShipCF.Value = shipMoved()
+		if math.abs(seaShipAir.Value - s.air) > 0.05 then seaShipAir.Value = s.air end
+		if math.abs(seaShipYaw.Value - s.yaw) > 0.002 then seaShipYaw.Value = s.yaw end
 	end
 	for _, lb in ipairs(s.lifeboats) do
 		if lb.hull and lb.model.Parent then

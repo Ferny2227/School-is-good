@@ -6,9 +6,7 @@
 -- every frame. Some pieces are "breakable": they snap off as the boat takes damage.
 local ship = nil   -- { kind, model, root, hp, max, len, wid, deck, hullY, breakable, lifeboats, spots }
 
-local function shipBase(dy, pitch, roll, yaw)
-	return CFrame.new(SHIP_AT + V(0, SEA.level + (dy or 0), 0)) * CFrame.Angles(0, yaw or 0, 0) * CFrame.Angles(pitch or 0, 0, roll or 0)
-end
+local function shipBase(dy, pitch, roll, yaw) return ShipCFrame(SHIP_AT, SEA.level, dy or 0, pitch or 0, roll or 0, yaw or 0) end
 
 -- a builder for one boat: B.part(...) in boat coordinates, rooms, furniture
 local function newBuilder(name)
@@ -338,7 +336,8 @@ local function buildShip(kind)
 	ship = { kind = kind, model = B.model, root = hull, hp = max, max = max, len = LEN, wid = WID, deck = DECK,
 		hullY = hull.CFrame.p.Y - SEA.level - SHIP_AT.Y, breakable = B.breakable, lifeboats = B.lifeboats, spots = B.spots, guards = guards,
 		dy = 0, pitch = 0, roll = 0, yaw = 0, rest = shipBase(0, 0, 0, 0) }
-	seaShipCF.Value = CFrame.new()
+	seaShipAir.Value, seaShipYaw.Value, seaShipSink.Value = 0, 0, -1
+	seaShipLen.Value, seaShipWid.Value = LEN, WID
 	seaShip.Value = B.model
 	local tag = Instance.new("StringValue")      -- players' computers find the boat by this tag
 	tag.Name = "IsShip"

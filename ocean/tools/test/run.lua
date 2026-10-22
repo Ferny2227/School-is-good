@@ -163,6 +163,8 @@ for _, o in ipairs(csh.model:GetDescendants()) do if o:IsA("BasePart") and (not 
 local hull0, top0 = csh.root.Position, top.Position
 spawn(assert(loadstring(CLIENT_SOURCE, "=OceanClient")))
 MOCK.run(3)
+spawn(assert(loadstring(CLIENT_SOURCE, "=OceanClient")))   -- respawned: a second copy of the script starts
+MOCK.run(2)
 local want = D.shipFrame() * csh.rest:inverse()
 say(string.format("client moves the whole boat: hull moved %.1f, top part (%s) moved %.1f, top part where the server says %.1f studs off, still the same distance apart: %s",
 	(csh.root.Position - hull0).magnitude, top.Name, (top.Position - top0).magnitude, ((want * CFrame.new(top0)).p - top.Position).magnitude,
