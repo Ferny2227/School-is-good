@@ -20,7 +20,7 @@ local function fling(x, vel, time, flat)
 end
 -- how hard the game is right now: goes up every 5 disasters (o50). Disasters hit harder at higher levels.
 local DIFF = { level = 1, mult = 1.5 }   -- mult: everything hurts 1.5x what it used to
-local function power() return DIFF.mult * (1 + 0.25 * (DIFF.level - 1)) end
+local function power() return DIFF.mult * (1 + 0.5 * (DIFF.level - 1)) end   -- +50% per level
 local function hurtNear(pos, radius, dmg, shipDmg)
 	dmg = dmg * power()
 	for _, x in ipairs(players()) do
@@ -76,15 +76,14 @@ local function oceanWaves()
 end
 
 local DIS = {}
-DIS.Tsunami = { text = "TSUNAMI! A MASSIVE wave is coming!", run = function()
+DIS.Tsunami = { text = "TSUNAMI! A MASSIVE wave is coming!", time = 38, run = function()
 	local alive = true
 	spawn(function()
-		wait(3)
 		if not alive then return end
 		-- a MASSIVE wall of water (250 studs high, 1500 wide) rises out of the fog far away and comes for the boat
 		local HEIGHT, LEN = 250, 500
 		toAll("big", "LOOK AT THE HORIZON...", "A MASSIVE TSUNAMI IS COMING! Get inside and hold on!")
-		rogue(HEIGHT, LEN, true, -1700)
+		rogue(HEIGHT, LEN, true, -1050)
 		local a = LEN * TSU_A
 		local hit = false
 		while alive and SEA.rogueA > 0 do
@@ -105,14 +104,14 @@ DIS.Tsunami = { text = "TSUNAMI! A MASSIVE wave is coming!", run = function()
 	end)
 	return function() alive = false end
 end }
-DIS.Tornado = { text = "TORNADO! It's heading for the ship!", run = function()
+DIS.Tornado = { text = "TORNADO! It's heading for the ship!", time = 25, run = function()
 	local m = model(junk, "Tornado")
 	local rings = {}
 	for i = 0, 11 do
 		local d = 14 + i * 5
 		table.insert(rings, { part = cyl(m, "Funnel", d, 10, 0, 0, 0, i % 2 == 0 and "Dark stone grey" or "Medium stone grey", "SmoothPlastic", { tr = 0.45, nc = true }), y = i * 10 + 5 })
 	end
-	local pos = SHIP_AT + V(math.random(-250, 250), 0, math.random() < 0.5 and -300 or 300)
+	local pos = SHIP_AT + V(math.random(-100, 100), 0, math.random() < 0.5 and -140 or 140)
 	local alive = true
 	spawn(function()
 		while alive do

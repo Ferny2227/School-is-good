@@ -90,68 +90,67 @@ spawn(function()
 			wait(6)
 			local stops = { oceanWaves() }
 			if theme == "Normal" then toAll("weather", "storm") end
-			local n, sunkWin = 0, false
+			-- WAVES: every 10 seconds a new random disaster hits (each lasts ~20 s, so they overlap). Every 3 waves the
+			-- level goes up and it gets WAY harder: +50% damage, bigger seas, and 2 (then 3) disasters per wave.
+			local wave, active = 0, {}
 			DIFF.level = 1
+			local function stopExpired(all)
+				for i = #active, 1, -1 do
+					if all or tick() >= active[i].ends then
+						pcall(active[i].stop)
+						table.remove(active, i)
+					end
+				end
+			end
 			while not gameOver() do
-				n = n + 1
-				-- CHALLENGE: every 4 disasters it gets harder: one more disaster stacked at once (up to 4), bigger
-				-- waves, disasters hit harder, shorter calms, more Coins
-				local level = math.floor((n - 1) / 4) + 1
-				if level ~= DIFF.level then
+				wave = wave + 1
+				local level = math.floor((wave - 1) / 3) + 1
+				local levelUp = level ~= DIFF.level
+				if levelUp then
 					DIFF.level = level
-					toAll("big", "LEVEL " .. level .. "!", "It's getting harder: " .. math.min(level, 4) .. " disasters at once, bigger waves!")
 					toAll("shake", 0.6)
-					wait(4)
 				end
 				SEA.calm = 40 + 8 * (level - 1)
 				SEA.waves = math.max(SEA.waves, SEA.calm)
+				local count = level >= 4 and 3 or (level >= 2 and 2 or 1)
 				local list = { nextDisaster() }
-				while #list < math.min(level, 4) do
+				while #list < count do
 					local d = nextDisaster(list[#list])
 					local dup = false
 					for _, x in ipairs(list) do if x == d then dup = true end end
 					if not dup then table.insert(list, d) end
 				end
 				local names = table.concat(list, " + ")
-				STATE.phase, STATE.disaster = "disaster", "LV" .. level .. ": " .. names
+				STATE.phase, STATE.disaster = "disaster", "WAVE " .. wave .. " (LV" .. level .. "): " .. names
 				local texts = {}
 				for _, d in ipairs(list) do table.insert(texts, DIS[d].text) end
-				toAll("big", string.upper(names), table.concat(texts, "  "))
-				local dstops = {}
+				toAll("big", (levelUp and ("LEVEL " .. level .. "! ") or "") .. "WAVE " .. wave .. ": " .. string.upper(names),
+					levelUp and "WAY HARDER now: disasters hit harder, the sea is rougher, more at once!" or table.concat(texts, "  "))
 				for _, d in ipairs(list) do
 					local ok, stop = pcall(DIS[d].run)
-					if ok and stop then table.insert(dstops, stop) else print("OceanServer: " .. d .. " failed: " .. tostring(stop)) end
+					if ok and stop then table.insert(active, { stop = stop, ends = tick() + (DIS[d].time or 20) })
+					else print("OceanServer: " .. d .. " failed: " .. tostring(stop)) end
 				end
-				for s = 60, 1, -1 do
+				for s = 10, 1, -1 do
 					STATE.left = s
 					status()
 					wait(1)
+					stopExpired()
 					if gameOver() then break end
 				end
-				for _, stop in ipairs(dstops) do pcall(stop) end
-				junk:ClearAllChildren()
 				if gameOver() then break end
-				-- lived through it: Coins for everyone still at sea
-				local survivors = {}
+				-- lived through the wave: a few Coins and a little health back
 				for _, x in ipairs(players()) do
 					if inRound[x.p] then
-						table.insert(survivors, x.p.Name)
-						addCoins(x.p, 40 * DIFF.level)
+						addCoins(x.p, 10 * level)
 						local sv = stats(x.p):FindFirstChild("Survived")
 						if sv then sv.Value = sv.Value + 1 end
-						x.h.Health = math.min(x.h.MaxHealth, x.h.Health + 20)      -- a little health back
-						toAll("toastTo", x.p.Name, "You survived the " .. names .. "! +" .. 40 * DIFF.level .. " Coins")
+						x.h.Health = math.min(x.h.MaxHealth, x.h.Health + 8)
 					end
 				end
-				toAll("survivors", survivors, false)
-				STATE.phase, STATE.disaster = "calm", ""
-				for s = math.max(4, 10 - 2 * (DIFF.level - 1)), 1, -1 do
-					STATE.left = s
-					status()
-					wait(1)
-					if gameOver() then break end
-				end
 			end
+			stopExpired(true)
+			junk:ClearAllChildren()
 			for _, stop in ipairs(stops) do pcall(stop) end
 			toAll("weather", "clear")
 			local winner

@@ -162,11 +162,12 @@ say(string.format("sea height at the bow now: %.1f studs (amp %.1f)", D.waveAt(0
 D.STATE.hold = false
 for _, p in ipairs(ps) do p.Character.Humanoid.MaxHealth = 1e6 p.Character.Humanoid.Health = 1e6 end
 local c0, sv0 = ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value
-for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "calm" then break end end
-say(string.format("survived a disaster: phase %s, player 2 coins %d -> %d, survived +%d", D.STATE.phase, c0, ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value - sv0))
--- harder every 4 disasters: level 2 stacks two at once
-for _ = 1, 1200 do MOCK.run(0.5) if D.STATE.disaster:sub(1, 3) == "LV2" then break end end
-say("after 4 disasters: '" .. D.STATE.disaster .. "', waves " .. D.SEA.calm)
+for _ = 1, 400 do MOCK.run(0.5) if D.STATE.disaster:find("WAVE 2 ") then break end end
+say(string.format("survived a wave: '%s', player 2 coins %d -> %d, survived +%d", D.STATE.phase, c0, ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value - sv0))
+-- a new wave every 10 s; harder every 3 waves: level 2 stacks two at once
+local t0 = D.seaTime()
+for _ = 1, 1200 do MOCK.run(0.5) if D.STATE.disaster:find("LV2") then break end end
+say(string.format("after 3 waves (%.0f s): '%s', waves %d", D.seaTime() - t0, D.STATE.disaster, D.SEA.calm))
 -- someone joins mid-game: they're in the lobby and can choose to play as a ghost (doesn't count)
 local late = MOCK.addPlayer("late", 99)
 MOCK.run(0.5)

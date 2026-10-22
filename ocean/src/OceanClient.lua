@@ -144,7 +144,7 @@ local raining = false
 local drops = {}
 local rainGen = 0
 local function rain(on, hail)
-	raining = on
+	if true then return end      -- no rain any more: it made the game lag
 	rainGen = rainGen + 1
 	local gen = rainGen
 	for _, d in ipairs(drops) do d:Destroy() end
@@ -191,7 +191,7 @@ remote.OnClientEvent:connect(function(what, a, b, c, d)
 	if what == "status" then
 		if a == "intermission" then statusText.Text = "INTERMISSION - the ship leaves in " .. b
 		elseif a == "boarding" then statusText.Text = "ALL ABOARD!"
-		elseif a == "disaster" then statusText.Text = c .. "  -  SURVIVE " .. b .. "s"
+		elseif a == "disaster" then statusText.Text = c .. "  -  next wave in " .. b .. "s"
 		elseif a == "calm" then statusText.Text = "CALM... the next disaster comes in " .. b
 		else statusText.Text = "ROUND OVER - back to the island in " .. b end
 	elseif what == "big" then

@@ -29,10 +29,10 @@ Open/upload `DisasterOcean.rbxl`.
 - **The waves try to throw you off**: the deck is wet, so when the boat leans you slide downhill; when the bow
   crashes into a wave (and all through a set of big waves) water sweeps over the deck and throws you towards the back
   and over the side - unless you're under a roof. The rails are only knee-high.
-- **It's hard**: meteors, hail, lightning, cannonballs and the Kraken aim at players (keep moving!), your health
-  doesn't come back by itself (+20 for each disaster you survive), and disasters hurt 1.5x. Every 4 disasters the
-  level goes up: one more disaster at once (up to 4), bigger waves, +25% damage per level, shorter calms, and Coins
-  per disaster = 40 x level.
+- **Waves**: every 10 seconds a new random disaster hits (each lasts about 20 s, so they overlap). Every 3 waves
+  the level goes up and it gets WAY harder: +50% damage per level, rougher seas, 2 disasters per wave from level 2
+  and 3 from level 4. Each wave you live through: Coins (10 x level) and +8 health; health doesn't come back by
+  itself. Attacks aim at players, so keep moving. No rain (it lagged).
 - **Last one standing**: once the boat leaves, disasters keep coming one after another (12 s of calm in between,
   +40 Coins for each one you live through) until only ONE player is left alive: they win (+1 Win, +150 Coins). Alone,
   it goes on until you die. Then it resets to the sky lobby. The boats can't break or sink. Fell in? Press jump to
