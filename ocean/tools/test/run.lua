@@ -34,7 +34,7 @@ for i = 1, 3 do
 	local p = MOCK.addPlayer("sailor" .. i, i)
 	MOCK.run(0.3)
 	local c = MOCK.makeCharacter(p)
-	c.Torso.CFrame = CFrame.new(0, 7, 0)   -- in the lobby
+	c.Torso.CFrame = CFrame.new(0, 267, -330)   -- in the lobby (it floats in the sky)
 	ps[i] = p
 end
 MOCK.run(1)
@@ -80,14 +80,44 @@ MOCK.run(5)
 say(string.format("sinking: ship went down to y %.0f, lifeboats floating %d/%d; 5 s in the water: health %d, swimming %s",
 	ship.root.Position.Y, floating, #ship.lifeboats, swimmer.Humanoid.Health, tostring(swimmer.Torso:FindFirstChild("Swim") ~= nil)))
 -- a whole round with coins
-for _, p in ipairs(ps) do p.Character.Humanoid.Health = 100 p.Character.Torso.CFrame = CFrame.new(0, 7, 0) end
+for _, p in ipairs(ps) do p.Character.Humanoid.Health = 100 p.Character.Torso.CFrame = CFrame.new(0, 267, -330) end
 local c0 = ps[2].leaderstats.Coins.Value
 local sv0 = ps[2].leaderstats.Survived.Value
 for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "results" then break end end
 MOCK.run(7)
 say(string.format("after a round: player 2 coins %d -> %d, survived +%d, back in the lobby: %s; messages: %s", c0, ps[2].leaderstats.Coins.Value,
-	ps[2].leaderstats.Survived.Value - sv0, tostring((ps[2].Character.Torso.Position - Vector3.new(0, 7, 0)).magnitude < 40),
+	ps[2].leaderstats.Survived.Value - sv0, tostring((ps[2].Character.Torso.Position - Vector3.new(0, 267, -330)).magnitude < 40),
 	(function() local t = {} for k, v in pairs(fired) do table.insert(t, k .. "=" .. v) end table.sort(t) return table.concat(t, " ") end)()))
+-- the ship rocks on the swells
+D.buildShip()
+D.SEA.waves = 3
+local rolls, pitches, heave = {}, {}, {}
+for _ = 1, 40 do
+	MOCK.run(0.5)
+	local sh = D.getShip()
+	table.insert(rolls, sh.roll) table.insert(pitches, sh.pitch) table.insert(heave, sh.dy)
+end
+local function range(t) local lo, hi = 1e9, -1e9 for _, v in ipairs(t) do lo = math.min(lo, v) hi = math.max(hi, v) end return hi - lo end
+say(string.format("ship rocking over 20 s: roll range %.1f deg, pitch range %.1f deg, up/down %.1f studs", math.deg(range(rolls)), math.deg(range(pitches)), range(heave)))
+-- someone who falls off the sky lobby in the intermission is put back up
+for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "intermission" then break end end
+ps[3].Character.Humanoid.Health = 100
+ps[3].Character.Torso.CFrame = CFrame.new(50, -1, 50)
+MOCK.run(1)
+say("fell in the sea during the intermission -> back in the lobby: " .. tostring(ps[3].Character.Torso.Position.Y > 200))
+-- the swells on a player's computer
+local before = #MOCK.errors
+rawget(MOCK.services.Players, "_p").LocalPlayer = ps[1]
+local cam = MOCK.new("Camera", workspace)
+workspace.CurrentCamera = cam
+cam.CoordinateFrame = CFrame.new(0, 40, -600)
+spawn(assert(loadstring(CLIENT_SOURCE, "=OceanClient")))
+MOCK.run(3)
+local sw = cam:FindFirstChild("Swells")
+local ys = {}
+if sw then for _, t in ipairs(sw:GetChildren()) do table.insert(ys, t.CFrame.p.Y) end end
+say(string.format("client swells: %d tiles, heights range %.1f studs, ship health bar shown: %s, new errors %d", #ys, range(ys),
+	tostring(ps[1].PlayerGui:FindFirstChild("OceanUI") ~= nil), #MOCK.errors - before))
 say("errors: " .. #MOCK.errors)
 for i = 1, math.min(8, #MOCK.errors) do say("  " .. MOCK.errors[i]:sub(1, 300)) end
 _G.TEST_OUT = table.concat(out, "\n")

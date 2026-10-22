@@ -3,10 +3,13 @@
 An original ocean disaster survival game in the style of Natural Disaster Survival, for 2016 Roblox.
 Open/upload `DisasterOcean.rbxl`.
 
-- **Lobby island**: everyone waits here (20 s intermission).
+- **Lobby**: a floating island high in the sky above the sea (20 s intermission); you can see the ship below. Fall
+  off and you're put back.
 - **The ship**: every round the whole lobby is teleported onto the **SS DISASTER**, a big ocean liner out at sea
-  (three decks of cabins with ladders, a bridge, two funnels, a pool, deck chairs, a mast, 8 lifeboats). It rocks on
-  the waves.
+  (three decks of cabins with ladders, a bridge, two funnels, a pool, deck chairs, a mast, 8 lifeboats).
+- **The sea**: rolling swells (drawn by each player's computer) travel past the ship from bow to stern, so it looks
+  like it's sailing straight ahead; the ship rolls, pitches and heaves on them (about 10 degrees of roll in a normal
+  round, more in a hurricane).
 - **Waves every round**: the open ocean keeps rolling waves into the ship (every 9-15 s), rocking it and wearing it
   down a little, on top of the disaster.
 - **Disasters** (75 s, sometimes two at once from round 3): Tsunami, Tornado, Hurricane (rain, wind, lightning),

@@ -174,4 +174,56 @@ spawn(function()
 		end
 	end
 end)
+------------------------------------------------------------------ the sea: rolling swells around the ship (only drawn here)
+-- The same wave maths as the server (OceanServer waveAt), so the ship rocks on the swells you see. The swells travel
+-- from the bow to the stern, which makes the ship look like it's sailing straight ahead.
+spawn(function()
+	local st = game:GetService("ReplicatedStorage"):WaitForChild("SeaState")
+	local amp, speed, level, clock, shipAt = st:WaitForChild("Amp"), st:WaitForChild("Speed"), st:WaitForChild("Level"), st:WaitForChild("Clock"), st:WaitForChild("ShipAt")
+	local offset = clock.Value - tick()
+	clock.Changed:connect(function() offset = clock.Value - tick() end)
+	local function waveAt(x, z, t)
+		return amp.Value * (0.55 * math.sin(0.018 * x + 0.7 * t) + 0.45 * math.sin(0.024 * (z + speed.Value * t) + 0.5 * t))
+	end
+	local N, S = 18, 44
+	local folder = Instance.new("Model")
+	folder.Name = "Swells"
+	folder.Parent = workspace.CurrentCamera
+	local tiles = {}
+	for i = 0, N - 1 do
+		for j = 0, N - 1 do
+			local p = Instance.new("Part")
+			p.Anchored = true
+			p.CanCollide = false
+			p.Size = Vector3.new(S + 1, 2, S + 1)
+			p.BrickColor = BrickColor.new((i + j) % 2 == 0 and "Bright blue" or "Steel blue")
+			pcall(function() p.Material = Enum.Material.SmoothPlastic end)
+			p.TopSurface = Enum.SurfaceType.Smooth
+			p.BottomSurface = Enum.SurfaceType.Smooth
+			p.Transparency = 0.15
+			p.Parent = folder
+			table.insert(tiles, { part = p, dx = (i - N / 2 + 0.5) * S, dz = (j - N / 2 + 0.5) * S, foam = false })
+		end
+	end
+	while true do
+		wait(0.05)
+		local t = tick() + offset
+		local c = shipAt.Value
+		local a = amp.Value
+		local lv = level.Value
+		for _, tile in ipairs(tiles) do
+			local x, z = c.X + tile.dx, c.Z + tile.dz
+			local h = waveAt(x, z, t)
+			local sx = (waveAt(x + 10, z, t) - waveAt(x - 10, z, t)) / 20
+			local sz = (waveAt(x, z + 10, t) - waveAt(x, z - 10, t)) / 20
+			tile.part.CFrame = CFrame.new(x, lv + h - 1, z) * CFrame.Angles(math.atan(sz), 0, -math.atan(sx))
+			-- white foam on the crests
+			local foam = a > 1.5 and h > a * 0.65
+			if foam ~= tile.foam then
+				tile.foam = foam
+				tile.part.BrickColor = BrickColor.new(foam and "Institutional white" or "Bright blue")
+			end
+		end
+	end
+end)
 pcall(function() remote:FireServer("state") end)

@@ -92,7 +92,7 @@ local SEA = { level = 0, base = 0, waves = 1 }   -- water surface height (floods
 local oceanTiles = {}
 for ix = -2, 1 do
 	for iz = -2, 1 do
-		local t = P(WORLD, "Ocean", V(1000, 2, 1000), CFrame.new(ix * 1000 + 500, -1, iz * 1000 + 500), "Bright blue", "SmoothPlastic", { tr = 0.25, nc = true })
+		local t = P(WORLD, "Ocean", V(1000, 2, 1000), CFrame.new(ix * 1000 + 500, -5, iz * 1000 + 500), "Navy blue", "SmoothPlastic", { tr = 0.1, nc = true })
 		pcall(function() t.Reflectance = 0.1 end)
 		table.insert(oceanTiles, t)
 		P(WORLD, "Seabed", V(1000, 4, 1000), CFrame.new(ix * 1000 + 500, -62, iz * 1000 + 500), "Brick yellow", "Sand")
@@ -100,15 +100,48 @@ for ix = -2, 1 do
 end
 local function setSea(level)
 	SEA.level = level
-	for _, t in ipairs(oceanTiles) do t.CFrame = CFrame.new(t.Position.X, level - 1, t.Position.Z) end
+	for _, t in ipairs(oceanTiles) do t.CFrame = CFrame.new(t.Position.X, level - 5, t.Position.Z) end
 end
+-- Rolling swells. They travel from the ship's bow to its stern at SEA.speed, so the ship (which stays where it is)
+-- looks like it's steaming straight ahead. Players' computers draw the same swells (src/OceanClient.lua) from the
+-- SeaState values; SEA.amp follows SEA.waves smoothly so the sea never jumps.
+SEA.amp, SEA.speed = 1, 16
 local function waveAt(x, z, t)
-	return SEA.waves * (math.sin(x * 0.02 + t * 1.3) + math.sin(z * 0.025 + t * 0.9)) * 0.5
+	return SEA.amp * (0.55 * math.sin(0.018 * x + 0.7 * t) + 0.45 * math.sin(0.024 * (z + SEA.speed * t) + 0.5 * t))
 end
+local seaState = Instance.new("Model")
+seaState.Name = "SeaState"
+local function value(cls, name, v)
+	local o = Instance.new(cls)
+	o.Name = name
+	o.Value = v
+	o.Parent = seaState
+	return o
+end
+local seaAmp = value("NumberValue", "Amp", 1)
+local seaSpeed = value("NumberValue", "Speed", SEA.speed)
+local seaLevel = value("NumberValue", "Level", 0)
+local seaClock = value("NumberValue", "Clock", tick())
+local seaShip = value("Vector3Value", "ShipAt", Vector3.new(0, 0, -650))
+seaState.Parent = RS
+local function stepSea(dt)
+	SEA.amp = SEA.amp + clamp(SEA.waves - SEA.amp, -0.6 * dt, 0.6 * dt)
+	if math.abs(seaAmp.Value - SEA.amp) > 0.05 then seaAmp.Value = SEA.amp end
+	if seaLevel.Value ~= SEA.level then seaLevel.Value = SEA.level end
+end
+spawn(function() while true do seaClock.Value = tick() wait(5) end end)
 
------------------------------------------------------------------- the lobby: a harbour island where everyone waits
+------------------------------------------------------------------ the lobby: a floating island high in the sky, above the sea
+-- (built at the origin, then lifted to LOBBY_AT). You can see the ship down below.
+local LOBBY_AT = V(0, 260, -330)
 local LOBBY = model(WORLD, "Lobby Island")
 cyl(LOBBY, "Beach", 200, 6, 0, -3, 0, "Brick yellow", "Sand")
+-- the rocky underside, and a see-through wall round the edge so nobody falls off by accident
+for i = 1, 6 do cyl(LOBBY, "Rock", 200 - i * 30, 12, 0, -3 - i * 12, 0, i % 2 == 0 and "Dark stone grey" or "Brown", "Slate") end
+for i = 0, 35 do
+	local a = i / 36 * math.pi * 2
+	P(LOBBY, "EdgeWall", V(18, 10, 1), CFrame.new(math.cos(a) * 99, 8, math.sin(a) * 99) * CFrame.Angles(0, -a + math.pi / 2, 0), "Pastel light blue", "Glass", { tr = 0.8 })
+end
 cyl(LOBBY, "Grass", 160, 6.4, 0, -3, 0, "Bright green", "Grass")
 local spawnPad = P(LOBBY, "SpawnLocation", V(16, 1, 16), CFrame.new(0, 3.9, 0), "Bright blue", "SmoothPlastic", { class = "SpawnLocation" })
 pcall(function() spawnPad.Duration = 0 end)
@@ -140,6 +173,9 @@ for i = 1, 10 do
 	end
 end
 
+for _, p in ipairs(LOBBY:GetDescendants()) do
+	if p:IsA("BasePart") then p.CFrame = p.CFrame + LOBBY_AT end
+end
 ------------------------------------------------------------------ coins
 local function stats(p)
 	local ls = p:FindFirstChild("leaderstats")
@@ -335,11 +371,16 @@ local function stepShip(dt, now)
 		s.pitch = math.min(0.35, t * 0.012)
 		s.roll = s.roll * 0.98 + 0.002
 	else
-		s.dy = waveAt(SHIP_AT.X, SHIP_AT.Z, now) * 0.5 + (s.lift or 0)
+		-- heave with the water under the middle, roll with the slope across it, pitch with the slope along it
+		local x, z = SHIP_AT.X, SHIP_AT.Z
+		local h = waveAt(x, z, now)
+		local across = (waveAt(x + WID / 2, z, now) - waveAt(x - WID / 2, z, now)) / WID
+		local along = (waveAt(x, z - 45, now) - waveAt(x, z + 45, now)) / 90
+		s.dy = h * 0.7 + (s.lift or 0)
 		s.lift = (s.lift or 0) * (1 - dt)
-		s.pitch = math.sin(now * 0.6) * 0.012 * SEA.waves + (s.kick or 0)
+		s.pitch = math.atan(along) * 1.4 + (s.kick or 0)
 		s.kick = (s.kick or 0) * (1 - 1.5 * dt)
-		s.roll = math.sin(now * 0.45) * 0.018 * SEA.waves
+		s.roll = -math.atan(across) * 2.2 + math.sin(now * 0.5) * 0.01 * SEA.amp
 	end
 	s.root.CFrame = shipCF(s.dy, s.pitch, s.roll) * CFrame.new(0, DECK / 2 - 4, 0)
 	for _, lb in ipairs(s.lifeboats) do
@@ -358,6 +399,7 @@ end
 ------------------------------------------------------------------ the water: you float, but it hurts (it's freezing)
 local swimmers = {}
 local WATER_DPS = 7
+local STATE_PHASE, toLobbyEarly   -- (set further down)
 local function stepSwimmers(dt)
 	for _, p in ipairs(Players:GetPlayers()) do
 		local c = p.Character
@@ -365,6 +407,10 @@ local function stepSwimmers(dt)
 		local h = c and c:FindFirstChild("Humanoid")
 		local bp = swimmers[p]
 		local inWater = t and h and h.Health > 0 and not h.Sit and t.Position.Y < SEA.level + 1.5
+		if inWater and STATE_PHASE and STATE_PHASE() == "intermission" then
+			toLobbyEarly(p)
+			inWater = false
+		end
 		if inWater then
 			if not bp or bp.Parent ~= t then
 				bp = Instance.new("BodyPosition")
@@ -463,8 +509,8 @@ local DIS = {}
 -- knocking people about and wearing the ship down a little
 local function oceanWaves()
 	local alive = true
-	SEA.calm = 2
-	SEA.waves = math.max(SEA.waves, 2)
+	SEA.calm = 3
+	SEA.waves = math.max(SEA.waves, 3)
 	spawn(function()
 		wait(4)
 		while alive do
@@ -527,7 +573,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 		Lighting.OutdoorAmbient = Color3.new(0.35, 0.35, 0.4)
 	end)
 	toAll("weather", "storm")
-	SEA.waves = 4
+	SEA.waves = 6
 	spawn(function()
 		local a = math.random() * 6
 		while alive do
@@ -648,7 +694,7 @@ DIS["Shark Attack"] = { text = "SHARK ATTACK! Don't fall in the water!", run = f
 		table.insert(sharks, { m = m, root = body, pos = at, look = V(0, 0, -1), next = 0 })
 	end
 	local alive = true
-	SEA.waves = 2
+	SEA.waves = 3
 	spawn(function()
 		wait(4)
 		while alive do   -- the waves knock people around: some might fall in...
@@ -695,8 +741,10 @@ local function sendShip()
 end
 local function toLobby(p)
 	local t = torsoOf(p.Character)
-	if t then t.CFrame = CFrame.new(math.random(-20, 20), 8, math.random(-20, 20)) end
+	if t then t.CFrame = CFrame.new(LOBBY_AT + V(math.random(-20, 20), 8, math.random(-20, 20))) end
 end
+toLobbyEarly = toLobby
+STATE_PHASE = function() return STATE.phase end
 spawn(function()
 	local round = 0
 	while true do
@@ -791,6 +839,7 @@ spawn(function()
 		local now = tick()
 		local dt = math.min(0.2, now - last)
 		last = now
+		pcall(stepSea, dt)
 		local ok, err = pcall(stepShip, dt, now)
 		if not ok then print("OceanServer: ship: " .. tostring(err)) end
 		n = n + 1
