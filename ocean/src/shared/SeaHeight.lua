@@ -1,6 +1,6 @@
 -- SeaHeight(x, z, t, s): the height of the sea (studs above SEA.level) at (x, z) at sea time t. Shared by the server
 -- (rocks the boat, floats swimmers and lifeboats) and OceanClient (draws the surface), so they always agree.
--- Huge swells (~380 studs long) roll in one after another. The direction they come from slowly turns (SeaDir), so
+-- Huge swells (~1100 studs long, up to 120+ studs from trough to crest) roll in one after another. The direction they come from slowly turns (SeaDir), so
 -- over a round they hit the boat from ahead, from the side, from behind... s.rogueA adds a set of even bigger waves
 -- (or, with s.rogueBump, one giant tsunami swell) that starts 700 studs away and travels at 30 studs/s.
 -- u = distance along the direction the waves travel (0 at the boat).
@@ -11,8 +11,10 @@ local function SeaHeight(x, z, t, s)
 	local fade = 1 - math.min(1, math.max(0, math.abs(u) - 1500) / 450)
 	if fade <= 0 then return 0 end
 	local uu = u - s.speed * t
-	local main = math.sin(0.0165 * uu - 0.4 * t)
-	local h = s.amp * (main + 0.25 * math.sin(0.045 * uu - 0.9 * t) + 0.08 * math.sin(0.11 * uu - 1.7 * t))
+	-- the big swell (~1100 studs from crest to crest), plus smaller waves riding on it
+	local main = math.sin(0.0055 * uu - 0.4 * t)
+	local chop = math.min(s.amp, 14)
+	local h = s.amp * main + chop * (0.3 * math.sin(0.03 * uu - 0.7 * t) + 0.12 * math.sin(0.08 * uu - 1.4 * t))
 	if s.rogueA > 0 then
 		local e = (u - s.rogueZ - 30 * (t - s.rogueT)) / s.rogueLen
 		if e > -3 and e < 3 then

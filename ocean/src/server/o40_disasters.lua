@@ -47,16 +47,16 @@ local function bigSets(height, gapMin, gapMax, first)
 		wait(first or 6)
 		while alive do
 			toAll("toast", "Big waves ahead! Hold on!")
-			rogue(height, 170, false)
+			rogue(height, 600, false)
 			wait(math.random(gapMin, gapMax))
 		end
 	end)
 	return function() alive = false end
 end
 local function oceanWaves()
-	SEA.calm = 12
-	SEA.waves = math.max(SEA.waves, 12)
-	local stopSets = bigSets(10, 28, 40, 10)
+	SEA.calm = 60
+	SEA.waves = math.max(SEA.waves, 60)
+	local stopSets = bigSets(30, 35, 50, 12)
 	return function() stopSets() SEA.calm = 3 SEA.waves = 3 calmRogue() end
 end
 
@@ -68,11 +68,11 @@ DIS.Tsunami = { text = "TSUNAMI! A giant wave is coming!", run = function()
 		if not alive then return end
 		-- one giant swell rises up out of the ocean far ahead of the bow and rolls straight through the boat
 		toAll("big", "THE SEA IS RISING...", "Get inside or hold on to something!")
-		rogue(40, 120, true)
+		rogue(120, 250, true)
 		wait(40)
 		if alive then
 			toAll("big", "ANOTHER ONE!", "Here comes a second tsunami!")
-			rogue(28, 120, true)
+			rogue(80, 250, true)
 		end
 	end)
 	return function() alive = false end
@@ -95,7 +95,7 @@ DIS.Tornado = { text = "TORNADO! It's heading for the ship!", run = function()
 			local d = V(goal.X - pos.X, 0, goal.Z - pos.Z)
 			if d.magnitude > 1 then pos = pos + d.unit * 18 * dt end
 			for i, r in ipairs(rings) do
-				r.part.CFrame = CFrame.new(pos.X + math.sin(now * 2 + i) * i * 0.6, SEA.level + r.y, pos.Z) * CFrame.Angles(0, now * 4 + i, math.rad(90))
+				r.part.CFrame = CFrame.new(pos.X + math.sin(now * 2 + i) * i * 0.6, SEA.level + waveAt(pos.X, pos.Z) + r.y, pos.Z) * CFrame.Angles(0, now * 4 + i, math.rad(90))
 			end
 			if ship and (V(pos.X, 0, pos.Z) - V(SHIP_AT.X, 0, SHIP_AT.Z)).magnitude < ship.len / 3 then
 				damageShip(8 * dt)
@@ -123,7 +123,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 		Lighting.OutdoorAmbient = Color3.new(0.35, 0.35, 0.4)
 	end)
 	toAll("weather", "storm")
-	SEA.waves = 18
+	SEA.waves = 80
 	spawn(function()
 		local a = math.random() * 6
 		while alive do
@@ -136,7 +136,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 			damageShip(1.2)
 		end
 	end)
-	local stopSets = bigSets(12, 18, 26, 5)
+	local stopSets = bigSets(35, 25, 35, 5)
 	spawn(function()
 		while alive do
 			wait(math.random(15, 35) / 10)
@@ -162,7 +162,7 @@ DIS["Meteor Shower"] = { text = "METEOR SHOWER! Watch the sky and keep moving!",
 	spawn(function()
 		while alive do
 			wait(1.2)
-			local at = math.random() < 0.6 and onDeck() or (SHIP_AT + V(math.random(-150, 150), SEA.level, math.random(-200, 200)))
+			local at = math.random() < 0.6 and onDeck() or (function() local x, z = SHIP_AT.X + math.random(-150, 150), SHIP_AT.Z + math.random(-200, 200) return V(x, SEA.level + waveAt(x, z), z) end)()
 			local m = P(junk, "Meteor", V(6, 6, 6), CFrame.new(at.X + 60, 420, at.Z), "Black", "Slate", { shape = "ball", nc = true })
 			local f = Instance.new("Fire")
 			f.Size = 12
@@ -196,7 +196,7 @@ DIS.Kraken = { text = "THE KRAKEN! Giant tentacles are smashing the ship!", run 
 			-- a tentacle rises out of the sea next to the ship, then slams down across the deck
 			local side = math.random() < 0.5 and 1 or -1
 			local z = math.random(-60, 60)
-			local baseAt = SHIP_AT + V(side * ((ship and ship.wid or 30) / 2 + 12), SEA.level - 4, z)
+			local baseAt = SHIP_AT + V(side * ((ship and ship.wid or 30) / 2 + 12), SEA.level - 4 + (ship and ship.dy or 0), z)
 			local segs = {}
 			for i = 1, 8 do
 				local s = P(m, "Tentacle", V(5 - i * 0.4, 6, 5 - i * 0.4), CFrame.new(baseAt), i % 2 == 0 and "Bright violet" or "Royal purple", "SmoothPlastic", { nc = true })
@@ -234,8 +234,8 @@ DIS["Shark Attack"] = { text = "SHARK ATTACK! Don't fall in the water!", run = f
 		table.insert(sharks, { m = m, root = body, pos = at, look = V(0, 0, -1), next = 0 })
 	end
 	local alive = true
-	SEA.waves = 14       -- rough sea: the waves wash people off the deck... into the sharks
-	local stopSets = bigSets(10, 15, 22, 6)
+	SEA.waves = 66       -- rough sea: the waves wash people off the deck... into the sharks
+	local stopSets = bigSets(30, 25, 35, 6)
 	spawn(function()
 		while alive do
 			local dt = wait(0.05)
@@ -252,7 +252,7 @@ DIS["Shark Attack"] = { text = "SHARK ATTACK! Don't fall in the water!", run = f
 				local goal = best or (SHIP_AT + V(math.cos(now * 0.2 + s.pos.Z) * 60, 0, math.sin(now * 0.2 + s.pos.X) * 140))
 				local d = V(goal.X - s.pos.X, 0, goal.Z - s.pos.Z)
 				if d.magnitude > 0.5 then s.look = (s.look * 0.9 + d.unit * 0.1).unit end
-				s.pos = V(s.pos.X, SEA.level - 1.2, s.pos.Z) + s.look * (best and 22 or 12) * dt
+				s.pos = V(s.pos.X, SEA.level - 1.2 + waveAt(s.pos.X, s.pos.Z), s.pos.Z) + s.look * (best and 22 or 12) * dt
 				s.root.CFrame = CFrame.new(s.pos, s.pos + s.look)
 				if best and bd < 6 and now > s.next then
 					s.next = now + 1.5

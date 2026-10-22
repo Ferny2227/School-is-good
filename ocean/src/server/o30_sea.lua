@@ -89,7 +89,7 @@ local function stepShip(dt, now)
 			local e = -c / SEA.rogueLen
 			local hit = math.exp(-e * e)
 			if hit > 0.3 then
-				damageShip(SEA.rogueA * (SEA.rogueBump and 2 or 1.4) * hit * dt)
+				damageShip(SEA.rogueA * (SEA.rogueBump and 0.4 or 0.3) * hit * dt)
 				if not s.slammed or now - s.slammed > 2.5 then
 					s.slammed = now
 					toAll("shake", 0.5 + SEA.rogueA / 30)

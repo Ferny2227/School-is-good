@@ -346,6 +346,113 @@ spawn(function()
 			hull.CFrame = move * tracked[hull]
 		end
 	end
+	-- LIFE ROUND THE BOAT (only drawn here): seagulls circling, a whale leaping out of the waves now and then, white
+	-- water bursting up when the bow crashes down into a wave, and a foaming wake behind the boat.
+	local hidden = CFrame.new(0, -1000, 0)
+	local gulls = {}
+	for i = 1, 6 do
+		table.insert(gulls, { body = part(Vector3.new(1, 0.7, 2), "Institutional white"), l = part(Vector3.new(3, 0.2, 1.1), "Light stone grey"),
+			r = part(Vector3.new(3, 0.2, 1.1), "Light stone grey"), a = math.random() * 6.3, rad = math.random(50, 130), hgt = math.random(35, 70),
+			sp = (math.random() < 0.5 and 1 or -1) * (0.25 + math.random() * 0.2) })
+	end
+	local drops = {}
+	for i = 1, 28 do
+		local r = 1.5 + math.random() * 2.5
+		local d = { part = part(Vector3.new(r, r, r), "Institutional white"), life = 0 }
+		d.part.Transparency = 1
+		d.part.CFrame = hidden
+		pcall(function() d.part.Shape = Enum.PartType.Ball end)
+		table.insert(drops, d)
+	end
+	local nextDrop = 1
+	local function splash(pos, n, power)
+		for _ = 1, n do
+			local d = drops[nextDrop]
+			nextDrop = nextDrop % #drops + 1
+			d.pos = pos + Vector3.new(math.random(-5, 5), 0, math.random(-5, 5))
+			d.vel = Vector3.new(math.random(-10, 10) / 20 * power, power * (0.7 + math.random() * 0.6), math.random(-10, 10) / 20 * power)
+			d.life = 1.6
+		end
+	end
+	local whale = { body = part(Vector3.new(9, 7, 30), "Dark stone grey"), belly = part(Vector3.new(7, 2, 24), "Light stone grey"),
+		tail = part(Vector3.new(14, 1.2, 5), "Dark stone grey"), t = -1, next = tick() + 15 }
+	for _, p in ipairs({ whale.body, whale.belly, whale.tail }) do p.CFrame = hidden end
+	local wake = {}
+	for i = 1, 14 do table.insert(wake, { part = part(Vector3.new(6, 0.4, 12), "Institutional white"), u = i / 14 }) end
+	local lastPitch, nextSlam = 0, 0
+	local function life(t, dt, cx, cz, lv)
+		local now = tick()
+		local len = v.ShipLen.Value
+		local dy, pitch = ShipPose(t, S, len, v.ShipWid.Value)
+		local deckY = lv + dy + 10
+		for _, g in ipairs(gulls) do
+			g.a = g.a + g.sp * dt
+			local x, z = cx + math.cos(g.a) * g.rad, cz + math.sin(g.a) * g.rad
+			local y = deckY + g.hgt + math.sin(now * 0.7 + g.rad) * 6
+			local cf = CFrame.new(Vector3.new(x, y, z), Vector3.new(x - math.sin(g.a) * g.sp, y, z + math.cos(g.a) * g.sp))
+			local flap = math.sin(now * 9 + g.rad) * 0.5
+			g.body.CFrame = cf
+			g.l.CFrame = cf * CFrame.new(-0.4, 0, 0) * CFrame.Angles(0, 0, flap) * CFrame.new(-1.5, 0, 0)
+			g.r.CFrame = cf * CFrame.new(0.4, 0, 0) * CFrame.Angles(0, 0, -flap) * CFrame.new(1.5, 0, 0)
+		end
+		-- the bow crashing down into a wave: a burst of white water
+		if v.ShipSink.Value < 0 and (pitch - lastPitch) / math.max(dt, 0.01) < -0.03 and pitch < -0.04 and now > nextSlam then
+			nextSlam = now + 2.5
+			local bz = cz - len / 2
+			splash(Vector3.new(cx, lv + SeaHeight(cx, bz, t, S), bz), 14, 40)
+		end
+		lastPitch = pitch
+		-- a whale leaps out of the waves
+		if whale.t < 0 and now > whale.next then
+			local a = math.random() * 6.3
+			local r = math.random(160, 320)
+			whale.x, whale.z, whale.dir = cx + math.cos(a) * r, cz + math.sin(a) * r, a + math.pi / 2
+			whale.t = 0
+			splash(Vector3.new(whale.x, lv + SeaHeight(whale.x, whale.z, t, S), whale.z), 10, 35)
+		end
+		if whale.t >= 0 then
+			whale.t = whale.t + dt
+			local u = whale.t / 3.2
+			local fx, fz = math.cos(whale.dir), math.sin(whale.dir)
+			local x, z = whale.x + fx * (u - 0.5) * 70, whale.z + fz * (u - 0.5) * 70
+			local water = lv + SeaHeight(x, z, t, S)
+			local y = water - 10 + math.sin(math.min(1, u) * math.pi) * 45
+			local cf = CFrame.new(Vector3.new(x, y, z), Vector3.new(x + fx, y + math.cos(math.min(1, u) * math.pi) * 1.4, z + fz))
+			whale.body.CFrame = cf
+			whale.belly.CFrame = cf * CFrame.new(0, -3.5, 0)
+			whale.tail.CFrame = cf * CFrame.new(0, 1, 16) * CFrame.Angles(math.sin(now * 4) * 0.3, 0, 0)
+			if u >= 1 then
+				splash(Vector3.new(x, water, z), 18, 45)
+				whale.t = -1
+				whale.next = now + math.random(20, 40)
+				for _, p in ipairs({ whale.body, whale.belly, whale.tail }) do p.CFrame = hidden end
+			end
+		end
+		for _, d in ipairs(drops) do
+			if d.life > 0 then
+				d.life = d.life - dt
+				d.vel = d.vel - Vector3.new(0, 60 * dt, 0)
+				d.pos = d.pos + d.vel * dt
+				if d.life > 0 then
+					d.part.CFrame = CFrame.new(d.pos)
+					d.part.Transparency = 0.15 + (1 - d.life / 1.6) * 0.8
+				else
+					d.part.Transparency = 1
+					d.part.CFrame = hidden
+				end
+			end
+		end
+		-- the wake: two lines of foam spreading out behind the stern
+		local sailing = v.Sailing.Value
+		for i, w in ipairs(wake) do
+			w.u = w.u + dt * 0.12
+			if w.u > 1 then w.u = w.u - 1 end
+			local dist = 10 + w.u * 260
+			local x, z = cx + (i % 2 == 0 and 1 or -1) * (6 + dist * 0.25), cz + len / 2 + dist
+			w.part.CFrame = sailing and CFrame.new(x, lv + SeaHeight(x, z, t, S) + 0.5, z) or hidden
+			w.part.Transparency = 0.2 + w.u * 0.75
+		end
+	end
 	-- only the newest copy of this script runs (an old copy stops and takes its water with it)
 	local RUN = {}
 	_G.OceanClientRun = RUN
@@ -419,6 +526,7 @@ spawn(function()
 				s.part.CFrame = CFrame.new(cx + side * (4 + u * 16), lv + bowH + 2 + math.sin(u * math.pi) * (3 + S.amp), bowZ + u * 25)
 				s.part.Transparency = moving and (0.35 + u * 0.6) or 1
 			end
+			pcall(life, t, dt * 2, cx, cz, lv)
 		end
 	end
 end)

@@ -34,7 +34,7 @@ local rogueVals = { A = value("NumberValue", "RogueA", 0), T = value("NumberValu
 	Len = value("NumberValue", "RogueLen", 150), Bump = value("BoolValue", "RogueBump", false) }
 seaState.Parent = RS
 local function stepSea(dt)
-	SEA.amp = SEA.amp + clamp(SEA.waves - SEA.amp, -0.8 * dt, 0.8 * dt)
+	SEA.amp = SEA.amp + clamp(SEA.waves - SEA.amp, -4 * dt, 4 * dt)
 	if math.abs(seaAmp.Value - SEA.amp) > 0.05 then seaAmp.Value = SEA.amp end
 	if seaLevel.Value ~= SEA.level then seaLevel.Value = SEA.level end
 end
@@ -55,9 +55,9 @@ local function oceanTile(x0, x1, z0, z1, y, color)
 	table.insert(oceanTiles, { part = t, dy = y })
 end
 -- (the drawn swells reach 2000 studs out in every direction; this sits under their deepest troughs, in the fog)
-oceanTile(-6000, 6000, -6000, 6000, -30)
+oceanTile(-6000, 6000, -6000, 6000, -140)
 for ix = -2, 1 do
-	for iz = -2, 1 do P(WORLD, "Seabed", V(1000, 4, 1000), CFrame.new(ix * 1000 + 500, -62, iz * 1000 + 500), "Brick yellow", "Sand") end
+	for iz = -2, 1 do P(WORLD, "Seabed", V(1000, 4, 1000), CFrame.new(ix * 1000 + 500, -260, iz * 1000 + 500), "Brick yellow", "Sand") end
 end
 local terrainWater = false
 local function setSea(level)
