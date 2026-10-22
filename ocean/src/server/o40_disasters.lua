@@ -153,7 +153,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 		stopSets()
 		WIND.v = V()
 		SEA.waves = SEA.calm or 3
-		toAll("weather", "clear")
+		if theme ~= "Normal" then toAll("weather", "clear") end
 		applyLighting()
 	end
 end }

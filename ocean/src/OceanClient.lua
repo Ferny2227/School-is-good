@@ -205,7 +205,7 @@ spawn(function()
 	-- colours: trough -> middle (same as the flat ocean far away) -> top of a swell, and the foam
 	local c3 = Color3.new
 	local PAL = {
-		Normal = { lo = c3(0.03, 0.12, 0.28), mid = c3(0.08, 0.25, 0.45), hi = c3(0.18, 0.45, 0.6), foam = c3(0.82, 0.9, 0.95) },
+		Normal = { lo = c3(0.04, 0.1, 0.12), mid = c3(0.08, 0.19, 0.2), hi = c3(0.2, 0.37, 0.35), foam = c3(0.78, 0.85, 0.83) },
 		Sunset = { lo = c3(0.05, 0.08, 0.2), mid = c3(0.12, 0.2, 0.38), hi = c3(0.25, 0.32, 0.52), foam = c3(0.9, 0.85, 0.82) },
 		Halloween = { lo = c3(0.01, 0.03, 0.03), mid = c3(0.03, 0.1, 0.08), hi = c3(0.06, 0.28, 0.2), foam = c3(0.35, 0.9, 0.4) },
 	}
@@ -499,7 +499,7 @@ spawn(function()
 				-- colour: 8 shades from trough to top, foam where a big wave's steep front is breaking
 				local r = math.max(-1, math.min(1, (a + b) / 2 * norm))
 				local col = math.floor((r + 1) * 4 + 0.5)
-				if r > 0.7 and dh / dz < -0.18 then col = 99 end
+				if r > 0.8 or (r > 0.6 and dh / dz < -0.18) then col = 99 end     -- white water on the peaks
 				if col ~= s.col then
 					s.col = col
 					local u = col / 8

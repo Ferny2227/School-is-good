@@ -11,8 +11,9 @@ local function SeaHeight(x, z, t, s)
 	local fade = 1 - math.min(1, math.max(0, math.abs(u) - 1500) / 450)
 	if fade <= 0 then return 0 end
 	local uu = u - s.speed * t
-	-- the big swell (~1100 studs from crest to crest), plus smaller waves riding on it
-	local main = math.sin(0.0055 * uu - 0.4 * t)
+	-- the big swell (~800 studs from crest to crest) with a sharp peak and a long flat trough, like a stormy sea:
+	-- the boat climbs the face, tips over the peak and drops down the back. Smaller waves ride on it.
+	local main = 1 - 2 * math.abs(math.sin((0.0078 * uu - 0.4 * t) / 2)) ^ 1.3
 	local chop = math.min(s.amp, 14)
 	local h = s.amp * main + chop * (0.3 * math.sin(0.03 * uu - 0.7 * t) + 0.12 * math.sin(0.08 * uu - 1.4 * t))
 	if s.rogueA > 0 then
@@ -37,7 +38,7 @@ local function ShipPose(t, s, len, wid, sinkAt)
 	local h0 = SeaHeight(x, z, t, s)
 	local hb, hs = SeaHeight(x, z - L, t, s), SeaHeight(x, z + L, t, s)
 	local hp, hst = SeaHeight(x - W, z, t, s), SeaHeight(x + W, z, t, s)
-	local MAXT = 0.28    -- ~16 degrees: big waves rock it hard, but nobody tips over
+	local MAXT = 0.42    -- ~24 degrees: the bow points up the wave, then tips over the top and drops
 	local pitch = math.max(-MAXT, math.min(MAXT, math.atan((hb - hs) / (2 * L)) * 1.1))
 	local roll = math.max(-MAXT, math.min(MAXT, math.sin(t * 0.85) * (0.012 + 0.002 * s.amp) + math.atan((hst - hp) / (2 * W)) * 1.3))
 	return (h0 + (hb + hs) / 2) / 2 * 0.95, pitch, roll

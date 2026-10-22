@@ -48,6 +48,7 @@ spawn(function()
 			for _, n in ipairs(list) do table.insert(texts, DIS[n].text) end
 			toAll("big", string.upper(names), table.concat(texts, "  "))
 			local stops = { oceanWaves() }
+			if theme == "Normal" then toAll("weather", "storm") end      -- a stormy sea: rain all round
 			for _, n in ipairs(list) do
 				local ok, stop = pcall(DIS[n].run)
 				if ok and stop then table.insert(stops, stop) else print("OceanServer: " .. n .. " failed: " .. tostring(stop)) end
@@ -58,6 +59,7 @@ spawn(function()
 				wait(1)
 			end
 			for _, stop in ipairs(stops) do pcall(stop) end
+			toAll("weather", "clear")
 			junk:ClearAllChildren()
 			-- who made it? (alive, and in the round from the start)
 			local survivors = {}
