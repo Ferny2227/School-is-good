@@ -3,22 +3,25 @@
 An original ocean disaster survival game in the style of Natural Disaster Survival, for 2016 Roblox.
 Open/upload `DisasterOcean.rbxl`.
 
-- **Lobby**: a floating island high in the sky above the sea (20 s intermission); you can see the ship below. Fall
-  off and you're put back.
-- **The ship**: every round the whole lobby is teleported onto the **SS DISASTER**, a big ocean liner out at sea
-  (three decks of cabins with ladders, a bridge, two funnels, a pool, deck chairs, a mast, 8 lifeboats).
-- **The sea**: rolling swells (drawn by each player's computer) travel past the ship from bow to stern, so it looks
-  like it's sailing straight ahead; the ship rolls, pitches and heaves on them (about 10 degrees of roll in a normal
-  round, more in a hurricane).
-- **Waves every round**: the open ocean keeps rolling waves into the ship (every 9-15 s), rocking it and wearing it
-  down a little, on top of the disaster.
-- **Disasters** (75 s, sometimes two at once from round 3): Tsunami, Tornado, Hurricane (rain, wind, lightning),
-  Meteor Shower, the Kraken (tentacles slam the deck) and Shark Attack.
-- **The ship takes damage**: its health bar is on everyone's screen (1000 + 250 per player); pieces break off and
-  fall in the sea. At 0 health it **sinks** and its lifeboats drop into the water.
-- **The water hurts** (7 health a second): you float, but get to a lifeboat!
-- Everyone still alive at the end survives: +40 Coins (+60 if the ship sank). Then everyone goes back to the lobby.
+- **Lobby**: a house floating high in the sky on a rock island above the clouds, with a porch, a telescope pointed
+  at the boat, a fireplace and couches. Inside are the **vote stations**: step on a pad to vote for
+  - the **boat**: Cruise Liner, Pirate Galleon or Navy Destroyer;
+  - the **theme of the whole map**: Normal, Sunset or **Halloween** (night sky, purple fog, dark water, glowing
+    pumpkins on the lobby and the boat, black sails on the galleon, a ghost ship drifting in the fog).
+- **The boats have real rooms**:
+  - Cruise Liner: dining room, 6 cabins with beds along a corridor, a lounge with sofas, a bar and a piano, a sun
+    deck with the bridge and two funnels, a pool deck, 8 lifeboats.
+  - Pirate Galleon: captain's cabin under the quarterdeck (chart table, treasure chest, bed), crew quarters with
+    hammocks under the forecastle, 3 masts with sails, cannons, the Jolly Roger, 4 rowboats.
+  - Navy Destroyer: mess hall, bunk room, a bridge with radar screens, a radar mast, gun turrets, a helipad,
+    6 life rafts.
+- **The sea**: real Terrain water round the boat (ripples, reflections, you can swim), rolling wave crests with white
+  tops and foam streaming past the boat so it looks like it's sailing straight ahead, spray at the bow. The boat rolls,
+  pitches and heaves on the swells. Waves crash into it every round.
+- **Disasters** (sometimes two at once): Tsunami, Tornado, Hurricane, Meteor Shower, the Kraken, Shark Attack.
+- **The boat takes damage** (health bar on screen); pieces break off; at 0 it sinks and the lifeboats drop. The water
+  hurts. Survivors get Coins.
 - Admin for `asdasda` only, FilteringEnabled on.
 
-Build: `python3 tools/build.py` (starts from `../roblox/base/AirportTycoon.rbxl`; the server removes that map and
-builds the ocean world when the game starts). Test: `python3 tools/test/runner.py`.
+Sources: `src/server/o*.lua` (joined into ServerScriptService.OceanServer), `src/OceanClient.lua`.
+Build: `python3 tools/build.py`. Test: `python3 tools/test/runner.py`.
