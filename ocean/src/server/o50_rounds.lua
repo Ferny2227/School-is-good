@@ -79,7 +79,7 @@ spawn(function()
 			game_ = game_ + 1
 			-- the votes: which theme for the whole map, which boat
 			setTheme(winner("theme", THEME_ORDER, theme))
-			local kind = winner("boat", BOAT_NAMES, pick(BOAT_NAMES))
+			local kind = winner("boat", BOAT_NAMES, "Fishing Boat")
 			votes.boat, votes.theme = {}, {}
 			refreshVotes()
 			buildShip(kind)

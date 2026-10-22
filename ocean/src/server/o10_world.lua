@@ -67,7 +67,7 @@ end
 
 ------------------------------------------------------------------ themes: the look of the whole map (voted in the lobby)
 local THEMES = {
-	Normal = { time = "16:30:00", amb = Color3.new(0.38, 0.4, 0.42), out = Color3.new(0.42, 0.45, 0.47), fog = Color3.new(0.33, 0.38, 0.4), fogEnd = 1400, bright = 0.6, water = Color3.new(0.09, 0.26, 0.5), sea = Color3.new(0.09, 0.26, 0.5) },
+	Normal = { time = "14:00:00", amb = Color3.new(0.42, 0.44, 0.48), out = Color3.new(0.46, 0.48, 0.52), fog = Color3.new(0.36, 0.39, 0.44), fogEnd = 1100, bright = 0.55, water = Color3.new(0.07, 0.22, 0.46), sea = Color3.new(0.07, 0.22, 0.46) },
 	Sunset = { time = "18:05:00", amb = Color3.new(0.55, 0.42, 0.38), out = Color3.new(0.65, 0.48, 0.42), fog = Color3.new(0.95, 0.62, 0.45), fogEnd = 1800, bright = 1, water = Color3.new(0.12, 0.25, 0.42) , sea = Color3.new(0.12, 0.2, 0.38) },
 	Halloween = { time = "23:30:00", amb = Color3.new(0.32, 0.2, 0.38), out = Color3.new(0.38, 0.25, 0.45), fog = Color3.new(0.22, 0.08, 0.28), fogEnd = 650, bright = 0.6, water = Color3.new(0.04, 0.18, 0.14) , sea = Color3.new(0.03, 0.1, 0.08) },
 }

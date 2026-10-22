@@ -328,12 +328,17 @@ SHIPS["Fishing Boat"] = function()
 	local B = newBuilder("Lucky Catch (Fishing Boat)")
 	local LEN, WID, DECK = 80, 24, 15
 	local LOW = 5                       -- the floor below deck
-	local red, white = "Bright red", "Institutional white"
+	local red, white = "Navy blue", "Medium stone grey"       -- dark navy hull, grey cabin, teal trim
+	local TEAL = "Teal"
 	local hull = B.box("Hull", WID, LOW + 6, LEN, 0, -6, 0, red, "SmoothPlastic")
 	for i = 1, 3 do B.box("Bow", WID - i * 6, DECK + 6 - i, 6, 0, -6 + i, -LEN / 2 - i * 6 + 3, red, "SmoothPlastic") end
 	for _, s in ipairs({ -1, 1 }) do
 		B.box("HullSide", 1, DECK - LOW, LEN, s * (WID / 2 - 0.5), LOW, 0, white, "SmoothPlastic")
-		B.box("Stripe", 1.2, 1.2, LEN, s * (WID / 2 - 0.5), DECK - 4, 0, "Navy blue", "SmoothPlastic", { nc = true })
+		B.box("Stripe", 1.2, 1.2, LEN, s * (WID / 2 - 0.5), DECK - 4, 0, "Bright red", "SmoothPlastic", { nc = true })
+		-- teal railings all along the deck edge
+		B.box("RailTop", 0.5, 0.5, LEN - 2, s * (WID / 2 - 0.4), DECK + 3, 0, TEAL, "SmoothPlastic")
+		B.box("RailMid", 0.3, 0.3, LEN - 2, s * (WID / 2 - 0.4), DECK + 1.5, 0, TEAL, "SmoothPlastic")
+		for z = -LEN / 2 + 2, LEN / 2 - 2, 6 do B.box("RailPost", 0.4, 3, 0.4, s * (WID / 2 - 0.4), DECK, z, TEAL, "SmoothPlastic") end
 		for z = -32, 32, 8 do       -- portholes
 			B.part("Porthole", V(1.4, 2, 2), CFrame.new(s * (WID / 2 - 0.4), LOW + 5, z), "Pastel light blue", "Glass", { tr = 0.3 })
 		end
@@ -405,7 +410,9 @@ SHIPS["Fishing Boat"] = function()
 	light(warn, Color3.new(1, 0.2, 0.1), 16, 1.5)
 	B.spot(0, LOW, -26 + 6) B.spot(0, LOW, 0) B.spot(0, LOW, 20)
 	-- ON DECK: the wheelhouse at the back, a crane, nets, outriggers, life rings
-	B.room("Wheelhouse", 0, DECK, 26, 16, 14, 8, { n = 0 }, { ceiling = true, color = white })
+	B.room("Wheelhouse", 0, DECK, 26, 16, 14, 8, { n = 0 }, { ceiling = true, color = white, ceilColor = "Institutional white" })
+	B.box("RailStern", WID - 2, 0.5, 0.5, 0, DECK + 3, LEN / 2 - 0.4, TEAL, "SmoothPlastic")
+	B.box("WheelhouseTrim", 16.6, 0.6, 14.6, 0, DECK + 7.4, 26, TEAL, "SmoothPlastic")
 	B.part("Wheel", V(0.4, 3, 3), CFrame.new(0, DECK + 3.5, 30) * CFrame.Angles(0, math.rad(90), 0), "Brown", "Wood", { shape = "cyl" })
 	B.box("Console", 10, 3, 1.5, 0, DECK, 32, "Dark stone grey", "Metal")
 	local beacon = B.box("Beacon", 1.4, 1.4, 1.4, 0, DECK + 8.6, 26, "Bright yellow", "Neon", { nc = true })

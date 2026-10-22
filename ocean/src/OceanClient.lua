@@ -68,22 +68,26 @@ local eventUntil = 0
 -- bottom right: round time, events, players alive, game mode
 local stats = {}
 for i, name in ipairs({ "ROUND TIME", "EVENTS OCCURRED", "PLAYERS ALIVE", "GAMEMODE" }) do
-	local box = frame(gui, UDim2.new(1, -4 * 158 - 10 + (i - 1) * 158, 1, -96), UDim2.new(0, 150, 0, 86), C.dark, 0.45)
-	local t = label(box, UDim2.new(0, 4, 0, 4), UDim2.new(1, -8, 0, 30), name, 24, C.white)
+	local box = frame(gui, UDim2.new(1, -4 * 158 - 10 + (i - 1) * 158, 1, -96), UDim2.new(0, 150, 0, 86), rgb(225, 225, 230), 0.35)
+	local t = label(box, UDim2.new(0, 4, 0, 4), UDim2.new(1, -8, 0, 30), name, 24, rgb(10, 10, 10))
 	t.TextScaled = true
-	local v = label(box, UDim2.new(0, 4, 0, 38), UDim2.new(1, -8, 0, 44), "-", 36, C.white)
+	t.TextStrokeTransparency = 1
+	local v = label(box, UDim2.new(0, 4, 0, 38), UDim2.new(1, -8, 0, 44), "-", 36, rgb(10, 10, 10))
 	v.TextScaled = true
+	v.TextStrokeTransparency = 1
 	stats[i] = v
 end
 stats[4].Text = "CLASSIC"
 -- left: your Coins and Wins, and a help button
 local mine = {}
 for i, name in ipairs({ "COINS", "WINS" }) do
-	local box = frame(gui, UDim2.new(0, 10, 0.5, -60 + (i - 1) * 92), UDim2.new(0, 150, 0, 84), C.dark, 0.45)
-	local t = label(box, UDim2.new(0, 4, 0, 2), UDim2.new(1, -8, 0, 32), name, 24, C.white)
+	local box = frame(gui, UDim2.new(0, 10, 0.5, -60 + (i - 1) * 92), UDim2.new(0, 150, 0, 84), rgb(225, 225, 230), 0.35)
+	local t = label(box, UDim2.new(0, 4, 0, 2), UDim2.new(1, -8, 0, 32), name, 24, rgb(10, 10, 10))
 	t.TextScaled = true
-	local v = label(box, UDim2.new(0, 4, 0, 36), UDim2.new(1, -8, 0, 44), "0", 36, C.gold)
+	t.TextStrokeTransparency = 1
+	local v = label(box, UDim2.new(0, 4, 0, 36), UDim2.new(1, -8, 0, 44), "0", 36, rgb(10, 10, 10))
 	v.TextScaled = true
+	v.TextStrokeTransparency = 1
 	mine[name] = v
 end
 spawn(function()
@@ -97,7 +101,9 @@ spawn(function()
 		wait(0.5)
 	end
 end)
-local helpB = button(gui, UDim2.new(0, 10, 0.5, 132), UDim2.new(0, 60, 0, 60), "?", C.dark)
+local helpB = button(gui, UDim2.new(0, 10, 0.5, 132), UDim2.new(0, 60, 0, 60), "?", rgb(225, 225, 230))
+helpB.BackgroundTransparency = 0.35
+helpB.TextColor3 = rgb(10, 10, 10)
 pcall(function() helpB.FontSize = Enum.FontSize.Size48 end)
 -- bottom middle: shown while you're a ghost
 local ghostText = big2(UDim2.new(0.5, -400, 1, -170), UDim2.new(0, 800, 0, 56), "")
@@ -345,7 +351,7 @@ spawn(function()
 	-- colours: trough -> middle (same as the flat ocean far away) -> top of a swell, and the foam
 	local c3 = Color3.new
 	local PAL = {
-		Normal = { lo = c3(0.05, 0.16, 0.36), mid = c3(0.09, 0.26, 0.5), hi = c3(0.2, 0.42, 0.68), foam = c3(0.93, 0.96, 1) },
+		Normal = { lo = c3(0.04, 0.14, 0.34), mid = c3(0.07, 0.22, 0.46), hi = c3(0.16, 0.36, 0.62), foam = c3(0.95, 0.97, 1) },
 		Sunset = { lo = c3(0.05, 0.08, 0.2), mid = c3(0.12, 0.2, 0.38), hi = c3(0.25, 0.32, 0.52), foam = c3(0.9, 0.85, 0.82) },
 		Halloween = { lo = c3(0.01, 0.03, 0.03), mid = c3(0.03, 0.1, 0.08), hi = c3(0.06, 0.28, 0.2), foam = c3(0.35, 0.9, 0.4) },
 	}
@@ -400,7 +406,7 @@ spawn(function()
 		p.Reflectance = 0.2
 		table.insert(chops, { part = p, u = math.random(-900, 900), w = math.random(-700, 700), rot = math.random() * 6.3 })
 	end
-	for c = 1, 28 do
+	for c = 1, 36 do
 		local clump = { u = math.random(-330, 330), w = math.random(-330, 330), rot = math.random() * 6.3 }
 		for i = 1, 5 do
 			local p, mesh = blob("Institutional white", 0.2 + math.random() * 0.45)
