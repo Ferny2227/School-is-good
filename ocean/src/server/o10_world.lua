@@ -37,7 +37,7 @@ end
 spawn(function() while true do seaClock.Value = seaTime() wait(5) end end)
 -- a set of bigger waves (or one giant swell) that starts far ahead of the bow and rolls through the boat
 local function rogue(height, len, bump)
-	SEA.rogueA, SEA.rogueT, SEA.rogueZ, SEA.rogueLen, SEA.rogueBump = height, seaTime(), SHIP_AT.Z - 700, len, bump and true or false
+	SEA.rogueA, SEA.rogueT, SEA.rogueZ, SEA.rogueLen, SEA.rogueBump = height, seaTime(), -700, len, bump and true or false
 	rogueVals.A.Value, rogueVals.T.Value, rogueVals.Z.Value, rogueVals.Len.Value, rogueVals.Bump.Value = SEA.rogueA, SEA.rogueT, SEA.rogueZ, len, SEA.rogueBump
 end
 local function calmRogue() SEA.rogueA = 0 rogueVals.A.Value = 0 end
@@ -50,9 +50,8 @@ local function oceanTile(x0, x1, z0, z1, y, color)
 	local t = P(WORLD, "Ocean", V(x1 - x0, 2, z1 - z0), CFrame.new((x0 + x1) / 2, y, (z0 + z1) / 2), color or "Deep blue", "SmoothPlastic", { nc = true })
 	table.insert(oceanTiles, { part = t, dy = y })
 end
-oceanTile(-2000, 2000, -2000, HOLE.z0, -1.6)
-oceanTile(-2000, 2000, HOLE.z1, 2000, -1.6)
-oceanTile(HOLE.x0, HOLE.x1, HOLE.z0, HOLE.z1, -30, "Navy blue")
+-- (the drawn swells reach 2000 studs out in every direction; this sits under their deepest troughs, in the fog)
+oceanTile(-6000, 6000, -6000, 6000, -30)
 for ix = -2, 1 do
 	for iz = -2, 1 do P(WORLD, "Seabed", V(1000, 4, 1000), CFrame.new(ix * 1000 + 500, -62, iz * 1000 + 500), "Brick yellow", "Sand") end
 end
@@ -83,7 +82,7 @@ local function applyLighting()
 	end)
 	pcall(function() workspace.Terrain.WaterColor = t.water end)
 	for i, tile in ipairs(oceanTiles) do
-		if i < #oceanTiles then
+		if true then
 			local ok = pcall(function() tile.part.Color = t.sea end)
 			if not ok then pcall(function() tile.part.BrickColor = BrickColor.new(t.sea) end) end
 		end

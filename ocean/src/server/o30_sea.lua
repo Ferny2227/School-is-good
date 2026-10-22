@@ -28,6 +28,7 @@ local function damageShip(n)
 	if ship.hp <= 0 then
 		ship.hp = 0
 		ship.sinking = tick()
+		for _, g in ipairs(ship.guards or {}) do pcall(function() g.CanCollide = false end) end
 		toAll("big", "THE " .. string.upper(ship.kind) .. " IS SINKING!", "Get to a lifeboat - the water hurts!")
 		for _, lb in ipairs(ship.lifeboats) do
 			pcall(function()
@@ -64,7 +65,7 @@ local function stepShip(dt, now)
 		s.roll = s.roll * 0.98 + 0.002
 	else
 		local x, z = SHIP_AT.X, SHIP_AT.Z
-		local L, W = s.len * 0.35, s.wid / 2
+		local L, W = s.len * 0.35, math.max(45, s.wid / 2)   -- feel the waves over a wide area, not every little ripple
 		local h0 = waveAt(x, z, t)
 		local hb, hs = waveAt(x, z - L, t), waveAt(x, z + L, t)
 		local hp, hst = waveAt(x - W, z, t), waveAt(x + W, z, t)
@@ -82,24 +83,25 @@ local function stepShip(dt, now)
 				s.wasUp = 0
 			end
 		end
+		local MAXT = 0.28    -- ~16 degrees: big waves rock it hard, but nobody tips over
 		s.dy = follow(s.dy, (h0 + (hb + hs) / 2) / 2 * 0.95 + s.air, 2.2, dt)
-		s.pitch = follow(s.pitch, math.atan((hb - hs) / (2 * L)) * 1.1 + (s.air > 0 and math.sin(now * 2) * 0.15 or 0), 2.0, dt)
+		s.pitch = follow(s.pitch, clamp(math.atan((hb - hs) / (2 * L)) * 1.1, -MAXT, MAXT) + (s.air > 0 and math.sin(now * 2) * 0.15 or 0), 2.0, dt)
 		-- side to side: the boat leans as each swell passes under it, more in big seas
-		local lean = math.sin(t * 0.85) * (0.015 + 0.005 * SEA.amp + 0.004 * math.abs(h0 - (hb + hs) / 2))
-		s.roll = follow(s.roll, lean + math.atan((hst - hp) / (2 * W)) + (s.air > 0 and math.sin(now * 2.6) * 0.2 or 0), 1.6, dt)
+		local lean = math.sin(t * 0.85) * (0.012 + 0.002 * SEA.amp)
+		s.roll = follow(s.roll, clamp(lean + math.atan((hst - hp) / (2 * W)) * 1.3, -MAXT, MAXT) + (s.air > 0 and math.sin(now * 2.6) * 0.2 or 0), 1.6, dt)
 		-- big waves hurt: while a set of big waves rolls through, the bow slams into them
 		if SEA.rogueA > 0 then
-			local c = SEA.rogueZ + 30 * (t - SEA.rogueT)
-			local e = (z - c) / SEA.rogueLen
+			local c = SEA.rogueZ + 30 * (t - SEA.rogueT)    -- along the waves' direction; the boat is at 0
+			local e = -c / SEA.rogueLen
 			local hit = math.exp(-e * e)
 			if hit > 0.3 then
-				damageShip(SEA.rogueA * (SEA.rogueBump and 5 or 1.6) * hit * dt)
+				damageShip(SEA.rogueA * (SEA.rogueBump and 2 or 1.4) * hit * dt)
 				if not s.slammed or now - s.slammed > 2.5 then
 					s.slammed = now
 					toAll("shake", 0.5 + SEA.rogueA / 30)
 				end
 			end
-			if c - z > SEA.rogueLen * 3 then calmRogue() end
+			if c > SEA.rogueLen * 3 then calmRogue() end
 		end
 	end
 	s.yaw = s.air > 0 and s.yaw or s.yaw * (1 - 0.15 * dt)
@@ -139,6 +141,7 @@ local function stepSwimmers(dt)
 		local h = c and c:FindFirstChild("Humanoid")
 		local bp = swimmers[p]
 		local inWater = t and h and h.Health > 0 and not h.Sit and t.Position.Y < SEA.level + 1.5 + (ship and onShip(t.Position) and -100 or waveAt(t.Position.X, t.Position.Z))
+		if STATE.phase == "intermission" and t and h and h.Health > 0 and t.Position.Y < LOBBY_AT.Y - 120 then inWater = true end
 		if inWater and STATE.phase == "intermission" then   -- fell off the sky lobby: back up you go
 			toLobby(p)
 			inWater = false
@@ -160,18 +163,5 @@ local function stepSwimmers(dt)
 			if h then h.WalkSpeed = 16 end
 		end
 		if t and t.Position.Y < -50 and h then h.Health = 0 end
-		-- a wave breaking over the deck washes you towards the back of the boat
-		if t and h and h.Health > 0 and ship and not inWater and not h.Sit and onShip(t.Position) then
-			local w = SEA.level + waveAt(t.Position.X, t.Position.Z)
-			if w > t.Position.Y - 2.6 and (not washed[p] or tick() - washed[p] > 2) then
-				washed[p] = tick()
-				h:TakeDamage(3)
-				local bv = Instance.new("BodyVelocity")
-				bv.maxForce = V(2e4, 2e4, 2e4)
-				bv.velocity = V(math.random(-8, 8), 12, 35)
-				bv.Parent = t
-				Debris:AddItem(bv, 0.3)
-			end
-		end
 	end
 end

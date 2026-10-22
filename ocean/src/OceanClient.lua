@@ -229,12 +229,14 @@ spawn(function()
 	local function paint(p, c)
 		if useColor then p.Color = c else p.BrickColor = BrickColor.new(c) end
 	end
-	-- the strips: 6 studs deep near the boat, 15 further out; the swells flatten out to the flat ocean at the ends
+	-- the strips: 6 studs deep near the boat, 15 further out, 50 far away (in the fog). They turn with the direction
+	-- the waves come from (SeaDir), always lying across it.
 	local WIDTH, THICK = 4000, 4
-	local ZS = { -500 }
-	while ZS[#ZS] < 500 do
+	local ZS = { -2000 }
+	while ZS[#ZS] < 2000 do
 		local z = ZS[#ZS]
-		table.insert(ZS, z + ((z >= -220 and z < 220) and 6 or 15))
+		local a = math.abs(z + 1)
+		table.insert(ZS, z + (a < 220 and 6 or a < 700 and 15 or 50))
 	end
 	local strips = {}
 	for k = 1, #ZS - 1 do table.insert(strips, { part = part(Vector3.new(WIDTH, THICK, ZS[k + 1] - ZS[k]), "Steel blue"), col = -1 }) end
@@ -270,14 +272,18 @@ spawn(function()
 			local pal = PAL[v.Theme.Value] or PAL.Normal
 			if pal ~= lastTheme then lastTheme = pal for _, s in ipairs(strips) do s.col = -1 end end
 			local norm = 1 / math.max(1, S.amp * 1.3)
-			for k = 1, #ZS do H[k] = SeaHeight(cx, cz + ZS[k], t, S) end
+			local th = SeaDir(t)
+			local dx, dz = math.sin(th), math.cos(th)
+			local turn = CFrame.Angles(0, th, 0)
+			for k = 1, #ZS do H[k] = SeaHeight(cx + dx * ZS[k], cz + dz * ZS[k], t, S) end
 			for k, s in ipairs(strips) do
 				local a, b = H[k], H[k + 1]
 				local dz, dh = ZS[k + 1] - ZS[k], b - a
 				local len = math.sqrt(dz * dz + dh * dh)
 				-- from (front edge, height a) to (back edge, height b): the top face runs exactly between them
 				s.part.Size = Vector3.new(WIDTH, THICK, len + 0.4)
-				s.part.CFrame = CFrame.new(cx, lv + (a + b) / 2, cz + (ZS[k] + ZS[k + 1]) / 2)
+				local um = (ZS[k] + ZS[k + 1]) / 2
+				s.part.CFrame = CFrame.new(cx + dx * um, lv + (a + b) / 2, cz + dz * um) * turn
 					* CFrame.Angles(-math.atan2(dh, dz), 0, 0) * CFrame.new(0, -THICK / 2, 0)
 				-- colour: 12 shades from trough to top, foam where a big wave's steep front is breaking
 				local r = math.max(-1, math.min(1, (a + b) / 2 * norm))

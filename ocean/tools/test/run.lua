@@ -116,7 +116,7 @@ end
 say(string.format("sinking: destroyer went down %.0f studs, lifeboats floating %d/%d", -ship.dy, floating, #ship.lifeboats))
 -- the boat rocks with every swell: bow up, then stern up, again and again
 D.buildShip("Pirate Galleon")
-D.SEA.waves, D.SEA.amp = 7, 7
+D.SEA.waves, D.SEA.amp = 12, 12
 local function rock(seconds)
 	local pitches, rolls, flips, lastSign = {}, {}, 0, 0
 	local sh = D.getShip()
@@ -132,7 +132,7 @@ end
 local p1, r1, f1 = rock(30)
 say(string.format("galleon in normal swells (30 s): pitch range %.1f deg, roll range %.1f deg, bow-up/bow-down changes %d", p1, r1, f1))
 local hp0 = D.getShip().hp
-D.rogue(6, 170, false)
+D.rogue(10, 170, false)
 local p2, r2, f2 = rock(45)
 say(string.format("a set of big waves rolls through (45 s): pitch range %.1f deg, roll %.1f deg, changes %d, ship lost %d hp of %d", p2, r2, f2, hp0 - D.getShip().hp, D.getShip().max))
 -- the server's sea and the drawn sea agree: water height under the bow equals what the client maths gives

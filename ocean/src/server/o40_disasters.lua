@@ -54,9 +54,9 @@ local function bigSets(height, gapMin, gapMax, first)
 	return function() alive = false end
 end
 local function oceanWaves()
-	SEA.calm = 7
-	SEA.waves = math.max(SEA.waves, 7)
-	local stopSets = bigSets(6, 28, 40, 10)
+	SEA.calm = 12
+	SEA.waves = math.max(SEA.waves, 12)
+	local stopSets = bigSets(10, 28, 40, 10)
 	return function() stopSets() SEA.calm = 3 SEA.waves = 3 calmRogue() end
 end
 
@@ -68,11 +68,11 @@ DIS.Tsunami = { text = "TSUNAMI! A giant wave is coming!", run = function()
 		if not alive then return end
 		-- one giant swell rises up out of the ocean far ahead of the bow and rolls straight through the boat
 		toAll("big", "THE SEA IS RISING...", "Get inside or hold on to something!")
-		rogue(32, 90, true)
+		rogue(40, 120, true)
 		wait(40)
 		if alive then
 			toAll("big", "ANOTHER ONE!", "Here comes a second tsunami!")
-			rogue(22, 90, true)
+			rogue(28, 120, true)
 		end
 	end)
 	return function() alive = false end
@@ -123,7 +123,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 		Lighting.OutdoorAmbient = Color3.new(0.35, 0.35, 0.4)
 	end)
 	toAll("weather", "storm")
-	SEA.waves = 12
+	SEA.waves = 18
 	spawn(function()
 		local a = math.random() * 6
 		while alive do
@@ -136,7 +136,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 			damageShip(1.2)
 		end
 	end)
-	local stopSets = bigSets(9, 18, 26, 5)
+	local stopSets = bigSets(12, 18, 26, 5)
 	spawn(function()
 		while alive do
 			wait(math.random(15, 35) / 10)
@@ -234,8 +234,8 @@ DIS["Shark Attack"] = { text = "SHARK ATTACK! Don't fall in the water!", run = f
 		table.insert(sharks, { m = m, root = body, pos = at, look = V(0, 0, -1), next = 0 })
 	end
 	local alive = true
-	SEA.waves = 9       -- rough sea: the waves wash people off the deck... into the sharks
-	local stopSets = bigSets(7, 15, 22, 6)
+	SEA.waves = 14       -- rough sea: the waves wash people off the deck... into the sharks
+	local stopSets = bigSets(10, 15, 22, 6)
 	spawn(function()
 		while alive do
 			local dt = wait(0.05)

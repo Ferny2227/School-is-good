@@ -15,7 +15,9 @@ Open/upload `DisasterOcean.rbxl`.
     hammocks under the forecastle, 3 masts with sails, cannons, the Jolly Roger, 4 rowboats.
   - Navy Destroyer: mess hall, bunk room, a bridge with radar screens, a radar mast, gun turrets, a helipad,
     6 life rafts.
-- **The sea**: huge rolling swells (like Sea of Thieves) come from ahead one after another. Each swell lifts the bow,
+- **The sea**: huge rolling swells (like Sea of Thieves, ~30 studs from trough to crest, taller than the boats) come
+  one after another, and the direction they come from slowly turns (ahead, the side, behind...). Invisible walls round
+  the deck keep everyone on board (they go away when the boat sinks). Each swell lifts the bow,
   then the middle, then the stern, so the boat rocks with every wave; every so often a set of even bigger waves
   builds up, rolls through the boat (screen shake, damage, water washing over the deck) and dies down again. The
   swells are drawn on each player's computer (dark troughs, turquoise faces, white foam on the crests) with the same

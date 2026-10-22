@@ -1,19 +1,20 @@
 -- SeaHeight(x, z, t, s): the height of the sea (studs above SEA.level) at (x, z) at sea time t. Shared by the server
 -- (rocks the boat, floats swimmers and lifeboats) and OceanClient (draws the surface), so they always agree.
--- Swells roll from the bow (-z) to the stern (+z), one after another; s.rogueA adds a set of bigger waves (or, with
--- s.rogueBump, one giant tsunami swell) travelling at 30 studs/s. The waves die out ~480 studs ahead of/behind the
--- boat, where the flat ocean starts. The height doesn't change across (x), so the drawn surface can be long smooth
--- strips with no steps.
+-- Huge swells (~380 studs long) roll in one after another. The direction they come from slowly turns (SeaDir), so
+-- over a round they hit the boat from ahead, from the side, from behind... s.rogueA adds a set of even bigger waves
+-- (or, with s.rogueBump, one giant tsunami swell) that starts 700 studs away and travels at 30 studs/s.
+-- u = distance along the direction the waves travel (0 at the boat).
+local function SeaDir(t) return 0.025 * t + 0.8 * math.sin(0.021 * t) end
 local function SeaHeight(x, z, t, s)
-	local dz = math.abs(z - s.shipZ)
-	local fade = 1 - math.min(1, math.max(0, dz - 330) / 150)
+	local th = SeaDir(t)
+	local u = (x - s.shipX) * math.sin(th) + (z - s.shipZ) * math.cos(th)
+	local fade = 1 - math.min(1, math.max(0, math.abs(u) - 1500) / 450)
 	if fade <= 0 then return 0 end
-	local zz = z - s.speed * t
-	local main = math.sin(0.0285 * zz - 0.4 * t)
-	local h = s.amp * (main + 0.3 * math.sin(0.07 * zz - 1.1 * t) + 0.1 * math.sin(0.16 * zz - 2.1 * t))
+	local uu = u - s.speed * t
+	local main = math.sin(0.0165 * uu - 0.4 * t)
+	local h = s.amp * (main + 0.25 * math.sin(0.045 * uu - 0.9 * t) + 0.08 * math.sin(0.11 * uu - 1.7 * t))
 	if s.rogueA > 0 then
-		local c = s.rogueZ + 30 * (t - s.rogueT)
-		local e = (z - c) / s.rogueLen
+		local e = (u - s.rogueZ - 30 * (t - s.rogueT)) / s.rogueLen
 		if e > -3 and e < 3 then
 			if s.rogueBump then h = h + s.rogueA * math.exp(-e * e)
 			else h = h + s.rogueA * math.exp(-e * e) * main end

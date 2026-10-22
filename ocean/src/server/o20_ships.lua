@@ -328,10 +328,15 @@ local function buildShip(kind)
 	-- the name on the hull
 	local nameplate = B.box("NamePlate", 0.3, 3, 30, -WID / 2 - 0.25, DECK - 5, -LEN / 2 + 25, "Institutional white", "SmoothPlastic", { nc = true })
 	sign(nameplate, B.model.Name:match("^(.-) %(") or kind, "Left", Color3.new(0.05, 0.05, 0.2))
+	-- invisible walls round the deck: the boat can rock on huge waves and nobody falls off (gone when it sinks)
+	local guards = {}
+	for _, g in ipairs({ { 1, LEN + 2, -WID / 2 - 0.6, 0 }, { 1, LEN + 2, WID / 2 + 0.6, 0 }, { WID + 2, 1, 0, -LEN / 2 - 0.6 }, { WID + 2, 1, 0, LEN / 2 + 0.6 } }) do
+		table.insert(guards, B.box("Guard", g[1], 30, g[2], g[3], DECK - 2, g[4], "Institutional white", "SmoothPlastic", { tr = 1 }))
+	end
 	for _, p in ipairs(B.parts) do p.Anchored = true end
 	local max = 1000 + 250 * #Players:GetPlayers()
 	ship = { kind = kind, model = B.model, root = hull, hp = max, max = max, len = LEN, wid = WID, deck = DECK,
-		hullY = hull.CFrame.p.Y - SEA.level - SHIP_AT.Y, breakable = B.breakable, lifeboats = B.lifeboats, spots = B.spots,
+		hullY = hull.CFrame.p.Y - SEA.level - SHIP_AT.Y, breakable = B.breakable, lifeboats = B.lifeboats, spots = B.spots, guards = guards,
 		dy = 0, pitch = 0, roll = 0, yaw = 0, rest = shipBase(0, 0, 0, 0) }
 	seaShipCF.Value = CFrame.new()
 	seaShip.Value = B.model
