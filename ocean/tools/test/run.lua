@@ -164,6 +164,19 @@ for _, p in ipairs(ps) do p.Character.Humanoid.MaxHealth = 1e6 p.Character.Human
 local c0, sv0 = ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value
 for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "calm" then break end end
 say(string.format("survived a disaster: phase %s, player 2 coins %d -> %d, survived +%d", D.STATE.phase, c0, ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value - sv0))
+-- someone joins mid-game: they're in the lobby and can choose to play as a ghost (doesn't count)
+local late = MOCK.addPlayer("late", 99)
+MOCK.run(0.5)
+local lc = MOCK.makeCharacter(late)
+lc.Torso.CFrame = CFrame.new(D.LOBBY_AT + Vector3.new(0, 6, 20))
+MOCK.run(3)
+local inLobby = (lc.Torso.Position - D.LOBBY_AT).magnitude < 80
+D.makeGhost(late)
+local aboardNow = D.onShip(lc.Torso.Position)    -- (the mock doesn't carry characters with the boat afterwards)
+MOCK.run(1)
+say(string.format("late joiner: waited in the lobby %s, became a ghost %s, aboard %s, see-through %s; boards: '%s' / '%s'", tostring(inLobby),
+	tostring(D.ghosts()[late] == true), tostring(aboardNow), tostring(lc.Head.Transparency >= 0.5),
+	D.BOARD.sea.Text:gsub("\n", " | "):sub(1, 60), D.BOARD.top.Text:gsub("\n", " | "):sub(1, 50)))
 -- someone falls in: jumping leaps them back up towards the boat
 local sw = ps[1].Character.Torso
 sw.CFrame = CFrame.new(D.getShip().root.Position.X + 40, D.SEA.level + D.waveAt(40, -650) - 45, -650)

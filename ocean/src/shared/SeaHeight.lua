@@ -4,7 +4,7 @@
 -- over a round they hit the boat from ahead, from the side, from behind... s.rogueA adds a set of even bigger waves
 -- (or, with s.rogueBump, one giant tsunami swell) that starts 700 studs away and travels at 30 studs/s.
 -- u = distance along the direction the waves travel (0 at the boat).
-local function SeaDir(t) return 0.025 * t + 0.8 * math.sin(0.021 * t) end
+local function SeaDir(t) return 0.012 * t + 0.4 * math.sin(0.01 * t) end   -- turns slowly (less dizzy)
 -- Each swell is a long smooth rounded ridge (an ellipse across it), so the sea can be drawn with a few giant smooth
 -- shapes (OceanClient) and SeaHeight is exactly the surface they make: the higher of the two ridges either side.
 local SEA_K = 0.0078                          -- ~805 studs from crest to crest
@@ -54,13 +54,13 @@ local function ShipPose(t, s, len, wid, sinkAt, state, dt)
 	local h0 = SeaHeight(x, z, t, s)
 	local hb, hs = SeaHeight(x, z - L, t, s), SeaHeight(x, z + L, t, s)
 	local hp, hst = SeaHeight(x - W, z, t, s), SeaHeight(x + W, z, t, s)
-	local MAXT = 0.33    -- ~19 degrees: the bow points up the wave, then tips over the top and drops
+	local MAXT = 0.2     -- ~11 degrees: it still rides up each wave and over the top, without making you dizzy
 	local pitch = math.max(-MAXT, math.min(MAXT, math.atan((hb - hs) / (2 * L)) * 1.1))
-	local roll = math.max(-MAXT, math.min(MAXT, math.sin(t * 0.85) * (0.012 + 0.002 * s.amp) + math.atan((hst - hp) / (2 * W)) * 0.9))
+	local roll = math.max(-MAXT, math.min(MAXT, math.sin(t * 0.6) * 0.02 + math.atan((hst - hp) / (2 * W)) * 0.6))
 	-- the boat has weight: it turns towards the slope of the water smoothly, never snapping over
 	if state and dt then
 		if state.pitch then
-			local k = math.min(1, dt * 2.5)
+			local k = math.min(1, dt * 1.3)
 			pitch, roll = state.pitch + (pitch - state.pitch) * k, state.roll + (roll - state.roll) * k
 		end
 		state.pitch, state.roll = pitch, roll

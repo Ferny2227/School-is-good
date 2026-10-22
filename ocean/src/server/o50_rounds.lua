@@ -11,6 +11,25 @@ end
 -- until only ONE player is left alive - they win (+1 Win, +150 Coins). Playing alone, it goes on until you die.
 -- Then it resets: back to the sky lobby, vote, and a new boat. Every disaster you live through pays Coins.
 local multi = false     -- did this game start with (or get) more than one player?
+-- GHOSTS: people who join (or die) while a game is going are sent to the lobby and asked: wait for the next game,
+-- or play as a ghost - aboard and see-through, everything hits them as normal, but they don't count (no Coins, no
+-- Win, and the game doesn't wait for them).
+local ghosts = {}
+local function gameOn() return ship ~= nil and (STATE.phase == "boarding" or STATE.phase == "disaster" or STATE.phase == "calm") end
+local function makeGhost(p)
+	local c = p.Character
+	local t = torsoOf(c)
+	if not t or not gameOn() or inRound[p] or ghosts[p] then return end
+	ghosts[p] = true
+	for _, o in ipairs(U.desc(c)) do
+		if o:IsA("BasePart") and o.Name ~= "HumanoidRootPart" then o.Transparency = math.max(o.Transparency, 0.55) end
+	end
+	local head = c:FindFirstChild("Head")
+	if head then bill(head, "GHOST", 4, 1, 2.5, Color3.new(0.7, 0.9, 1)) end
+	t.CFrame = shipFrame() * deckSpot()
+	toClient(p, "ghostOffer", false)
+	toClient(p, "toast", "You're a GHOST: play along, but you don't count this game.", "gold")
+end
 local diedThisGame = {}
 -- disasters come out of a shuffled bag: every one of them comes up once before any repeats (and never twice in a row)
 local bag, lastDisaster = {}, nil
@@ -64,7 +83,8 @@ spawn(function()
 			seaShipLen.Value = ship.len
 			STATE.phase, STATE.left = "boarding", 5
 			status()
-			inRound, diedThisGame, multi = {}, {}, false
+			inRound, diedThisGame, multi, ghosts = {}, {}, false, {}
+			toAll("ghostOffer", false)
 			for _, x in ipairs(players()) do board(x.p) end
 			toAll("big", "ALL ABOARD THE " .. string.upper(kind) .. "!", "Survive as long as you can - it only ends when EVERYONE is dead!")
 			wait(6)
@@ -136,22 +156,52 @@ spawn(function()
 				status()
 				wait(1)
 			end
-			for _, p in ipairs(Players:GetPlayers()) do toLobby(p) end
+			for _, p in ipairs(Players:GetPlayers()) do
+				if ghosts[p] then pcall(function() p:LoadCharacter() end) else toLobby(p) end   -- ghosts come back solid
+			end
+			ghosts = {}
+			toAll("ghostOffer", false)
 			if ship then pcall(function() ship.model:Destroy() end) ship = nil seaShip.Value = nil end
 			seaSailing.Value = false
 			sendShip()
 		end
 	end
 end)
+-- the lobby boards: what's happening at sea, and the top winners
+spawn(function()
+	while true do
+		pcall(function()
+			if gameOn() then
+				local alive, gh = {}, 0
+				for _, x in ipairs(players()) do if inRound[x.p] then table.insert(alive, x.p.Name) end end
+				for _ in pairs(ghosts) do gh = gh + 1 end
+				BOARD.sea.Text = "AT SEA NOW: " .. ship.kind .. "\n" .. (STATE.disaster ~= "" and STATE.disaster or "calm...") ..
+					"\nStill alive (" .. #alive .. "): " .. table.concat(alive, ", ") .. (gh > 0 and ("\nGhosts: " .. gh) or "")
+			else
+				BOARD.sea.Text = "NEXT BOAT LEAVES IN " .. STATE.left .. "s\nVote on the pads!"
+			end
+			local list = {}
+			for _, p in ipairs(Players:GetPlayers()) do
+				local w = stats(p):FindFirstChild("Wins")
+				table.insert(list, { n = p.Name, w = w and w.Value or 0 })
+			end
+			table.sort(list, function(a, b) return a.w > b.w end)
+			local lines = { "TOP WINNERS" }
+			for i = 1, math.min(5, #list) do table.insert(lines, i .. ". " .. list[i].n .. "  -  " .. list[i].w .. " wins") end
+			BOARD.top.Text = table.concat(lines, "\n")
+		end)
+		wait(2)
+	end
+end)
 Players.PlayerAdded:connect(function(p)
 	stats(p)
 	p.CharacterAdded:connect(function(c)
 		local h = c:WaitForChild("Humanoid")
-		h.Died:connect(function() inRound[p] = nil diedThisGame[p] = true end)
-		-- someone who joins while the boat is out (and hasn't died this game) is put aboard
-		if not diedThisGame[p] and ship and not ship.sinking and (STATE.phase == "disaster" or STATE.phase == "calm") then
-			delay(2, function() if ship and not inRound[p] then board(p) end end)
-		end
+		h.Died:connect(function() inRound[p] = nil diedThisGame[p] = true ghosts[p] = nil end)
+		-- joined (or died) while a game is going: you're in the lobby - wait, or play as a ghost
+		delay(2, function()
+			if gameOn() and not inRound[p] and not ghosts[p] then toClient(p, "ghostOffer", true) end
+		end)
 	end)
 end)
 for _, p in ipairs(Players:GetPlayers()) do stats(p) end
@@ -160,6 +210,7 @@ Players.PlayerRemoving:connect(function(p) swimmers[p], inRound[p] = nil, nil en
 local swimJump = {}
 remote.OnServerEvent:connect(function(p, what)
 	if what == "state" then status() sendShip()
+	elseif what == "ghost" then makeGhost(p)
 	elseif what == "swimjump" and swimmers[p] and (not swimJump[p] or tick() - swimJump[p] > 1.5) then
 		local t = torsoOf(p.Character)
 		if not t then return end
@@ -202,5 +253,5 @@ spawn(function()
 end)
 _G.OceanDebug = { DIS = DIS, SEA = SEA, swimmers = swimmers, STATE = STATE, getShip = function() return ship end,
 	buildShip = buildShip, damageShip = damageShip, deckSpot = deckSpot, onShip = onShip, shipFrame = shipFrame,
-	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, rogue = rogue, waveAt = waveAt, seaTime = seaTime, nextDisaster = function() return nextDisaster() end }
+	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, rogue = rogue, waveAt = waveAt, ghosts = function() return ghosts end, makeGhost = makeGhost, BOARD = BOARD, seaTime = seaTime, nextDisaster = function() return nextDisaster() end }
 print("OceanServer ready")

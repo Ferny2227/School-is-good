@@ -55,6 +55,46 @@ local statusText = label(bar, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), "DIS
 -- big announcement
 local big = label(gui, UDim2.new(0.5, -400, 0.25, 0), UDim2.new(0, 800, 0, 60), "", 48, C.red)
 local sub = label(gui, UDim2.new(0.5, -400, 0.25, 60), UDim2.new(0, 800, 0, 30), "", 24, C.white)
+-- HOW TO PLAY: shown when you join (once)
+local function panel(w, h)
+	local f = frame(gui, UDim2.new(0.5, -w / 2, 0.5, -h / 2), UDim2.new(0, w, 0, h), C.dark, 0.08)
+	f.ZIndex = 5
+	return f
+end
+if not _G.OceanSeenHowTo then
+	_G.OceanSeenHowTo = true
+	local f = panel(620, 380)
+	local title = label(f, UDim2.new(0, 0, 0, 10), UDim2.new(1, 0, 0, 44), "DISASTER OCEAN - HOW TO PLAY", 36, C.gold)
+	title.ZIndex = 6
+	local body = label(f, UDim2.new(0, 24, 0, 62), UDim2.new(1, -48, 0, 250),
+		"1.  In the sky lobby, step on a glowing pad to vote for the next BOAT and the map THEME.\n\n" ..
+		"2.  Everyone goes aboard. Huge waves rock the boat and disasters strike one after another.\n\n" ..
+		"3.  Stay on the boat - the water hurts! Fell in? Press SPACE to leap back aboard.\n\n" ..
+		"4.  Every disaster you live through: +40 Coins.  LAST ONE STANDING WINS: +1 Win, +150 Coins.\n\n" ..
+		"5.  Joined late or died? Wait in the lobby, or play as a GHOST (ghosts don't count).", 20, C.white)
+	body.TextWrapped = true
+	pcall(function() body.TextXAlignment = Enum.TextXAlignment.Left body.TextYAlignment = Enum.TextYAlignment.Top end)
+	body.ZIndex = 6
+	local go = button(f, UDim2.new(0.5, -110, 1, -62), UDim2.new(0, 220, 0, 46), "LET'S GO!", C.green)
+	go.ZIndex = 6
+	go.MouseButton1Click:connect(function() f:Destroy() end)
+end
+-- a game is going on and you're not in it: wait for the next one, or play as a ghost
+local ghostPanel = panel(560, 200)
+ghostPanel.Visible = false
+local gt = label(ghostPanel, UDim2.new(0, 10, 0, 12), UDim2.new(1, -20, 0, 80),
+	"A game is going on right now!\nWait here in the lobby for the next one, or jump in as a GHOST:\nyou can play along, but you don't count to win.", 20, C.white)
+gt.TextWrapped = true
+gt.ZIndex = 6
+local stayB = button(ghostPanel, UDim2.new(0, 30, 1, -70), UDim2.new(0, 230, 0, 50), "WAIT IN THE LOBBY", C.blue)
+local ghostB = button(ghostPanel, UDim2.new(1, -260, 1, -70), UDim2.new(0, 230, 0, 50), "PLAY AS A GHOST", rgb(120, 90, 200))
+stayB.ZIndex, ghostB.ZIndex = 6, 6
+local ghostSmall = button(gui, UDim2.new(0.5, -110, 1, -70), UDim2.new(0, 220, 0, 40), "PLAY AS A GHOST", rgb(120, 90, 200))
+ghostSmall.Visible = false
+local function askGhost() pcall(function() remote:FireServer("ghost") end) ghostPanel.Visible = false ghostSmall.Visible = false end
+ghostB.MouseButton1Click:connect(askGhost)
+ghostSmall.MouseButton1Click:connect(askGhost)
+stayB.MouseButton1Click:connect(function() ghostPanel.Visible = false ghostSmall.Visible = true end)
 -- in the water: a hint, and jumping asks the server for a big leap back onto the boat
 local swimming = false
 local swimHint = label(gui, UDim2.new(0.5, -350, 0.62, 0), UDim2.new(0, 700, 0, 34), "", 24, C.gold)
@@ -175,6 +215,9 @@ remote.OnClientEvent:connect(function(what, a, b, c, d)
 		end
 	elseif what == "shake" then
 		shaking = math.max(shaking, a or 0.5)
+	elseif what == "ghostOffer" then
+		ghostPanel.Visible = a and true or false
+		ghostSmall.Visible = false
 	elseif what == "swim" then
 		swimming = a
 		swimHint.Text = a and "YOU'RE IN THE WATER! Press SPACE (jump) to leap back onto the boat!" or ""
@@ -197,7 +240,7 @@ spawn(function()
 		if shaking > 0 then
 			shaking = shaking - 0.03
 			local cam = workspace.CurrentCamera
-			if cam then pcall(function() cam.CoordinateFrame = cam.CoordinateFrame * CFrame.Angles(math.random(-10, 10) / 600, math.random(-10, 10) / 600, 0) end) end
+			if cam then pcall(function() cam.CoordinateFrame = cam.CoordinateFrame * CFrame.Angles(math.random(-10, 10) / 2000, math.random(-10, 10) / 2000, 0) end) end
 		end
 	end
 end)
@@ -372,7 +415,7 @@ spawn(function()
 		local dy, pitch, roll = ShipPose(t, S, v.ShipLen.Value, v.ShipWid.Value, sink >= 0 and sink or nil, pose, dt)
 		if air > 0.1 then
 			local k = math.min(1, air / 10)
-			pitch, roll = pitch + math.sin(t * 2) * 0.15 * k, roll + math.sin(t * 2.6) * 0.2 * k
+			pitch, roll = pitch + math.sin(t * 1.2) * 0.08 * k, roll + math.sin(t * 1.5) * 0.1 * k
 		end
 		local at, lv = v.ShipAt.Value, v.Level.Value
 		local shipCF = ShipCFrame(at, lv, dy + air, pitch, roll, yaw)

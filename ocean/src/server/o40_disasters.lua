@@ -54,9 +54,9 @@ local function bigSets(height, gapMin, gapMax, first)
 	return function() alive = false end
 end
 local function oceanWaves()
-	SEA.calm = 60
-	SEA.waves = math.max(SEA.waves, 60)
-	local stopSets = bigSets(30, 35, 50, 12)
+	SEA.calm = 40
+	SEA.waves = math.max(SEA.waves, 40)
+	local stopSets = bigSets(20, 35, 50, 12)
 	return function() stopSets() SEA.calm = 3 SEA.waves = 3 calmRogue() end
 end
 
@@ -68,11 +68,11 @@ DIS.Tsunami = { text = "TSUNAMI! A giant wave is coming!", run = function()
 		if not alive then return end
 		-- one giant swell rises up out of the ocean far ahead of the bow and rolls straight through the boat
 		toAll("big", "THE SEA IS RISING...", "Get inside or hold on to something!")
-		rogue(120, 250, true)
+		rogue(85, 250, true)
 		wait(40)
 		if alive then
 			toAll("big", "ANOTHER ONE!", "Here comes a second tsunami!")
-			rogue(80, 250, true)
+			rogue(60, 250, true)
 		end
 	end)
 	return function() alive = false end
@@ -123,7 +123,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 		Lighting.OutdoorAmbient = Color3.new(0.35, 0.35, 0.4)
 	end)
 	toAll("weather", "storm")
-	SEA.waves = 80
+	SEA.waves = 55
 	spawn(function()
 		local a = math.random() * 6
 		while alive do
@@ -136,7 +136,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 			damageShip(1.2)
 		end
 	end)
-	local stopSets = bigSets(35, 25, 35, 5)
+	local stopSets = bigSets(22, 25, 35, 5)
 	spawn(function()
 		while alive do
 			wait(math.random(15, 35) / 10)
@@ -234,8 +234,8 @@ DIS["Shark Attack"] = { text = "SHARK ATTACK! Don't fall in the water!", run = f
 		table.insert(sharks, { m = m, root = body, pos = at, look = V(0, 0, -1), next = 0 })
 	end
 	local alive = true
-	SEA.waves = 66       -- rough sea: the waves wash people off the deck... into the sharks
-	local stopSets = bigSets(30, 25, 35, 6)
+	SEA.waves = 45       -- rough sea: the waves wash people off the deck... into the sharks
+	local stopSets = bigSets(20, 25, 35, 6)
 	spawn(function()
 		while alive do
 			local dt = wait(0.05)

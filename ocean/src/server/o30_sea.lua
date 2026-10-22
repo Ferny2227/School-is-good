@@ -68,10 +68,10 @@ local function stepShip(dt, now)
 		-- the tornado: while it's over the boat, the boat is lifted and spun; then it drops back into the sea
 		if s.twister and now - s.twister < 0.5 then
 			s.air = math.min(55, s.air + 10 * dt)
-			s.yaw = s.yaw + 0.9 * dt
+			s.yaw = s.yaw + 0.4 * dt
 			s.wasUp = math.max(s.wasUp or 0, s.air)
 		elseif s.whirl and now - s.whirl < 0.5 then     -- the whirlpool: spun round and dragged down into it
-			s.yaw = s.yaw + 0.45 * dt
+			s.yaw = s.yaw + 0.2 * dt
 			s.air = math.max(-22, s.air - 6 * dt)
 		elseif s.air < 0 then
 			s.air = math.min(0, s.air + 8 * dt)
@@ -88,7 +88,7 @@ local function stepShip(dt, now)
 		local dy, pitch, roll = ShipPose(t, SEA, s.len, s.wid, nil, s.pose, dt)
 		if s.air > 0.1 then      -- swinging about in the tornado (players' computers do the same)
 			local k = math.min(1, s.air / 10)
-			pitch, roll = pitch + math.sin(t * 2) * 0.15 * k, roll + math.sin(t * 2.6) * 0.2 * k
+			pitch, roll = pitch + math.sin(t * 1.2) * 0.08 * k, roll + math.sin(t * 1.5) * 0.1 * k
 		end
 		s.dy, s.pitch, s.roll = dy + s.air, pitch, roll
 		-- big waves hurt: while a set of big waves rolls through, the bow slams into them

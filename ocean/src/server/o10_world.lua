@@ -157,6 +157,40 @@ lb("Fireplace", 10, 8, 3, HX + 20, 1, HZ + HD / 2 - 2, "Brick yellow", "Brick")
 local fire = lb("Fire", 5, 2, 1, HX + 20, 2, HZ + HD / 2 - 3.6, "Neon orange", "Neon", { nc = true })
 light(fire, Color3.new(1, 0.55, 0.2), 20, 2)
 for i = 0, 2 do lb("Couch", 4, 2, 3, HX - 26 + i * 4.5, 1, HZ + HD / 2 - 3, "Royal purple", "Fabric", { class = "Seat" }) end
+-- boards: how to play (back wall), what's happening at sea and the top winners (standing by the front windows)
+local BOARD = {}
+do
+	local how = lb("HowToPlayBoard", 26, 11, 0.6, HX - 2, 4, HZ + HD / 2 - 0.9, "Navy blue", "SmoothPlastic")
+	sign(how, "HOW TO PLAY\n" ..
+		"1. Step on a glowing pad to vote for the next BOAT and the map THEME.\n" ..
+		"2. Everyone goes aboard. Huge waves rock the boat and disasters strike one after another.\n" ..
+		"3. Stay on the boat - the water hurts! Fell in? Press SPACE to leap back aboard.\n" ..
+		"4. Every disaster you live through: +40 Coins. LAST ONE STANDING WINS (+1 Win, +150 Coins).\n" ..
+		"5. Joined late or died? Wait here, or play as a GHOST (ghosts don't count).", "Front", Color3.new(1, 1, 1))
+	for _, s in ipairs({ -1, 1 }) do
+		lb("BoardPost", 0.8, 9, 0.8, HX + s * 20, 1, HZ - HD / 2 + 7, "Really black", "Metal")
+		local b = lb(s < 0 and "SeaBoard" or "WinnersBoard", 16, 9, 0.6, HX + s * 20, 7, HZ - HD / 2 + 7, "Navy blue", "SmoothPlastic")
+		BOARD[s < 0 and "sea" or "top"] = sign(b, "", "Back", Color3.new(1, 0.9, 0.4))
+	end
+	-- decorations: chandeliers, plants, an aquarium, a ship's wheel and an anchor on the walls, bookshelves
+	for _, x in ipairs({ -16, 16 }) do
+		lb("ChandelierChain", 0.3, 3, 0.3, HX + x, HH - 3, HZ, "Gold", "Metal", { nc = true })
+		light(lb("Chandelier", 4, 1.2, 4, HX + x, HH - 4.2, HZ, "Cool yellow", "Neon", { nc = true }), Color3.new(1, 0.9, 0.7), 30, 1.4)
+	end
+	for _, c in ipairs({ { -29, HZ - HD / 2 + 3 }, { 29, HZ - HD / 2 + 3 }, { -29, HZ + 12 }, { 29, HZ + 2 } }) do
+		lb("PlantPot", 2.4, 2, 2.4, HX + c[1], 1, c[2], "Brown", "Wood")
+		P(LOBBY, "Plant", V(4, 4, 4), L(HX + c[1], 5, c[2]), "Bright green", "Grass", { shape = "ball", nc = true })
+	end
+	local AQ, AZ = HX - 13, HZ - HD / 2 + 3.5
+	lb("AquariumStand", 11, 3, 4, AQ, 1, AZ, "Brown", "Wood")
+	lb("Aquarium", 10, 5, 3.4, AQ, 4, AZ, "Pastel light blue", "Glass", { tr = 0.55, nc = true })
+	for i = 1, 5 do
+		P(LOBBY, "AquariumFish", V(0.6, 0.6, 1.2), L(AQ - 4.8 + i * 1.6, 5.5 + (i % 3), AZ + (i % 2 == 0 and 0.6 or -0.6)),
+			({ "Bright orange", "Bright yellow", "Bright red", "Lime green", "Bright blue" })[i], "Neon", { nc = true })
+	end
+	lb("Bookshelf", 2, 10, 8, HX + HW / 2 - 1.6, 1, HZ + 12, "Reddish brown", "Wood")
+	for i = 0, 3 do lb("Books", 1.4, 1.6, 7, HX + HW / 2 - 2.8, 2.2 + i * 2.2, HZ + 12, ({ "Bright red", "Bright blue", "Bright green", "Bright yellow" })[i + 1], "Fabric", { nc = true }) end
+end
 
 -- the vote stations: step on a pad to vote. Boats on the left wall, themes on the right wall.
 local votes = { boat = {}, theme = {} }
