@@ -271,7 +271,13 @@ do
 	end
 	local torso = p1.Character.Torso
 	pad.Touched:fire(torso)
-	for _ = 1, 40 do MOCK.run(0.5) if L.state == "open" and L.idx == 3 then break end end
+	local trace = {}
+	for _ = 1, 40 do
+		MOCK.run(0.5)
+		table.insert(trace, L.state .. "@" .. L.idx .. (L.target and (">" .. L.target) or "") .. "[" .. table.concat(L.queue, ",") .. "]")
+		if L.state == "open" and L.idx == 3 then break end
+	end
+	if DEBUG_SMOOTH then say("lift trace: " .. table.concat(trace, " ")) end
 	local okCall = L.idx == 3 and L.state == "open"
 	-- the player steps into the car; while it moves they get carried (BodyVelocity), and it's removed after
 	torso.CFrame = CFrame.new(L.plot.cf * Vector3.new(L.x, L.y + 3, L.z))

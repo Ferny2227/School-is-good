@@ -157,14 +157,6 @@ function U.rig(model, root, collide)
 	root.Anchored = true
 end
 function U.spin(parts, center, axis, speed)
-	-- weld everything to the first part, so turning it is one CFrame (one network message) instead of one per part
-	if #parts > 1 then
-		for i = 2, #parts do
-			U.weld(parts[1], parts[i])
-			parts[i].Anchored = false
-		end
-		parts = { parts[1] }
-	end
 	local rel = {}
 	for i, p in ipairs(parts) do rel[i] = center:inverse() * p.CFrame end
 	table.insert(G.spinners, { parts = parts, rel = rel, center = center, axis = axis, speed = speed })

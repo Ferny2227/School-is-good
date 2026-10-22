@@ -60,16 +60,10 @@ function LIFT.place(L)
 	for _, p in ipairs(L.parts) do p.part.CFrame = at * p.rel end
 end
 -- Players riding a moving car: a car moved by CFrame doesn't carry people (they bounce on the way up and fall on
--- the way down, which looks like glitching). So while it moves, the floor gets the car's speed and every player
--- standing in the car gets a BodyVelocity that moves them up/down with it (it also pulls them back onto the floor
--- if they drift). v = vertical speed, nil when the car is stopped: then everything is removed.
+-- the way down, which looks like glitching). So while it moves, every player standing in the car gets a gentle
+-- BodyVelocity that moves them up/down with it (and softly keeps them on the floor). v = vertical speed, nil when the car is stopped: then everything is removed.
 function LIFT.carry(L, v)
 	L.riders = L.riders or {}
-	local floor = L.parts[1] and L.parts[1].part
-	if floor and L.floorV ~= (v or 0) then
-		L.floorV = v or 0
-		pcall(function() floor.Velocity = Vector3.new(0, L.floorV, 0) end)
-	end
 	local seen = {}
 	if v then
 		local c = L.plot.cf * Vector3.new(L.x, L.y, L.z)
@@ -85,11 +79,11 @@ function LIFT.carry(L, v)
 					if not bv or bv.Parent ~= torso then
 						bv = Instance.new("BodyVelocity")
 						bv.Name = "ElevatorRide"
-						bv.maxForce = Vector3.new(0, 4e5, 0)
+						bv.maxForce = Vector3.new(0, 3e4, 0)
 						bv.Parent = torso
 						L.riders[player] = bv
 					end
-					bv.velocity = Vector3.new(0, v + (3 - dy) * 4, 0)
+					bv.velocity = Vector3.new(0, v + U.clamp(3 - dy, -1.5, 1.5) * 2, 0)
 				end
 			end
 		end
@@ -146,10 +140,16 @@ function U.lift(b, id, x, z, levels, keys, open, names)
 	end
 	pad("UP", "Lime green", -1.8, 1)
 	pad("DOWN", "Really red", 1.8, -1)
-	-- the whole car is one rig (everything welded to the floor), so moving it is one CFrame a frame, not 16
+	-- every part of the car stays anchored and is moved on its own (welds made before the car is in the world can
+	-- stay inactive in old Roblox and the car falls apart); the floor comes first (LIFT.carry uses it)
 	local floor = cab:FindFirstChild("CarFloor")
-	U.rig(cab, floor, true)
 	table.insert(L.parts, { part = floor, rel = floor.CFrame })
+	for _, p in ipairs(cab:GetChildren()) do
+		if p:IsA("BasePart") then
+			p.Anchored = true
+			if p ~= floor then table.insert(L.parts, { part = p, rel = p.CFrame }) end
+		end
+	end
 	cab.Parent = b.model
 	L.cab = cab
 	LIFT.place(L)
@@ -219,6 +219,11 @@ function LIFT.call(L, i, player)
 		return
 	end
 	if L.state == "moving" and L.target == i then return end
+	if player then   -- a player is waiting: their floor goes first, no NPC stops on the way, doors not held for NPCs
+		L.playerCall = tick()
+		L.playerLevels = L.playerLevels or {}
+		L.playerLevels[i] = tick()
+	end
 	for qi, q in ipairs(L.queue) do
 		if q == i then
 			if player and qi > 1 then table.remove(L.queue, qi) table.insert(L.queue, 1, i) end
@@ -256,9 +261,15 @@ function LIFT.step(dt)
 			if L.state == "open" then
 				L.timer = L.timer - dt
 				L.openFor = L.openFor + dt
-				if L.timer <= 0 and (not boarding or L.openFor > LIFT.maxOpen + 4) then L.state = "idle" end
+				local hurry = L.playerCall and tick() - L.playerCall < 60 and #L.queue > 0
+				if L.timer <= 0 and (not boarding or hurry or L.openFor > LIFT.maxOpen + 4) then L.state = "idle" end
 			elseif L.state == "idle" then
-				local nxt = table.remove(L.queue, 1)
+				-- a floor a player called (in the last minute) goes before NPC floors
+				local pick = 1
+				for qi, q in ipairs(L.queue) do
+					if L.playerLevels and L.playerLevels[q] and tick() - L.playerLevels[q] < 60 then pick = qi break end
+				end
+				local nxt = table.remove(L.queue, pick)
 				if nxt then
 					if nxt == L.idx then
 						L.state, L.timer, L.openFor = "open", LIFT.openTime, 0
@@ -274,9 +285,11 @@ function LIFT.step(dt)
 					local dir = goal > L.y and 1 or -1
 					local ny = L.y + dir * LIFT.speed * dt
 					-- stop on the way for anyone waiting at a floor we pass
+					local forPlayer = L.playerLevels and L.playerLevels[L.target] and tick() - L.playerLevels[L.target] < 60
 					for qi, q in ipairs(L.queue) do
 						local ly = L.levels[q]
-						if (ly - L.y) * dir > 0.01 and (ly - ny) * dir <= 0 and (goal - ly) * dir > 0 then
+						if forPlayer and not (L.playerLevels[q] and tick() - L.playerLevels[q] < 60) then ly = nil end
+						if ly and (ly - L.y) * dir > 0.01 and (ly - ny) * dir <= 0 and (goal - ly) * dir > 0 then
 							table.remove(L.queue, qi)
 							table.insert(L.queue, 1, L.target)
 							L.target, goal = q, ly
@@ -284,6 +297,8 @@ function LIFT.step(dt)
 						end
 					end
 					if (goal - ny) * dir <= 0 then
+						if #L.queue == 0 then L.playerCall = nil end
+						if L.playerLevels then L.playerLevels[L.target] = nil end
 						L.y, L.idx, L.state, L.timer, L.openFor = goal, L.target, "open", LIFT.openTime, 0
 						L.target = nil
 					else

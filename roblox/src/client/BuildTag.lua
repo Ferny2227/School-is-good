@@ -9,6 +9,6 @@ pcall(function()
 	tag.TextColor3 = Color3.new(1, 1, 1)
 	tag.TextTransparency = 0.4
 	tag.FontSize = Enum.FontSize.Size12
-	tag.Text = "build 9: Paradise Island + theme park"
+	tag.Text = "build 10: less lag + elevator fix"
 	tag.Parent = gui
 end)
