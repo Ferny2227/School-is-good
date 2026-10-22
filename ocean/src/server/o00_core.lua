@@ -92,6 +92,13 @@ end
 local function sign(part, text, face, color, bg)
 	local sg = Instance.new("SurfaceGui")
 	pcall(function() sg.Face = Enum.NormalId[face or "Front"] end)
+	-- a canvas the same shape as the face (the default 800 x 600 squashes the text on long or tall signs)
+	pcall(function()
+		local s, f = part.Size, face or "Front"
+		local w, h = s.X, s.Y
+		if f == "Left" or f == "Right" then w, h = s.Z, s.Y elseif f == "Top" or f == "Bottom" then w, h = s.X, s.Z end
+		sg.CanvasSize = Vector2.new(math.floor(w * 50), math.floor(h * 50))
+	end)
 	local t = Instance.new("TextLabel")
 	t.Size = UDim2.new(1, 0, 1, 0)
 	t.BackgroundTransparency = bg and 0 or 1

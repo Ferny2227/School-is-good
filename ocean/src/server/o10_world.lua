@@ -157,6 +157,13 @@ lb("Fireplace", 10, 8, 3, HX + 20, 1, HZ + HD / 2 - 2, "Brick yellow", "Brick")
 local fire = lb("Fire", 5, 2, 1, HX + 20, 2, HZ + HD / 2 - 3.6, "Neon orange", "Neon", { nc = true })
 light(fire, Color3.new(1, 0.55, 0.2), 20, 2)
 for i = 0, 2 do lb("Couch", 4, 2, 3, HX - 26 + i * 4.5, 1, HZ + HD / 2 - 3, "Royal purple", "Fabric", { class = "Seat" }) end
+-- wood panelling along the lower walls, and a skirting strip
+lb("Panelling", HW - 2, 4, 0.4, HX, 1, HZ + HD / 2 - 0.7, "Reddish brown", "Wood")
+for _, s in ipairs({ -1, 1 }) do
+	lb("Panelling", 0.4, 4, HD - 2, HX + s * (HW / 2 - 0.7), 1, HZ, "Reddish brown", "Wood")
+	lb("PanelTrim", 0.5, 0.4, HD - 2, HX + s * (HW / 2 - 0.75), 5, HZ, "Brown", "Wood")
+end
+lb("PanelTrim", HW - 2, 0.4, 0.5, HX, 5, HZ + HD / 2 - 0.75, "Brown", "Wood")
 -- boards: how to play (back wall), what's happening at sea and the top winners (standing by the front windows)
 local BOARD = {}
 do
@@ -216,7 +223,7 @@ local function votePads(kind, names, colors, x, title)
 		local z = HZ + (i - (#names + 1) / 2) * (#names > 3 and 10 or 12)
 		local padX = x + (x < 0 and 7 or -7)
 		local pad = lb("VotePad", 8, 0.4, 8, padX, 1, z, colors[i], "Neon")
-		local plate = lb("VoteSign", 0.6, 3, 9, x + (x < 0 and 0.8 or -0.8), 4, z, "Institutional white", "SmoothPlastic")
+		local plate = lb("VoteSign", 0.6, 4.5, 9.4, x + (x < 0 and 1.1 or -1.1), 2.5, z, "Institutional white", "SmoothPlastic")
 		voteLabels[kind][name] = sign(plate, name .. "\n0 votes", x < 0 and "Right" or "Left", Color3.new(0.1, 0.1, 0.2))
 		pad.Touched:connect(function(hit)
 			local p = hit.Parent and Players:GetPlayerFromCharacter(hit.Parent)

@@ -32,7 +32,10 @@ local function label(parent, pos, size, text, fs, color)
 	t.TextColor3 = color or C.white
 	t.TextStrokeTransparency = 0.4
 	pcall(function() t.Font = Enum.Font.SourceSansBold end)
-	pcall(function() t.FontSize = Enum.FontSize["Size" .. (fs or 18)] end)
+	-- only these sizes exist in 2016 (asking for another one silently leaves the text tiny)
+	local best = 18
+	for _, n in ipairs({ 8, 9, 10, 11, 12, 14, 18, 24, 28, 32, 36, 42, 48 }) do if n <= (fs or 18) then best = n end end
+	pcall(function() t.FontSize = Enum.FontSize["Size" .. best] end)
 	t.Parent = parent
 	return t
 end
@@ -61,14 +64,14 @@ local function big2(pos, size, text)
 	t.TextStrokeTransparency = 0.2
 	return t
 end
-local hudTitle = big2(UDim2.new(0.5, -300, 0, 8), UDim2.new(0, 600, 0, 64), "")
-local hudNumber = big2(UDim2.new(0.5, -100, 0, 74), UDim2.new(0, 200, 0, 76), "")
-local hudEvent = big2(UDim2.new(0.5, -480, 0, 76), UDim2.new(0, 960, 0, 54), "")
+local hudTitle = big2(UDim2.new(0.5, -280, 0, 30), UDim2.new(0, 560, 0, 58), "")
+local hudNumber = big2(UDim2.new(0.5, -90, 0, 90), UDim2.new(0, 180, 0, 66), "")
+local hudEvent = big2(UDim2.new(0.5, -460, 0, 92), UDim2.new(0, 920, 0, 48), "")
 local eventUntil = 0
 -- bottom right: round time, events, players alive, game mode
 local stats = {}
 for i, name in ipairs({ "ROUND TIME", "EVENTS OCCURRED", "PLAYERS ALIVE", "GAMEMODE" }) do
-	local box = frame(gui, UDim2.new(1, -4 * 158 - 10 + (i - 1) * 158, 1, -96), UDim2.new(0, 150, 0, 86), rgb(225, 225, 230), 0.35)
+	local box = frame(gui, UDim2.new(1, -4 * 158 - 10 + (i - 1) * 158, 1, -140), UDim2.new(0, 150, 0, 86), rgb(225, 225, 230), 0.35)
 	local t = label(box, UDim2.new(0, 4, 0, 4), UDim2.new(1, -8, 0, 30), name, 24, rgb(10, 10, 10))
 	t.TextScaled = true
 	t.TextStrokeTransparency = 1
@@ -118,15 +121,15 @@ local function panel(w, h)
 	return f
 end
 local function showHowTo()
-	local f = panel(620, 380)
+	local f = panel(760, 470)
 	local title = label(f, UDim2.new(0, 0, 0, 10), UDim2.new(1, 0, 0, 44), "DISASTER OCEAN - HOW TO PLAY", 36, C.gold)
 	title.ZIndex = 6
-	local body = label(f, UDim2.new(0, 24, 0, 62), UDim2.new(1, -48, 0, 250),
+	local body = label(f, UDim2.new(0, 28, 0, 66), UDim2.new(1, -56, 0, 320),
 		"1.  In the sky lobby, step on a glowing pad to vote for the next BOAT and the map THEME.\n\n" ..
 		"2.  Everyone goes aboard. Every 10 seconds a new EVENT hits, and every 3 it gets much harder.\n\n" ..
 		"3.  Stay on the boat - waves try to throw you off and the water hurts! Fell in? Press SPACE to leap back.\n\n" ..
 		"4.  Every event you live through pays Coins.  LAST ONE STANDING WINS: +1 Win, +150 Coins.\n\n" ..
-		"5.  Joined late or died? Wait in the lobby, or play as a GHOST (ghosts don't count).", 20, C.white)
+		"5.  Joined late or died? Wait in the lobby, or play as a GHOST (ghosts don't count).", 24, C.white)
 	body.TextWrapped = true
 	pcall(function() body.TextXAlignment = Enum.TextXAlignment.Left body.TextYAlignment = Enum.TextYAlignment.Top end)
 	body.ZIndex = 6
@@ -178,7 +181,7 @@ spawn(function()     -- phones/tablets: the jump button sets Humanoid.Jump
 	end
 end)
 -- toast
-local toast = label(gui, UDim2.new(0.5, -300, 0, 82), UDim2.new(0, 600, 0, 28), "", 20, C.green)
+local toast = label(gui, UDim2.new(0.5, -350, 0, 160), UDim2.new(0, 700, 0, 32), "", 24, C.green)
 local toastId = 0
 local function showToast(text, color)
 	toastId = toastId + 1
