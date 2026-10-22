@@ -7,8 +7,10 @@ Open/upload `DisasterOcean.rbxl`.
 - **The ship**: every round the whole lobby is teleported onto the **SS DISASTER**, a big ocean liner out at sea
   (three decks of cabins with ladders, a bridge, two funnels, a pool, deck chairs, a mast, 8 lifeboats). It rocks on
   the waves.
-- **Disasters** (75 s, sometimes two at once from round 3): Big Waves, Tsunami, Tornado, Hurricane (rain, wind,
-  lightning), Meteor Shower, the Kraken (tentacles slam the deck) and Shark Attack.
+- **Waves every round**: the open ocean keeps rolling waves into the ship (every 9-15 s), rocking it and wearing it
+  down a little, on top of the disaster.
+- **Disasters** (75 s, sometimes two at once from round 3): Tsunami, Tornado, Hurricane (rain, wind, lightning),
+  Meteor Shower, the Kraken (tentacles slam the deck) and Shark Attack.
 - **The ship takes damage**: its health bar is on everyone's screen (1000 + 250 per player); pieces break off and
   fall in the sea. At 0 health it **sinks** and its lifeboats drop into the water.
 - **The water hurts** (7 health a second): you float, but get to a lifeboat!

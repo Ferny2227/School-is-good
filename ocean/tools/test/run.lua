@@ -48,7 +48,7 @@ if ship then for _, o in ipairs(ship.model:GetDescendants()) do if o:IsA("BasePa
 say(string.format("ship built: %s (%d parts, health %s), players on board %d/3, phase %s", tostring(ship ~= nil), nparts, ship and ship.hp or "?", aboard, D.STATE.phase))
 -- each disaster on its own, against a fresh ship
 local results = {}
-for _, name in ipairs({ "Big Waves", "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack" }) do
+for _, name in ipairs({ "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack" }) do
 	local before = #MOCK.errors
 	D.buildShip()
 	ship = D.getShip()

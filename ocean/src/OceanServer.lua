@@ -459,18 +459,21 @@ local function waveWall(height, shipDmg, dmg, fromSide)
 end
 
 local DIS = {}
-DIS["Big Waves"] = { text = "BIG WAVES! Hold on to something!", run = function()
+-- the open ocean: in every round normal waves keep rolling into the ship (on top of the disaster), rocking it,
+-- knocking people about and wearing the ship down a little
+local function oceanWaves()
 	local alive = true
-	SEA.waves = 3
+	SEA.calm = 2
+	SEA.waves = math.max(SEA.waves, 2)
 	spawn(function()
-		wait(3)
+		wait(4)
 		while alive do
-			waveWall(math.random(18, 30), 70, 8)
-			wait(math.random(6, 10))
+			waveWall(math.random(14, 22), 35, 4)
+			wait(math.random(9, 15))
 		end
 	end)
-	return function() alive = false SEA.waves = 1 end
-end }
+	return function() alive = false SEA.calm = 1 SEA.waves = SEA.calm or 1 end
+end
 DIS.Tsunami = { text = "TSUNAMI! A giant wave is coming!", run = function()
 	local alive = true
 	spawn(function()
@@ -558,7 +561,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 	return function()
 		alive = false
 		WIND.v = V()
-		SEA.waves = 1
+		SEA.waves = SEA.calm or 1
 		toAll("weather", "clear")
 		pcall(function()
 			Lighting.TimeOfDay = old.t
@@ -678,9 +681,9 @@ DIS["Shark Attack"] = { text = "SHARK ATTACK! Don't fall in the water!", run = f
 			end
 		end
 	end)
-	return function() alive = false SEA.waves = 1 for _, s in ipairs(sharks) do s.m:Destroy() end end
+	return function() alive = false SEA.waves = SEA.calm or 1 for _, s in ipairs(sharks) do s.m:Destroy() end end
 end }
-local ORDER = { "Big Waves", "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack" }
+local ORDER = { "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack" }
 
 ------------------------------------------------------------------ rounds: lobby -> everyone onto the ship -> disaster -> back
 local STATE = { phase = "intermission", left = 0, disaster = "" }
@@ -728,7 +731,7 @@ spawn(function()
 			local texts = {}
 			for _, n in ipairs(list) do table.insert(texts, DIS[n].text) end
 			toAll("big", string.upper(names), table.concat(texts, "  "))
-			local stops = {}
+			local stops = { oceanWaves() }
 			for _, n in ipairs(list) do
 				local ok, stop = pcall(DIS[n].run)
 				if ok and stop then table.insert(stops, stop) else print("OceanServer: " .. n .. " failed: " .. tostring(stop)) end
