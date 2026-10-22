@@ -431,6 +431,117 @@ SHIPS["Fishing Boat"] = function()
 	return B, hull, LEN, WID, DECK
 end
 
+------------------------------------------------------------------ 5. CARGO SHIP: long, stacks of containers, a bridge tower at the back
+SHIPS["Cargo Ship"] = function()
+	local B = newBuilder("Big Bertha (Cargo Ship)")
+	local LEN, WID, DECK = 180, 32, 10
+	local hull = B.box("Hull", WID, DECK + 8, LEN, 0, -8, 0, "Really black", "Metal")
+	B.box("HullRed", WID + 0.2, 6, LEN + 0.2, 0, -8, 0, "Bright red", "Metal", { nc = true })
+	for i = 1, 3 do B.box("Bow", WID - i * 7, DECK + 8 - i, 7, 0, -8 + i, -LEN / 2 - i * 7 + 3.5, "Really black", "Metal") end
+	B.box("Deck", WID - 1, 1, LEN - 1, 0, DECK, 0, "Medium stone grey", "DiamondPlate")
+	local D = DECK + 1
+	for _, s in ipairs({ -1, 1 }) do
+		B.box("RailTop", 0.4, 0.4, LEN - 4, s * (WID / 2 - 0.5), D + 3, 0, "Bright yellow", "Metal")
+		for z = -LEN / 2 + 3, LEN / 2 - 3, 8 do B.box("RailPost", 0.4, 3, 0.4, s * (WID / 2 - 0.5), D, z, "Bright yellow", "Metal") end
+	end
+	-- containers: rows of colourful boxes, stacked 1-3 high, with walkways between them
+	local colors = { "Bright red", "Bright blue", "Bright green", "Bright orange", "Bright yellow", "Teal", "Royal purple" }
+	for row = 0, 5 do
+		local z = -70 + row * 22
+		for _, x in ipairs({ -9, 0, 9 }) do
+			local h = 1 + (row + math.floor(x / 9) + 2) % 3
+			for k = 0, h - 1 do B.box("Container", 8, 8, 18, x, D + k * 8, z, colors[(row * 3 + k + x) % #colors + 1], "Metal", nil, true) end
+		end
+	end
+	-- the bridge tower at the back: a room on top with windows all round
+	B.box("Tower", 26, 18, 20, 0, D, 72, "Institutional white", "SmoothPlastic")
+	B.room("Bridge", 0, D + 18, 72, 28, 20, 8, { n = 0 }, { ceiling = true })
+	B.box("Wheel", 6, 3, 2, 0, D + 18, 78, "Dark stone grey", "Metal")
+	B.box("Funnel", 8, 14, 8, 0, D + 26, 78, "Bright red", "Metal")
+	B.ladder(-12, D, 61, 18)
+	B.ladder(12, D, 61, 18)
+	for _, z in ipairs({ -78, -50, -28, -6, 16, 38 }) do for _, x in ipairs({ -13.5, 13.5 }) do B.spot(x, D, z) end end
+	for _, s in ipairs({ -1, 1 }) do for _, z in ipairs({ -40, 40 }) do B.lifeboat(s * (WID / 2 + 4), DECK + 2, z, "Bright orange") end end
+	B.halloween(LEN, WID, D)
+	return B, hull, LEN, WID, DECK
+end
+
+------------------------------------------------------------------ 6. LUXURY YACHT: white and sleek, a lounge, a sky lounge on top, a hot tub
+SHIPS["Luxury Yacht"] = function()
+	local B = newBuilder("Golden Wave (Luxury Yacht)")
+	local LEN, WID, DECK = 110, 26, 8
+	local hull = B.box("Hull", WID, DECK + 7, LEN, 0, -7, 0, "Institutional white", "SmoothPlastic")
+	B.box("Waterline", WID + 0.2, 2, LEN + 0.2, 0, -1, 0, "Navy blue", "SmoothPlastic", { nc = true })
+	B.box("GoldStripe", WID + 0.3, 0.6, LEN + 0.3, 0, DECK - 2, 0, "Gold", "SmoothPlastic", { nc = true })
+	for i = 1, 4 do B.box("Bow", WID - i * 5, DECK + 7 - i, 6, 0, -7 + i, -LEN / 2 - i * 6 + 3, "Institutional white", "SmoothPlastic") end
+	B.box("Deck", WID - 1, 1, LEN - 1, 0, DECK, 0, "Brick yellow", "WoodPlanks")
+	local D = DECK + 1
+	for _, s in ipairs({ -1, 1 }) do
+		B.box("GlassRail", 0.3, 3, LEN - 6, s * (WID / 2 - 0.4), D, 0, "Pastel light blue", "Glass", { tr = 0.5 })
+	end
+	-- the main lounge (glass all round) and the sky lounge on its roof
+	B.room("MainLounge", 0, D, 10, 20, 36, 8, { n = 0, s = 0 }, { color = "Institutional white", floor = "Light stone grey", floorMat = "Marble", ceiling = true })
+	for i = 0, 2 do B.box("Sofa", 3, 2, 8, -7, D, -2 + i * 10, "Bright blue", "Fabric") end
+	B.box("Bar", 3, 3.5, 10, 7.5, D, 10, "Really black", "Marble")
+	B.room("SkyLounge", 0, D + 9, 16, 16, 20, 7, { n = 0 }, { color = "Institutional white", ceiling = true })
+	B.ladder(9, D, -9, 9.5)
+	-- the hot tub and sun loungers at the front, a jet ski at the back
+	B.box("HotTub", 10, 2.5, 10, 0, D, -30, "Institutional white", "SmoothPlastic")
+	local water = B.box("TubWater", 9, 0.4, 9, 0, D + 2.2, -30, "Cyan", "Neon", { nc = true })
+	light(water, Color3.new(0.3, 0.9, 1), 16, 1)
+	for _, x in ipairs({ -8, 8 }) do for _, z in ipairs({ -44, -38 }) do B.box("SunLounger", 3, 1.2, 6, x, D, z, "Institutional white", "Fabric") end end
+	B.box("JetSki", 4, 2, 7, 0, D, 48, "Bright red", "SmoothPlastic", nil, true)
+	for _, z in ipairs({ -40, -24, 34, 46 }) do for _, x in ipairs({ -7, 7 }) do B.spot(x, D, z) end end
+	B.spot(0, D + 9, 16)
+	for _, s in ipairs({ -1, 1 }) do B.lifeboat(s * (WID / 2 + 4), DECK + 2, 30, "Institutional white") end
+	B.halloween(LEN, WID, D)
+	return B, hull, LEN, WID, DECK
+end
+
+------------------------------------------------------------------ 7. VIKING LONGSHIP: low and open, shields along the sides, a dragon head, a big striped sail
+SHIPS["Viking Longship"] = function()
+	local B = newBuilder("Sea Wolf (Viking Longship)")
+	local LEN, WID, DECK = 90, 20, 5
+	local wood, dark = "Brown", "Reddish brown"
+	local hull = B.box("Hull", WID, DECK + 7, LEN, 0, -7, 0, wood, "Wood")
+	for i = 1, 4 do
+		B.box("Bow", WID - i * 4, DECK + 7 + i, 5, 0, -7, -LEN / 2 - i * 5 + 2.5, wood, "Wood")
+		B.box("Stern", WID - i * 4, DECK + 7 + i, 5, 0, -7, LEN / 2 + i * 5 - 2.5, wood, "Wood")
+	end
+	-- the dragon head on the bow and a curled tail on the stern
+	B.box("DragonNeck", 2.5, 8, 2.5, 0, DECK + 4, -LEN / 2 - 21, dark, "Wood")
+	B.box("DragonHead", 3, 3, 6, 0, DECK + 12, -LEN / 2 - 23, dark, "Wood")
+	for _, s in ipairs({ -1, 1 }) do B.box("DragonEye", 0.4, 0.8, 0.8, s * 1.6, DECK + 13.5, -LEN / 2 - 25, "Bright yellow", "Neon", { nc = true }) end
+	B.box("Tail", 2, 9, 2, 0, DECK + 4, LEN / 2 + 21, dark, "Wood")
+	B.box("Deck", WID - 1, 1, LEN - 1, 0, DECK, 0, "Brick yellow", "WoodPlanks")
+	local D = DECK + 1
+	-- shields along both sides, oars, rowing benches
+	local shieldColors = { "Bright red", "Bright yellow", "Bright blue", "Institutional white" }
+	for _, s in ipairs({ -1, 1 }) do
+		B.box("Gunwale", 0.8, 2.5, LEN, s * (WID / 2 - 0.4), D, 0, dark, "Wood")
+		for i = 0, 9 do
+			local z = -36 + i * 8
+			B.part("Shield", V(0.6, 4, 4), CFrame.new(s * (WID / 2 + 0.2), D + 2, z), shieldColors[i % 4 + 1], "Wood", { shape = "cyl" }, true)
+			B.part("Oar", V(0.5, 0.5, 18), CFrame.new(s * (WID / 2 + 7), D, z) * CFrame.Angles(0, math.rad(90), math.rad(s * 20)), dark, "Wood", { nc = true }, true)
+		end
+	end
+	for z = -32, 32, 8 do B.box("Bench", WID - 4, 1, 1.6, 0, D, z, dark, "Wood") end
+	-- the mast and the big red-and-white striped sail
+	B.box("Mast", 1.8, 46, 1.8, 0, D, 0, dark, "Wood", nil, true)
+	B.part("Yard", V(30, 1, 1), CFrame.new(0, D + 40, 0), dark, "Wood", nil, true)
+	for i = 0, 5 do
+		local c = theme == "Halloween" and (i % 2 == 0 and "Really black" or "Royal purple") or (i % 2 == 0 and "Bright red" or "Institutional white")
+		B.part("Sail", V(4.6, 26, 0.4), CFrame.new(-11.5 + i * 4.6, D + 26, 0.8), c, "Fabric", { nc = true }, true)
+	end
+	-- the chieftain's tent at the back
+	B.room("ChiefsTent", 0, D, 30, 14, 14, 7, { n = 0 }, { color = "Brick yellow", noWindows = true, ceiling = true, ceilColor = "Bright red" })
+	B.box("Chest", 3, 2.4, 2.4, 4, D, 34, "Gold", "Metal", nil, true)
+	for _, z in ipairs({ -30, -14, 6, 18 }) do for _, x in ipairs({ -5, 5 }) do B.spot(x, D, z) end end
+	for _, s in ipairs({ -1, 1 }) do B.lifeboat(s * (WID / 2 + 10), DECK + 1, -10, "Brown") end
+	B.halloween(LEN, WID, D)
+	return B, hull, LEN, WID, DECK
+end
+
 local function buildShip(kind)
 	if ship then pcall(function() ship.model:Destroy() end) end
 	local B, hull, LEN, WID, DECK = SHIPS[kind]()

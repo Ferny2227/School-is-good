@@ -216,8 +216,10 @@ end
 -- the vote stations: step on a pad to vote. Boats on the left wall, themes on the right wall.
 local votes = { boat = {}, theme = {} }
 local voteLabels = { boat = {}, theme = {} }
-local BOAT_NAMES = { "Cruise Liner", "Pirate Galleon", "Navy Destroyer", "Fishing Boat" }
-local BOAT_COLORS = { "Bright blue", "Brown", "Medium stone grey", "Bright red" }
+local BOAT_NAMES = { "Cruise Liner", "Pirate Galleon", "Navy Destroyer", "Fishing Boat", "Cargo Ship", "Luxury Yacht", "Viking Longship" }
+local BOAT_COLORS = { "Bright blue", "Bright yellow", "Bright red" }
+-- every game you get 3 random boats to vote on (out of all of them); themes are always the same 3
+local options = { boat = { "Fishing Boat", "Cruise Liner", "Pirate Galleon" }, theme = THEME_ORDER }
 local THEME_COLORS = { "Bright green", "Bright orange", "Royal purple" }
 local function countVotes(kind)
 	local n = {}
@@ -227,7 +229,10 @@ end
 local function refreshVotes()
 	for _, kind in ipairs({ "boat", "theme" }) do
 		local n = countVotes(kind)
-		for name, lab in pairs(voteLabels[kind]) do lab.Text = name .. "\n" .. (n[name] or 0) .. " votes" end
+		for i, lab in pairs(voteLabels[kind]) do
+			local name = options[kind][i]
+			lab.Text = name .. "\n" .. (n[name] or 0) .. " votes"
+		end
 	end
 end
 local function votePads(kind, names, colors, x, title)
@@ -238,9 +243,10 @@ local function votePads(kind, names, colors, x, title)
 		local padX = x + (x < 0 and 7 or -7)
 		local pad = lb("VotePad", 8, 0.4, 8, padX, 1, z, colors[i], "Neon")
 		local plate = lb("VoteSign", 0.6, 4.5, 9.4, x + (x < 0 and 1.1 or -1.1), 2.5, z, "Institutional white", "SmoothPlastic")
-		voteLabels[kind][name] = sign(plate, name .. "\n0 votes", x < 0 and "Right" or "Left", Color3.new(0.1, 0.1, 0.2))
+		voteLabels[kind][i] = sign(plate, name .. "\n0 votes", x < 0 and "Right" or "Left", Color3.new(0.1, 0.1, 0.2))
 		pad.Touched:connect(function(hit)
 			local p = hit.Parent and Players:GetPlayerFromCharacter(hit.Parent)
+			local name = options[kind][i]      -- (the boats on the pads change every game)
 			if p and votes[kind][p] ~= name then
 				votes[kind][p] = name
 				refreshVotes()
@@ -249,7 +255,16 @@ local function votePads(kind, names, colors, x, title)
 		end)
 	end
 end
-votePads("boat", BOAT_NAMES, BOAT_COLORS, HX - HW / 2 + 2, "VOTE: WHICH BOAT?")
+votePads("boat", options.boat, BOAT_COLORS, HX - HW / 2 + 2, "VOTE: WHICH BOAT?")
+local function newBoatChoice()
+	local pool = {}
+	for _, n in ipairs(BOAT_NAMES) do table.insert(pool, n) end
+	for i = #pool, 2, -1 do local j = math.random(1, i) pool[i], pool[j] = pool[j], pool[i] end
+	options.boat = { pool[1], pool[2], pool[3] }
+	votes.boat = {}
+	refreshVotes()
+end
+newBoatChoice()
 votePads("theme", THEME_ORDER, THEME_COLORS, HX + HW / 2 - 2, "VOTE: MAP THEME")
 local function winner(kind, names, default)
 	local n = countVotes(kind)

@@ -16,7 +16,12 @@ Open/upload `DisasterOcean.rbxl`.
   - Fishing Boat (the Lucky Catch): small and red, with a wheelhouse, a crane, outriggers and nets on deck, and two
     hatches with ladders down to the rooms below deck: galley, mess room, bunk room, captain's cabin, fish hold, net
     locker, storage, radio room and the engine room.
-  - (No seats on any boat.)
+  - Cargo Ship (Big Bertha): stacks of colourful containers and a bridge tower with a funnel.
+  - Luxury Yacht (Golden Wave): glass lounge, sky lounge, hot tub, sun loungers, a jet ski.
+  - Viking Longship (Sea Wolf): dragon head, shields and oars along the sides, a striped sail, the chief's tent.
+  - (No seats on any boat.) Every game the lobby offers 3 random boats to vote on.
+- **Saved wins**: Wins are saved between visits (DataStore) and the lobby board shows the all-time top winners
+  (OrderedDataStore); if the server can't use DataStores, it shows who's in the server instead.
   - Navy Destroyer: mess hall, bunk room, a bridge with radar screens, a radar mast, gun turrets, a helipad,
     6 life rafts.
 - **The sea**: huge rolling swells (like Sea of Thieves, ~30 studs from trough to crest, taller than the boats) come
@@ -40,7 +45,8 @@ Open/upload `DisasterOcean.rbxl`.
   +40 Coins for each one you live through) until only ONE player is left alive: they win (+1 Win, +150 Coins). Alone,
   it goes on until you die. Then it resets to the sky lobby. The boats can't break or sink. Fell in? Press jump to
   leap back onto the boat.
-- **Disasters** (sometimes two at once): Tsunami (a MASSIVE 250-stud wall of water that rises out of the fog), Hailstorm, Whirlpool (spins the boat and drags it down), Iceberg (rips the
+- **Disasters** (sometimes two at once): Tsunami (a MASSIVE 250-stud wall of water that rises out of the fog), Lightning Storm (jagged bolts striking
+  near players), Hailstorm, Whirlpool (spins the boat and drags it down), Iceberg (rips the
   hull open), Ghost Ship (fires cannonballs), Tsunami (one giant swell rises ahead and lifts the whole boat), Tornado (picks
   the boat up out of the sea, spins it and drops it), Hurricane (even bigger seas, wind, lightning), Meteor Shower,
   the Kraken, Shark Attack.

@@ -10,6 +10,41 @@ local function sendShip()
 	if ship and ship.model.Parent then toAll("ship", math.max(0, math.floor(ship.hp)), ship.max, ship.sinking ~= nil, ship.kind)
 	else toAll("ship", nil) end
 end
+-- SAVED WINS: your Wins are kept between visits (DataStore), and the board shows the all-time top winners
+-- (OrderedDataStore). If this server can't use DataStores, wins just last for the visit and the board shows who's here.
+local winStore, topStore
+pcall(function() winStore = game:GetService("DataStoreService"):GetDataStore("DisasterOceanWins1") end)
+pcall(function() topStore = game:GetService("DataStoreService"):GetOrderedDataStore("DisasterOceanTopWins1") end)
+local function idOf(p) local ok, id = pcall(function() return p.UserId end) return ok and id or p.userId end
+local function loadWins(p)
+	if not winStore then return end
+	spawn(function()
+		local ok, v = pcall(function() return winStore:GetAsync("u" .. idOf(p)) end)
+		local w = stats(p):FindFirstChild("Wins")
+		if ok and tonumber(v) and w and tonumber(v) > w.Value then w.Value = tonumber(v) end
+	end)
+end
+local function saveWins(p)
+	local w = stats(p):FindFirstChild("Wins")
+	if not w then return end
+	local val, key, name = w.Value, "u" .. idOf(p), p.Name
+	spawn(function()
+		if winStore then pcall(function() winStore:SetAsync(key, val) end) end
+		if topStore then pcall(function() topStore:SetAsync(name, val) end) end
+	end)
+end
+local allTime = nil
+spawn(function()
+	while topStore do
+		pcall(function()
+			local page = topStore:GetSortedAsync(false, 5):GetCurrentPage()
+			local list = {}
+			for _, e in ipairs(page) do table.insert(list, { n = e.key, w = e.value }) end
+			allTime = list
+		end)
+		wait(60)
+	end
+end)
 -- LAST ONE STANDING: once the boat leaves, disasters keep coming one after another (with a short calm in between)
 -- until only ONE player is left alive - they win (+1 Win, +150 Coins). Playing alone, it goes on until you die.
 -- Then it resets: back to the sky lobby, vote, and a new boat. Every disaster you live through pays Coins.
@@ -79,9 +114,9 @@ spawn(function()
 			game_ = game_ + 1
 			-- the votes: which theme for the whole map, which boat
 			setTheme(winner("theme", THEME_ORDER, theme))
-			local kind = winner("boat", BOAT_NAMES, "Fishing Boat")
+			local kind = winner("boat", options.boat, pick(options.boat))
 			votes.boat, votes.theme = {}, {}
-			refreshVotes()
+			newBoatChoice()        -- 3 new random boats on the pads for next time
 			buildShip(kind)
 			seaSailing.Value = true
 			seaShipLen.Value = ship.len
@@ -165,6 +200,7 @@ spawn(function()
 				addCoins(winner, 150)
 				local w = stats(winner):FindFirstChild("Wins")
 				if w then w.Value = w.Value + 1 end
+				saveWins(winner)
 				toAll("big", string.upper(winner.Name) .. " WINS!", "Last one standing! +1 Win, +150 Coins")
 				toAll("survivors", { winner.Name }, false)
 			else
@@ -202,13 +238,16 @@ spawn(function()
 			else
 				BOARD.sea.Text = "NEXT BOAT LEAVES IN " .. STATE.left .. "s\nVote on the pads!"
 			end
-			local list = {}
-			for _, p in ipairs(Players:GetPlayers()) do
-				local w = stats(p):FindFirstChild("Wins")
-				table.insert(list, { n = p.Name, w = w and w.Value or 0 })
+			local list = allTime
+			if not list or #list == 0 then
+				list = {}
+				for _, p in ipairs(Players:GetPlayers()) do
+					local w = stats(p):FindFirstChild("Wins")
+					table.insert(list, { n = p.Name, w = w and w.Value or 0 })
+				end
+				table.sort(list, function(a, b) return a.w > b.w end)
 			end
-			table.sort(list, function(a, b) return a.w > b.w end)
-			local lines = { "TOP WINNERS" }
+			local lines = { allTime and #allTime > 0 and "TOP WINNERS (ALL TIME)" or "TOP WINNERS" }
 			for i = 1, math.min(5, #list) do table.insert(lines, i .. ". " .. list[i].n .. "  -  " .. list[i].w .. " wins") end
 			BOARD.top.Text = table.concat(lines, "\n")
 		end)
@@ -217,6 +256,7 @@ spawn(function()
 end)
 Players.PlayerAdded:connect(function(p)
 	stats(p)
+	loadWins(p)
 	p.CharacterAdded:connect(function(c)
 		local h = c:WaitForChild("Humanoid")
 		h.Died:connect(function() inRound[p] = nil diedThisGame[p] = true ghosts[p] = nil end)
@@ -229,7 +269,7 @@ Players.PlayerAdded:connect(function(p)
 	end)
 end)
 for _, p in ipairs(Players:GetPlayers()) do stats(p) end
-Players.PlayerRemoving:connect(function(p) swimmers[p], inRound[p] = nil, nil end)
+Players.PlayerRemoving:connect(function(p) swimmers[p], inRound[p] = nil, nil saveWins(p) end)
 -- jumping out of the water: a big leap up and towards the boat, high enough to land back on the deck
 local swimJump = {}
 remote.OnServerEvent:connect(function(p, what)
@@ -277,5 +317,5 @@ spawn(function()
 end)
 _G.OceanDebug = { DIS = DIS, SEA = SEA, swimmers = swimmers, STATE = STATE, getShip = function() return ship end,
 	buildShip = buildShip, damageShip = damageShip, deckSpot = deckSpot, onShip = onShip, shipFrame = shipFrame,
-	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, rogue = rogue, waveAt = waveAt, dipShip = dipShip, ghosts = function() return ghosts end, makeGhost = makeGhost, BOARD = BOARD, seaTime = seaTime, nextDisaster = function() return nextDisaster() end }
+	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, rogue = rogue, waveAt = waveAt, boatOptions = function() return options.boat end, dipShip = dipShip, ghosts = function() return ghosts end, makeGhost = makeGhost, BOARD = BOARD, seaTime = seaTime, nextDisaster = function() return nextDisaster() end }
 print("OceanServer ready")

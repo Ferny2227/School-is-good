@@ -46,6 +46,24 @@ local function nearPlayer(spread)
 	spread = spread or 6
 	return x.t.Position + V(math.random(-spread, spread), -2, math.random(-spread, spread))
 end
+-- a lightning bolt: a jagged line of glowing segments from the clouds down to `at`, a flash, and it hurts
+local function strike(at, dmg)
+	local m = model(junk, "LightningBolt")
+	local top = at + V(math.random(-30, 30), 260, math.random(-30, 30))
+	local prev = top
+	for i = 1, 8 do
+		local u = i / 8
+		local p = top + (at - top) * u + (i < 8 and V(math.random(-12, 12), 0, math.random(-12, 12)) or V())
+		local len = (p - prev).magnitude
+		P(m, "Bolt", V(1.4, 1.4, len), CFrame.new(prev, p) * CFrame.new(0, 0, -len / 2), "Institutional white", "Neon", { nc = true })
+		if i == 4 then P(m, "Branch", V(0.8, 0.8, 30), CFrame.new(p, p + V(math.random(-20, 20), -25, math.random(-20, 20))) * CFrame.new(0, 0, -15), "Pastel light blue", "Neon", { nc = true }) end
+		prev = p
+	end
+	light(P(m, "Glow", V(1, 1, 1), CFrame.new(at + V(0, 6, 0)), "Institutional white", "Neon", { nc = true, tr = 1 }), Color3.new(0.8, 0.9, 1), 60, 6)
+	Debris:AddItem(m, 0.3)
+	toAll("flash")
+	hurtNear(at, 8, dmg or 25, 25)
+end
 -- a random spot on (or just over) the ship
 local function onDeck(spread)
 	if not ship then return SHIP_AT end
@@ -169,11 +187,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 		while alive do
 			wait(math.random(8, 20) / 10)
 			local at = (math.random() < 0.7 and nearPlayer(5)) or onDeck()
-			local bolt = P(junk, "Lightning", V(1.2, 300, 1.2), CFrame.new(at + V(0, 150, 0)), "Institutional white", "Neon", { nc = true })
-			light(bolt, Color3.new(0.8, 0.9, 1), 60, 5)
-			Debris:AddItem(bolt, 0.25)
-			toAll("flash")
-			hurtNear(at, 8, 25, 25)
+			strike(at, 25)
 		end
 	end)
 	return function()
@@ -439,5 +453,21 @@ DIS["Ghost Ship"] = { text = "GHOST SHIP! Phantom pirates are firing cannons at 
 	end)
 	return function() alive = false m:Destroy() end
 end }
-local ORDER = { "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack", "Hailstorm", "Whirlpool", "Iceberg", "Ghost Ship" }
+DIS["Lightning Storm"] = { text = "LIGHTNING STORM! Bolts are striking the deck - keep moving!", run = function()
+	local alive = true
+	pcall(function() Lighting.OutdoorAmbient = Color3.new(0.25, 0.25, 0.32) Lighting.Brightness = 0.3 end)
+	spawn(function()
+		while alive do
+			wait(math.random(6, 14) / 10)
+			local at = (math.random() < 0.8 and nearPlayer(4)) or onDeck()
+			if math.random() < 0.25 then      -- sometimes two at once
+				local at2 = nearPlayer(8) or onDeck()
+				spawn(function() wait(0.15) strike(at2, 22) end)
+			end
+			strike(at, 30)
+		end
+	end)
+	return function() alive = false applyLighting() end
+end }
+local ORDER = { "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack", "Hailstorm", "Whirlpool", "Iceberg", "Ghost Ship" , "Lightning Storm" }
 

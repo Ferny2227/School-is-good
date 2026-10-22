@@ -41,7 +41,7 @@ MOCK.run(1)
 say("terrain water: " .. tostring(D.terrainWater))
 -- the three boats: parts, rooms, places to stand
 local function count(m, pred) local n = 0 for _, o in ipairs(m:GetDescendants()) do if pred(o) then n = n + 1 end end return n end
-for _, kind in ipairs({ "Cruise Liner", "Pirate Galleon", "Navy Destroyer", "Fishing Boat" }) do
+for _, kind in ipairs({ "Cruise Liner", "Pirate Galleon", "Navy Destroyer", "Fishing Boat", "Cargo Ship", "Luxury Yacht", "Viking Longship" }) do
 	local before = #MOCK.errors
 	local sh = D.buildShip(kind)
 	local parts = count(sh.model, function(o) return o:IsA("BasePart") end)
@@ -67,8 +67,10 @@ local function touchPad(p, kind, name)
 	end
 	return false
 end
-local okv = touchPad(ps[1], "boat", "Pirate Galleon") and touchPad(ps[2], "boat", "Pirate Galleon") and touchPad(ps[3], "boat", "Navy Destroyer")
+local bo = D.boatOptions()
+local okv = touchPad(ps[1], "boat", bo[2]) and touchPad(ps[2], "boat", bo[2]) and touchPad(ps[3], "boat", bo[3])
 	and touchPad(ps[1], "theme", "Halloween") and touchPad(ps[2], "theme", "Halloween") and touchPad(ps[3], "theme", "Sunset")
+local expectBoat = bo[2]
 MOCK.run(1)
 -- the round starts: the winners are used and everyone goes aboard
 for _ = 1, 100 do MOCK.run(0.5) if D.STATE.phase == "boarding" then break end end
@@ -76,13 +78,14 @@ MOCK.run(1)
 local ship = D.getShip()
 local aboard = 0
 for _, p in ipairs(ps) do if ship and D.onShip(p.Character.Torso.Position) then aboard = aboard + 1 end end
-say(string.format("votes cast: %s; round started with the %s, theme %s, players on board %d/3", tostring(okv), ship and ship.kind or "?", D.getTheme(), aboard))
+say(string.format("votes cast: %s (3 random boats: %s); round started with the %s (expected %s), theme %s, players on board %d/3", tostring(okv),
+	table.concat(bo, ", "), ship and ship.kind or "?", expectBoat, D.getTheme(), aboard))
 -- hold the round loop so the next tests aren't mixed up with a real round's disaster
 D.STATE.hold = true
 for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "intermission" then break end end
 -- each disaster on its own, against a fresh cruise liner
 local results = {}
-for _, name in ipairs({ "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack", "Hailstorm", "Whirlpool", "Iceberg", "Ghost Ship" }) do
+for _, name in ipairs({ "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack", "Hailstorm", "Whirlpool", "Iceberg", "Ghost Ship", "Lightning Storm" }) do
 	local before = #MOCK.errors
 	D.buildShip("Cruise Liner")
 	ship = D.getShip()
