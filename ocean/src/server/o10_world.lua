@@ -118,85 +118,89 @@ for i = 0, 39 do   -- a see-through fence round the edge
 	local a = i / 40 * math.pi * 2
 	P(LOBBY, "Fence", V(12.5, 6, 0.6), L(math.cos(a) * 74, 3, math.sin(a) * 74) * CFrame.Angles(0, -a + math.pi / 2, 0), "Pastel light blue", "Glass", { tr = 0.75 })
 end
--- the house (front door and big porch facing the sea, where the boat is)
-local HX, HZ, HW, HD, HH = 0, 15, 64, 44, 16
-lb("Floor", HW, 1, HD, HX, 0, HZ, "Brown", "WoodPlanks")
+-- the house (front door and big porch facing the sea, where the boat is). Inside: the boards on the back wall, boat
+-- votes along the left wall, theme votes along the right, a carpet runner down the middle, a fireplace corner.
+local HX, HZ, HW, HD, HH = 0, 15, 96, 64, 22
 local wallColor = "Institutional white"
--- back wall with windows
+lb("Floor", HW, 1, HD, HX, 0, HZ, "Brown", "WoodPlanks")
 lb("WallBack", HW, HH, 1, HX, 1, HZ + HD / 2, wallColor, "SmoothPlastic")
-for _, s in ipairs({ -1, 1 }) do
-	lb("WallSide", 1, HH, HD, HX + s * HW / 2, 1, HZ, wallColor, "SmoothPlastic")
-	lb("SideWindow", 1.2, 5, 18, HX + s * HW / 2, 6, HZ, "Pastel light blue", "Glass", { tr = 0.4 })
-end
+for _, s in ipairs({ -1, 1 }) do lb("WallSide", 1, HH, HD, HX + s * HW / 2, 1, HZ, wallColor, "SmoothPlastic") end
 -- front wall: big windows either side of a wide door
 for _, s in ipairs({ -1, 1 }) do
-	lb("WallFront", HW / 2 - 6, 4, 1, HX + s * (HW / 4 + 3), 1, HZ - HD / 2, wallColor, "SmoothPlastic")
-	lb("FrontWindow", HW / 2 - 6, 8, 0.6, HX + s * (HW / 4 + 3), 5, HZ - HD / 2, "Pastel light blue", "Glass", { tr = 0.4 })
-	lb("WallFront", HW / 2 - 6, HH - 12, 1, HX + s * (HW / 4 + 3), 13, HZ - HD / 2, wallColor, "SmoothPlastic")
+	local w, x = HW / 2 - 7, HX + s * (HW / 4 + 3.5)
+	lb("WallFront", w, 4, 1, x, 1, HZ - HD / 2, wallColor, "SmoothPlastic")
+	lb("FrontWindow", w, 10, 0.6, x, 5, HZ - HD / 2, "Pastel light blue", "Glass", { tr = 0.4 })
+	lb("WallFront", w, HH - 14, 1, x, 15, HZ - HD / 2, wallColor, "SmoothPlastic")
 end
-lb("Lintel", 12, HH - 9, 1, HX, 10, HZ - HD / 2, wallColor, "SmoothPlastic")
-lb("Roof", HW + 8, 1.2, HD + 10, HX, HH + 1, HZ - 2, "Dark stone grey", "Slate")
-lb("RoofTrim", HW + 9, 1, HD + 11, HX, HH + 2.2, HZ - 2, "Bright red", "SmoothPlastic")
-lb("Chimney", 5, 10, 5, HX + 20, HH + 2, HZ + 12, "Brick yellow", "Brick")
-local houseSign = lb("HouseSign", 30, 4, 0.6, HX, HH - 3.5, HZ - HD / 2 - 0.9, "Navy blue", "SmoothPlastic")
+lb("Lintel", 14, HH - 10, 1, HX, 11, HZ - HD / 2, wallColor, "SmoothPlastic")
+lb("Ceiling", HW, 0.6, HD, HX, HH + 0.6, HZ, "Light stone grey", "SmoothPlastic")
+lb("Roof", HW + 8, 1.2, HD + 10, HX, HH + 1.2, HZ - 2, "Dark stone grey", "Slate")
+lb("RoofTrim", HW + 9, 1, HD + 11, HX, HH + 2.4, HZ - 2, "Bright red", "SmoothPlastic")
+lb("Chimney", 5, 10, 5, HX + 36, HH + 2, HZ + 24, "Brick yellow", "Brick")
+local houseSign = lb("HouseSign", 36, 5, 0.6, HX, HH - 4, HZ - HD / 2 - 0.9, "Navy blue", "SmoothPlastic")
 sign(houseSign, "DISASTER OCEAN", "Front", Color3.new(1, 0.85, 0.3))
+-- wood panelling on the lower walls with a navy trim line
+lb("Panelling", HW - 2, 5, 0.4, HX, 1, HZ + HD / 2 - 0.7, "Reddish brown", "Wood")
+lb("PanelTrim", HW - 2, 0.5, 0.5, HX, 6, HZ + HD / 2 - 0.75, "Navy blue", "SmoothPlastic")
+for _, s in ipairs({ -1, 1 }) do
+	lb("Panelling", 0.4, 5, HD - 2, HX + s * (HW / 2 - 0.7), 1, HZ, "Reddish brown", "Wood")
+	lb("PanelTrim", 0.5, 0.5, HD - 2, HX + s * (HW / 2 - 0.75), 6, HZ, "Navy blue", "SmoothPlastic")
+end
 -- porch with chairs, lamps and a telescope pointing at the boat
 lb("Porch", HW + 4, 0.8, 18, HX, 0, HZ - HD / 2 - 9, "Reddish brown", "WoodPlanks")
-for _, x in ipairs({ -26, -14, 14, 26 }) do lb("PorchChair", 3, 1.2, 3, x, 1, HZ - HD / 2 - 12, "Bright red", "Fabric", { class = "Seat" }) end
-for _, x in ipairs({ -32, 32 }) do
+for _, x in ipairs({ -36, -24, 24, 36 }) do lb("PorchChair", 3, 1.2, 3, x, 1, HZ - HD / 2 - 12, "Bright red", "Fabric", { class = "Seat" }) end
+for _, x in ipairs({ -46, 46 }) do
 	lb("LampPost", 0.6, 10, 0.6, x, 0.8, HZ - HD / 2 - 16, "Really black", "Metal")
 	light(lb("Lamp", 1.6, 1.6, 1.6, x, 10.8, HZ - HD / 2 - 16, "Cool yellow", "Neon"), Color3.new(1, 0.9, 0.6), 22, 1.5)
 end
 local scope = P(LOBBY, "Telescope", V(1.2, 1.2, 6), L(0, 4.5, HZ - HD / 2 - 15) * CFrame.Angles(math.rad(-20), 0, 0), "Gold", "Metal")
 lb("TelescopeLeg", 0.4, 3.6, 0.4, 0, 0.8, HZ - HD / 2 - 14, "Really black", "Metal")
--- inside: spawn, a couch, a fireplace, the vote stations
-local spawnPad = P(LOBBY, "SpawnLocation", V(14, 1, 10), L(HX, 1.5, HZ + 4), "Bright blue", "SmoothPlastic", { class = "SpawnLocation" })
+-- inside: the spawn near the door (you face the boards on the back wall), a carpet runner down the middle
+local spawnPad = P(LOBBY, "SpawnLocation", V(14, 1, 10), L(HX, 1.5, HZ - HD / 2 + 12) * CFrame.Angles(0, math.pi, 0), "Bright blue", "SmoothPlastic", { class = "SpawnLocation" })
 pcall(function() spawnPad.Duration = 0 end)
-lb("Rug", 30, 0.2, 16, HX, 1, HZ + 4, "Bright red", "Fabric", { nc = true })
-lb("Fireplace", 10, 8, 3, HX + 20, 1, HZ + HD / 2 - 2, "Brick yellow", "Brick")
-local fire = lb("Fire", 5, 2, 1, HX + 20, 2, HZ + HD / 2 - 3.6, "Neon orange", "Neon", { nc = true })
-light(fire, Color3.new(1, 0.55, 0.2), 20, 2)
-for i = 0, 2 do lb("Couch", 4, 2, 3, HX - 26 + i * 4.5, 1, HZ + HD / 2 - 3, "Royal purple", "Fabric", { class = "Seat" }) end
--- wood panelling along the lower walls, and a skirting strip
-lb("Panelling", HW - 2, 4, 0.4, HX, 1, HZ + HD / 2 - 0.7, "Reddish brown", "Wood")
-for _, s in ipairs({ -1, 1 }) do
-	lb("Panelling", 0.4, 4, HD - 2, HX + s * (HW / 2 - 0.7), 1, HZ, "Reddish brown", "Wood")
-	lb("PanelTrim", 0.5, 0.4, HD - 2, HX + s * (HW / 2 - 0.75), 5, HZ, "Brown", "Wood")
+lb("Runner", 18, 0.2, HD - 4, HX, 1, HZ + 1, "Navy blue", "Fabric", { nc = true })
+for _, s in ipairs({ -1, 1 }) do lb("RunnerEdge", 1, 0.25, HD - 4, HX + s * 9.5, 1, HZ + 1, "Gold", "Fabric", { nc = true }) end
+-- three chandeliers down the middle
+for _, z in ipairs({ HZ - 18, HZ, HZ + 18 }) do
+	lb("ChandelierChain", 0.3, 3, 0.3, HX, HH - 2.4, z, "Gold", "Metal", { nc = true })
+	local c = P(LOBBY, "Chandelier", V(5, 5, 5), L(HX, HH - 4, z), "Cool yellow", "Neon", { shape = "ball", nc = true })
+	light(c, Color3.new(1, 0.9, 0.7), 40, 1.3)
 end
-lb("PanelTrim", HW - 2, 0.4, 0.5, HX, 5, HZ + HD / 2 - 0.75, "Brown", "Wood")
--- boards: how to play (back wall), what's happening at sea and the top winners (standing by the front windows)
+-- the fireplace corner at the back right, with couches round it
+lb("Fireplace", 12, 9, 3, HX + 34, 1, HZ + HD / 2 - 2, "Brick yellow", "Brick")
+lb("Mantel", 14, 0.8, 4, HX + 34, 10, HZ + HD / 2 - 2.5, "Reddish brown", "Wood")
+local fire = lb("Fire", 6, 2.5, 1, HX + 34, 2, HZ + HD / 2 - 3.6, "Neon orange", "Neon", { nc = true })
+light(fire, Color3.new(1, 0.55, 0.2), 24, 2)
+for i = 0, 2 do lb("Couch", 4, 2, 3, HX + 29.5 + i * 4.5, 1, HZ + HD / 2 - 14, "Royal purple", "Fabric", { class = "Seat" }) end
+lb("CoffeeTable", 8, 1.6, 4, HX + 34, 1, HZ + HD / 2 - 9, "Brown", "Wood")
+-- the back wall: HOW TO PLAY in the middle, the sea board on the left, top winners on the right (all up on the wall)
 local BOARD = {}
 do
-	local how = lb("HowToPlayBoard", 26, 11, 0.6, HX - 2, 4, HZ + HD / 2 - 0.9, "Navy blue", "SmoothPlastic")
+	local how = lb("HowToPlayBoard", 30, 13, 0.6, HX, 6, HZ + HD / 2 - 1, "Navy blue", "SmoothPlastic")
 	sign(how, "HOW TO PLAY\n" ..
 		"1. Step on a glowing pad to vote for the next BOAT and the map THEME.\n" ..
-		"2. Everyone goes aboard. Huge waves rock the boat and disasters strike one after another.\n" ..
-		"3. Stay on the boat - the water hurts! Fell in? Press SPACE to leap back aboard.\n" ..
-		"4. Every disaster you live through: +40 Coins. LAST ONE STANDING WINS (+1 Win, +150 Coins).\n" ..
+		"2. Everyone goes aboard. A new EVENT every 10 seconds - every 3 it gets much harder.\n" ..
+		"3. Stay on the boat - waves try to throw you off and the water hurts! SPACE leaps you back.\n" ..
+		"4. Every event you live through pays Coins. LAST ONE STANDING WINS!\n" ..
 		"5. Joined late or died? Wait here, or play as a GHOST (ghosts don't count).", "Front", Color3.new(1, 1, 1))
 	for _, s in ipairs({ -1, 1 }) do
-		lb("BoardPost", 0.8, 9, 0.8, HX + s * 20, 1, HZ - HD / 2 + 7, "Really black", "Metal")
-		local b = lb(s < 0 and "SeaBoard" or "WinnersBoard", 16, 9, 0.6, HX + s * 20, 7, HZ - HD / 2 + 7, "Navy blue", "SmoothPlastic")
-		BOARD[s < 0 and "sea" or "top"] = sign(b, "", "Back", Color3.new(1, 0.9, 0.4))
+		local b = lb(s < 0 and "SeaBoard" or "WinnersBoard", 20, 9, 0.6, HX + s * 27, 11.5, HZ + HD / 2 - 1, s < 0 and "Really black" or "Navy blue", "SmoothPlastic")
+		BOARD[s < 0 and "sea" or "top"] = sign(b, "", "Front", Color3.new(1, 0.9, 0.4))
 	end
-	-- decorations: chandeliers, plants, an aquarium, a ship's wheel and an anchor on the walls, bookshelves
-	for _, x in ipairs({ -16, 16 }) do
-		lb("ChandelierChain", 0.3, 3, 0.3, HX + x, HH - 3, HZ, "Gold", "Metal", { nc = true })
-		light(lb("Chandelier", 4, 1.2, 4, HX + x, HH - 4.2, HZ, "Cool yellow", "Neon", { nc = true }), Color3.new(1, 0.9, 0.7), 30, 1.4)
+	-- plants in the corners, an aquarium by the window, a bookshelf
+	for _, c in ipairs({ { -44, HZ - HD / 2 + 3 }, { 44, HZ - HD / 2 + 3 }, { -44, HZ + HD / 2 - 3 }, { 18, HZ + HD / 2 - 3 } }) do
+		lb("PlantPot", 3, 2.4, 3, HX + c[1], 1, c[2], "Brown", "Wood")
+		P(LOBBY, "Plant", V(5, 5, 5), L(HX + c[1], 6, c[2]), "Bright green", "Grass", { shape = "ball", nc = true })
 	end
-	for _, c in ipairs({ { -29, HZ - HD / 2 + 3 }, { 29, HZ - HD / 2 + 3 }, { -29, HZ + 12 }, { 29, HZ + 2 } }) do
-		lb("PlantPot", 2.4, 2, 2.4, HX + c[1], 1, c[2], "Brown", "Wood")
-		P(LOBBY, "Plant", V(4, 4, 4), L(HX + c[1], 5, c[2]), "Bright green", "Grass", { shape = "ball", nc = true })
+	local AQ, AZ = HX - 20, HZ - HD / 2 + 3.5
+	lb("AquariumStand", 12, 3, 4, AQ, 1, AZ, "Brown", "Wood")
+	lb("Aquarium", 11, 6, 3.4, AQ, 4, AZ, "Pastel light blue", "Glass", { tr = 0.55, nc = true })
+	for i = 1, 6 do
+		P(LOBBY, "AquariumFish", V(0.7, 0.7, 1.4), L(AQ - 5 + i * 1.5, 5.5 + (i % 3), AZ + (i % 2 == 0 and 0.6 or -0.6)),
+			({ "Bright orange", "Bright yellow", "Bright red", "Lime green", "Bright blue", "Hot pink" })[i], "Neon", { nc = true })
 	end
-	local AQ, AZ = HX - 13, HZ - HD / 2 + 3.5
-	lb("AquariumStand", 11, 3, 4, AQ, 1, AZ, "Brown", "Wood")
-	lb("Aquarium", 10, 5, 3.4, AQ, 4, AZ, "Pastel light blue", "Glass", { tr = 0.55, nc = true })
-	for i = 1, 5 do
-		P(LOBBY, "AquariumFish", V(0.6, 0.6, 1.2), L(AQ - 4.8 + i * 1.6, 5.5 + (i % 3), AZ + (i % 2 == 0 and 0.6 or -0.6)),
-			({ "Bright orange", "Bright yellow", "Bright red", "Lime green", "Bright blue" })[i], "Neon", { nc = true })
-	end
-	lb("Bookshelf", 2, 10, 8, HX + HW / 2 - 1.6, 1, HZ + 12, "Reddish brown", "Wood")
-	for i = 0, 3 do lb("Books", 1.4, 1.6, 7, HX + HW / 2 - 2.8, 2.2 + i * 2.2, HZ + 12, ({ "Bright red", "Bright blue", "Bright green", "Bright yellow" })[i + 1], "Fabric", { nc = true }) end
+	lb("Bookshelf", 10, 11, 2.4, HX + 20, 1, HZ - HD / 2 + 2.4, "Reddish brown", "Wood")
+	for i = 0, 3 do lb("Books", 9, 1.8, 1.6, HX + 20, 2.2 + i * 2.5, HZ - HD / 2 + 3.2, ({ "Bright red", "Bright blue", "Bright green", "Bright yellow" })[i + 1], "Fabric", { nc = true }) end
 end
 
 -- the vote stations: step on a pad to vote. Boats on the left wall, themes on the right wall.
@@ -217,10 +221,10 @@ local function refreshVotes()
 	end
 end
 local function votePads(kind, names, colors, x, title)
-	local board = lb("VoteBoard", 1, 5, 30, x, 9, HZ, "Navy blue", "SmoothPlastic")
+	local board = lb("VoteBoard", 1, 5, 40, x, 12, kind == "boat" and HZ + 4 or HZ - 4, "Navy blue", "SmoothPlastic")
 	sign(board, title, x < 0 and "Right" or "Left", Color3.new(1, 0.85, 0.3))
 	for i, name in ipairs(names) do
-		local z = HZ + (i - (#names + 1) / 2) * (#names > 3 and 10 or 12)
+		local z = (kind == "boat" and HZ + 4 or HZ - 4) + (i - (#names + 1) / 2) * 13
 		local padX = x + (x < 0 and 7 or -7)
 		local pad = lb("VotePad", 8, 0.4, 8, padX, 1, z, colors[i], "Neon")
 		local plate = lb("VoteSign", 0.6, 4.5, 9.4, x + (x < 0 and 1.1 or -1.1), 2.5, z, "Institutional white", "SmoothPlastic")
