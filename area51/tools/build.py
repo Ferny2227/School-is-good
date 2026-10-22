@@ -131,7 +131,8 @@ try:
     print("Lua syntax OK")
 except ImportError:
     pass
-p.add_scripts([("Script", "ZombieDirector", director, sss)])
+modern = open(os.path.join(ROOT, "..", "roblox", "src", "ModernLook.lua"), encoding="utf8").read()
+p.add_scripts([("Script", "ZombieDirector", director, sss), ("Script", "ModernLook", modern, sss)])
 out = os.path.join(ROOT, "Area51-Zombies.rbxl")
 p.save(out)
 print("wrote", out, os.path.getsize(out), "bytes")

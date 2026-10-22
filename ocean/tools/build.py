@@ -51,6 +51,7 @@ p.add_scripts([
     ("Script", "AdminServer", admin("AdminServer.lua").replace('FindFirstChild("Cash")', 'FindFirstChild("Coins")'), sss),
     ("LocalScript", "AdminClient", admin("AdminClient.lua"), "AdminServer"),
     ("LocalScript", "AdminAnnounce", admin("AdminAnnounce.lua"), sg),
+    ("Script", "ModernLook", admin("ModernLook.lua"), sss),
 ])
 for cid, (cn, _, rs) in p.classes.items():
     if cn == "Workspace":

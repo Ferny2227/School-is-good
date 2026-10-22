@@ -39,6 +39,7 @@ NEW = [  # (class, name, source file, parent: service name or the name of anothe
     ("Script", "AdminServer", "src/AdminServer.lua", "ServerScriptService"),
     ("LocalScript", "AdminClient", "src/AdminClient.lua", "AdminServer"),
     ("LocalScript", "AdminAnnounce", "src/AdminAnnounce.lua", "StarterGui"),
+    ("Script", "ModernLook", "src/ModernLook.lua", "ServerScriptService"),
 ]
 
 

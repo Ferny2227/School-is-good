@@ -50,3 +50,8 @@ Open/upload `DisasterOcean.rbxl`.
 
 Sources: `src/server/o*.lua` (joined into ServerScriptService.OceanServer), `src/OceanClient.lua`.
 Build: `python3 tools/build.py`. Test: `python3 tools/test/runner.py`.
+
+## Modern look
+A ModernLook script makes the place look newer with only what a 2016 game has: smooth surfaces everywhere (no studs),
+no outlines, shadows, light colour grading, a soft glow on bright/neon things and sun rays (effects only if the
+Roblox version has them).

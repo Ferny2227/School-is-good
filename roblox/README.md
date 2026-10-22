@@ -94,3 +94,8 @@ client UI, and looks for buy pads blocked by parts and people walking through wa
 that all 10 rides move (and the coaster goes upside down), that planes land at their booked slot, how close two
 planes ever get there, round-trip times, stands in use, park visitors (nobody stuck or walking through anything),
 that moving ride parts never pass through the park's fixed parts, and that a player gets sent to the park.
+
+## Modern look
+A ModernLook script makes the place look newer with only what a 2016 game has: smooth surfaces everywhere (no studs),
+no outlines, shadows, light colour grading, a soft glow on bright/neon things and sun rays (effects only if the
+Roblox version has them).

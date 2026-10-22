@@ -29,3 +29,8 @@
   as there are.
 - The new zombie types and the King can take at most 25 health a second off one player (plus a burst of 40), so a
   crowd can't kill you in a blink.
+
+## Modern look
+A ModernLook script makes the place look newer with only what a 2016 game has: smooth surfaces everywhere (no studs),
+no outlines, shadows, light colour grading, a soft glow on bright/neon things and sun rays (effects only if the
+Roblox version has them).
