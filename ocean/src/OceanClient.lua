@@ -230,21 +230,21 @@ spawn(function()
 	local function paint(p, c)
 		if useColor then p.Color = c else p.BrickColor = BrickColor.new(c) end
 	end
-	-- the strips: 6 studs deep near the boat, 15 further out, 50 far away (in the fog). They turn with the direction
+	-- the strips: 10 studs deep near the boat, 25 further out, 80 far away (in the fog). They turn with the direction
 	-- the waves come from (SeaDir), always lying across it.
 	local WIDTH, THICK = 4000, 4
 	local ZS = { -2000 }
 	while ZS[#ZS] < 2000 do
 		local z = ZS[#ZS]
 		local a = math.abs(z + 1)
-		table.insert(ZS, z + (a < 220 and 6 or a < 700 and 15 or 50))
+		table.insert(ZS, z + (a < 220 and 10 or a < 700 and 25 or 80))
 	end
 	local strips = {}
-	for k = 1, #ZS - 1 do table.insert(strips, { part = part(Vector3.new(WIDTH, THICK, ZS[k + 1] - ZS[k]), "Steel blue"), col = -1 }) end
+	for k = 1, #ZS - 1 do table.insert(strips, { part = part(Vector3.new(WIDTH, THICK, ZS[k + 1] - ZS[k]), "Steel blue"), col = -1, len = 0, far = ZS[k + 1] - ZS[k] > 50 }) end
 	local H = {}
 	-- bits of foam floating on the swells, streaming past the boat
 	local foams = {}
-	for i = 1, 40 do
+	for i = 1, 20 do
 		table.insert(foams, { part = part(Vector3.new(math.random(4, 10), 0.4, math.random(8, 20)), "Institutional white"), x = math.random(-250, 250), z = math.random(-450, 450) })
 	end
 	-- spray where the bow cuts into the waves
@@ -262,12 +262,28 @@ spawn(function()
 	local bases = _G.OceanShipBases or setmetatable({}, { __mode = "k" })
 	_G.OceanShipBases = bases
 	local world = workspace:WaitForChild("Ocean World")
-	local tracked, model = {}, nil
+	-- To keep it light, every part is welded (on this computer only) to the hull, so moving the hull moves the whole
+	-- boat in one go. If welds don't carry the parts on this computer, it falls back to moving each part itself.
+	local tracked, model, hull, welds, perPart, lastMove = {}, nil, nil, {}, false, nil
 	local function add(p)
 		if p:IsA("BasePart") and not tracked[p] then
 			if not bases[p] then bases[p] = p.CFrame end
 			tracked[p] = bases[p]
+			if hull and p ~= hull and not perPart then
+				pcall(function()
+					if lastMove then p.CFrame = lastMove * bases[p] end
+					local w = Instance.new("Weld")
+					w.Part0, w.Part1 = hull, p
+					w.C0 = bases[hull]:inverse() * bases[p]
+					w.Parent = hull
+					welds[p] = w
+					p.Anchored = false
+				end)
+			end
 		end
+	end
+	local function unweld(p)
+		if welds[p] then pcall(function() welds[p]:Destroy() end) welds[p] = nil end
 	end
 	local function all(o) for _, c in ipairs(o:GetChildren()) do add(c) all(c) end end
 	local function findShip()
@@ -278,10 +294,29 @@ spawn(function()
 		frames = frames + 1
 		if frames % 15 == 0 then      -- find the boat (and parts that arrived late); drop pieces that broke off
 			local m = findShip()
-			if m ~= model then tracked, model = {}, m end
+			if m ~= model then
+				tracked, model, welds, perPart, lastMove = {}, m, {}, false, nil
+				hull = m and m:FindFirstChild("Hull")
+				if hull then
+					if not bases[hull] then bases[hull] = hull.CFrame end
+					tracked[hull] = bases[hull]
+				end
+			end
 			if m then
+				-- check the welds really carry the boat here (a welded part must be where the last move put it)
+				if not perPart and lastMove then
+					for p, w in pairs(welds) do
+						if p.Parent and ((lastMove * tracked[p]).p - p.Position).magnitude > 1 then
+							perPart = true
+							for q in pairs(welds) do pcall(function() q.Anchored = true end) unweld(q) end
+						end
+						break
+					end
+				end
 				all(m)
-				for p in pairs(tracked) do if not p:IsDescendantOf(m) then tracked[p] = nil end end
+				for p in pairs(tracked) do
+					if not p:IsDescendantOf(m) then unweld(p) tracked[p] = nil end   -- broke off / lifeboat dropped
+				end
 			end
 		end
 		if not model then return end
@@ -295,15 +330,22 @@ spawn(function()
 		end
 		local at, lv = v.ShipAt.Value, v.Level.Value
 		local move = ShipCFrame(at, lv, dy + air, pitch, roll, yaw) * ShipCFrame(at, lv, 0, 0, 0, 0):inverse()
-		for p, base in pairs(tracked) do p.CFrame = move * base end
+		lastMove = move
+		if perPart or not hull then
+			for p, base in pairs(tracked) do p.CFrame = move * base end
+		else
+			hull.CFrame = move * tracked[hull]
+		end
 	end
 	-- only the newest copy of this script runs (an old copy stops and takes its water with it)
 	local RUN = {}
 	_G.OceanClientRun = RUN
 	local lastTheme
 	local last = tick()
+	local tick2 = 0
 	while true do
 		wait(0.03)
+		tick2 = tick2 + 1
 		local now = tick()
 		local dt = math.min(0.2, now - last)
 		last = now
@@ -315,7 +357,7 @@ spawn(function()
 		local cam = workspace.CurrentCamera
 		local near = cam and (cam.CoordinateFrame.p - Vector3.new(cx, lv, cz)).magnitude < 1600
 		if folder.Parent ~= (near and cam or nil) then folder.Parent = near and cam or nil end
-		if near then
+		if near and tick2 % 2 == 0 then
 			local t = now + offset
 			local pal = PAL[v.Theme.Value] or PAL.Normal
 			if pal ~= lastTheme then lastTheme = pal for _, s in ipairs(strips) do s.col = -1 end end
@@ -324,24 +366,30 @@ spawn(function()
 			local dx, dz = math.sin(th), math.cos(th)
 			local turn = CFrame.Angles(0, th, 0)
 			for k = 1, #ZS do H[k] = SeaHeight(cx + dx * ZS[k], cz + dz * ZS[k], t, S) end
+			local odd = tick2 % 4 == 0
 			for k, s in ipairs(strips) do
+			if not s.far or odd then
 				local a, b = H[k], H[k + 1]
 				local dz, dh = ZS[k + 1] - ZS[k], b - a
 				local len = math.sqrt(dz * dz + dh * dh)
 				-- from (front edge, height a) to (back edge, height b): the top face runs exactly between them
-				s.part.Size = Vector3.new(WIDTH, THICK, len + 0.4)
+				if math.abs(len - s.len) > 0.3 then
+					s.len = len
+					s.part.Size = Vector3.new(WIDTH, THICK, len + 0.4)
+				end
 				local um = (ZS[k] + ZS[k + 1]) / 2
 				s.part.CFrame = CFrame.new(cx + dx * um, lv + (a + b) / 2, cz + dz * um) * turn
 					* CFrame.Angles(-math.atan2(dh, dz), 0, 0) * CFrame.new(0, -THICK / 2, 0)
-				-- colour: 12 shades from trough to top, foam where a big wave's steep front is breaking
+				-- colour: 8 shades from trough to top, foam where a big wave's steep front is breaking
 				local r = math.max(-1, math.min(1, (a + b) / 2 * norm))
-				local col = math.floor((r + 1) * 6 + 0.5)
+				local col = math.floor((r + 1) * 4 + 0.5)
 				if r > 0.7 and dh / dz < -0.18 then col = 99 end
 				if col ~= s.col then
 					s.col = col
-					local u = col / 12
+					local u = col / 8
 					paint(s.part, col == 99 and pal.foam or (u < 0.5 and mix(pal.lo, pal.mid, u * 2) or mix(pal.mid, pal.hi, u * 2 - 1)))
 				end
+			end
 			end
 			for _, f in ipairs(foams) do
 				f.z = f.z + S.speed * 1.3 * dt
