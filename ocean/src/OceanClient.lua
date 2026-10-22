@@ -332,13 +332,13 @@ spawn(function()
 	local function findShip()
 		for _, c in ipairs(world:GetChildren()) do if c:FindFirstChild("IsShip") then return c end end
 	end
-	local air, yaw, frames, lastShipCF = 0, 0, 0, nil
+	local air, yaw, frames, lastShipCF, pose = 0, 0, 0, nil, {}
 	local function moveBoat(t, dt)
 		frames = frames + 1
 		if frames % 15 == 0 then      -- find the boat (and parts that arrived late); drop pieces that broke off
 			local m = findShip()
 			if m ~= model then
-				tracked, model, welds, perPart, lastMove, lastShipCF = {}, m, {}, false, nil, nil
+				tracked, model, welds, perPart, lastMove, lastShipCF, pose = {}, m, {}, false, nil, nil, {}
 				hull = m and m:FindFirstChild("Hull")
 				if hull then
 					if not bases[hull] then bases[hull] = hull.CFrame end
@@ -366,7 +366,7 @@ spawn(function()
 		air = air + (v.ShipAir.Value - air) * math.min(1, dt * 8)
 		yaw = yaw + (v.ShipYaw.Value - yaw) * math.min(1, dt * 8)
 		local sink = v.ShipSink.Value
-		local dy, pitch, roll = ShipPose(t, S, v.ShipLen.Value, v.ShipWid.Value, sink >= 0 and sink or nil)
+		local dy, pitch, roll = ShipPose(t, S, v.ShipLen.Value, v.ShipWid.Value, sink >= 0 and sink or nil, pose, dt)
 		if air > 0.1 then
 			local k = math.min(1, air / 10)
 			pitch, roll = pitch + math.sin(t * 2) * 0.15 * k, roll + math.sin(t * 2.6) * 0.2 * k

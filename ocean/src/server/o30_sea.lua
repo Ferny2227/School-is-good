@@ -82,7 +82,8 @@ local function stepShip(dt, now)
 				s.wasUp = 0
 			end
 		end
-		local dy, pitch, roll = ShipPose(t, SEA, s.len, s.wid)
+		s.pose = s.pose or {}
+		local dy, pitch, roll = ShipPose(t, SEA, s.len, s.wid, nil, s.pose, dt)
 		if s.air > 0.1 then      -- swinging about in the tornado (players' computers do the same)
 			local k = math.min(1, s.air / 10)
 			pitch, roll = pitch + math.sin(t * 2) * 0.15 * k, roll + math.sin(t * 2.6) * 0.2 * k

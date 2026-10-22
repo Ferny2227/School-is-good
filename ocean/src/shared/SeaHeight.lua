@@ -44,7 +44,7 @@ end
 -- ShipPose: how the boat sits on the waves at sea time t (height, pitch, roll), worked out from the same SeaHeight.
 -- The server and every player's computer use it, so the boat always sits exactly on the water that is drawn.
 -- sinkAt: the sea time the boat started sinking (or nil).
-local function ShipPose(t, s, len, wid, sinkAt)
+local function ShipPose(t, s, len, wid, sinkAt, state, dt)
 	if sinkAt and sinkAt >= 0 then
 		local st = math.max(0, t - sinkAt)
 		return -st * 0.9, math.min(0.35, st * 0.012), math.min(0.12, st * 0.006)
@@ -54,10 +54,28 @@ local function ShipPose(t, s, len, wid, sinkAt)
 	local h0 = SeaHeight(x, z, t, s)
 	local hb, hs = SeaHeight(x, z - L, t, s), SeaHeight(x, z + L, t, s)
 	local hp, hst = SeaHeight(x - W, z, t, s), SeaHeight(x + W, z, t, s)
-	local MAXT = 0.42    -- ~24 degrees: the bow points up the wave, then tips over the top and drops
+	local MAXT = 0.33    -- ~19 degrees: the bow points up the wave, then tips over the top and drops
 	local pitch = math.max(-MAXT, math.min(MAXT, math.atan((hb - hs) / (2 * L)) * 1.1))
-	local roll = math.max(-MAXT, math.min(MAXT, math.sin(t * 0.85) * (0.012 + 0.002 * s.amp) + math.atan((hst - hp) / (2 * W)) * 1.3))
-	return (h0 + (hb + hs) / 2) / 2 * 0.95, pitch, roll
+	local roll = math.max(-MAXT, math.min(MAXT, math.sin(t * 0.85) * (0.012 + 0.002 * s.amp) + math.atan((hst - hp) / (2 * W)) * 0.9))
+	-- the boat has weight: it turns towards the slope of the water smoothly, never snapping over
+	if state and dt then
+		if state.pitch then
+			local k = math.min(1, dt * 2.5)
+			pitch, roll = state.pitch + (pitch - state.pitch) * k, state.roll + (roll - state.roll) * k
+		end
+		state.pitch, state.roll = pitch, roll
+	end
+	-- it floats on the water under its middle, but never lets the sea come up over its deck: check the water all
+	-- along the hull and both sides and ride up over it
+	local dy = (h0 + (hb + hs) / 2) / 2 * 0.95
+	local tp, tr = math.tan(pitch), math.tan(roll)
+	local hw = wid / 2
+	for i = -2, 2 do
+		local lz = i * len / 4                   -- along the boat (the bow is at -z)
+		dy = math.max(dy, SeaHeight(x, z + lz, t, s) + lz * tp - 4)
+	end
+	dy = math.max(dy, SeaHeight(x - hw, z, t, s) + hw * tr - 4, SeaHeight(x + hw, z, t, s) - hw * tr - 4)
+	return dy, pitch, roll
 end
 -- the boat's frame: at the ship's spot, raised by dy, turned by yaw, tipped by pitch and roll
 local function ShipCFrame(at, level, dy, pitch, roll, yaw)

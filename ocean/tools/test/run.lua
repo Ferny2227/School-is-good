@@ -129,6 +129,17 @@ local function rock(seconds)
 	local function range(t) local lo, hi = 1e9, -1e9 for _, v in ipairs(t) do lo = math.min(lo, v) hi = math.max(hi, v) end return hi - lo end
 	return math.deg(range(pitches)), math.deg(range(rolls)), flips
 end
+-- the sea never comes up over the deck: check the water all along the hull while the boat rides the swells
+local worst, sh = -1e9, D.getShip()
+for _ = 1, 120 do
+	MOCK.run(0.25)
+	local tp = math.tan(sh.pitch)
+	for i = -2, 2 do
+		local lz = i * sh.len / 4
+		worst = math.max(worst, D.waveAt(0, -650 + lz) + lz * tp - sh.dy)
+	end
+end
+say(string.format("water above the boat's waterline anywhere along the hull (max over 30 s): %.1f studs (deck is %d up)", worst, sh.deck))
 local p1, r1, f1 = rock(30)
 say(string.format("galleon in normal swells (30 s): pitch range %.1f deg, roll range %.1f deg, bow-up/bow-down changes %d", p1, r1, f1))
 local hp0 = D.getShip().hp
