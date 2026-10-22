@@ -259,7 +259,7 @@ spawn(function()
 	end
 	-- the strips: 10 studs deep near the boat, 25 further out, 80 far away (in the fog). They turn with the direction
 	-- the waves come from (SeaDir), always lying across it.
-	local WIDTH, THICK = 4000, 4
+	local WIDTH, THICK = 4000, 1.5
 	local ZS = { -2000 }
 	while ZS[#ZS] < 2000 do
 		local z = ZS[#ZS]
@@ -271,7 +271,9 @@ spawn(function()
 	-- part, so moving it costs almost nothing (a real 4000-stud part touches the whole map every time it moves)
 	for k = 1, #ZS - 1 do
 		local p = part(Vector3.new(4, THICK, 4), "Steel blue")
-		p.Reflectance = 0.08     -- a wet sheen
+		-- glassy and shiny: the sky and the sun glint off it like real water
+		pcall(function() p.Material = Enum.Material.Glass end)
+		p.Reflectance = 0.25
 		local mesh = Instance.new("SpecialMesh")
 		mesh.MeshType = Enum.MeshType.Brick
 		mesh.Scale = Vector3.new(WIDTH / 4, 1, (ZS[k + 1] - ZS[k]) / 4)
@@ -281,8 +283,13 @@ spawn(function()
 	local H = {}
 	-- bits of foam floating on the swells, streaming past the boat
 	local foams = {}
-	for i = 1, 20 do
-		table.insert(foams, { part = part(Vector3.new(math.random(4, 10), 0.4, math.random(8, 20)), "Institutional white"), x = math.random(-250, 250), z = math.random(-450, 450) })
+	-- patches of foam all over the waves round the boat, every size and every angle: they break up the long strips so
+	-- it looks like a real churning sea
+	for i = 1, 50 do
+		local f = { part = part(Vector3.new(math.random(5, 22), 0.3, math.random(8, 40)), "Institutional white"),
+			u = math.random(-450, 450), w = math.random(-420, 420), rot = math.random() * 6.3 }
+		f.part.Transparency = 0.25 + math.random() * 0.35
+		table.insert(foams, f)
 	end
 	-- spray where the bow cuts into the waves
 	local spray = {}
@@ -490,7 +497,7 @@ spawn(function()
 	-- only the newest copy of this script runs (an old copy stops and takes its water with it)
 	local RUN = {}
 	_G.OceanClientRun = RUN
-	local lastTheme
+	local lastTheme, foamPal
 	local last = tick()
 	local tick2 = 0
 	while true do
@@ -525,29 +532,33 @@ spawn(function()
 				-- from (front edge, height a) to (back edge, height b): the top face runs exactly between them
 				if math.abs(len - s.len) > 0.3 then
 					s.len = len
-					s.mesh.Scale = Vector3.new(WIDTH / 4, 1, (len + 0.4) / 4)
+					s.mesh.Scale = Vector3.new(WIDTH / 4, 1, (len + 0.1) / 4)
 				end
 				local um = (ZS[k] + ZS[k + 1]) / 2
 				s.part.CFrame = CFrame.new(cx + dx * um, lv + (a + b) / 2, cz + dz * um) * turn
 					* CFrame.Angles(-math.atan2(dh, dz), 0, 0) * CFrame.new(0, -THICK / 2, 0)
-				-- colour: 8 shades from trough to top, foam where a big wave's steep front is breaking
+				-- colour: blends smoothly from the troughs to the tops (50 shades, so no bands), white on the very peaks
 				local r = math.max(-1, math.min(1, (a + b) / 2 * norm))
-				local col = math.floor((r + 1) * 4 + 0.5)
-				if r > 0.8 or (r > 0.6 and dh / dz < -0.18) then col = 99 end     -- white water on the peaks
+				local col = math.floor((r + 1) * 25 + 0.5)
+				if r > 0.9 then col = 99 end
 				if col ~= s.col then
 					s.col = col
-					local u = col / 8
+					local u = col / 50
 					paint(s.part, col == 99 and pal.foam or (u < 0.5 and mix(pal.lo, pal.mid, u * 2) or mix(pal.mid, pal.hi, u * 2 - 1)))
 				end
 			end
 			end
 			for _, f in ipairs(foams) do
-				f.z = f.z + S.speed * 1.3 * dt
-				if f.z > 450 then f.z = f.z - 900 f.x = math.random(-250, 250) end
-				local x, z = cx + f.x, cz + f.z
+				f.u = f.u + 14 * dt * 2
+				if f.u > 450 then f.u = f.u - 900 f.w = math.random(-420, 420) end
+				local x, z = cx + dx * f.u + dz * f.w, cz + dz * f.u - dx * f.w
 				local h = SeaHeight(x, z, t, S)
-				local sl = (SeaHeight(x, z + 6, t, S) - h) / 6
-				f.part.CFrame = CFrame.new(x, lv + h + 0.5, z) * CFrame.Angles(-math.atan(sl), 0, 0)
+				local sl = (SeaHeight(x + dx * 8, z + dz * 8, t, S) - h) / 8
+				f.part.CFrame = CFrame.new(x, lv + h + 0.6, z) * turn * CFrame.Angles(-math.atan(sl), 0, 0) * CFrame.Angles(0, f.rot, 0)
+			end
+			if pal ~= foamPal then
+				foamPal = pal
+				for _, f in ipairs(foams) do paint(f.part, pal.foam) end
 			end
 			local bowZ = cz - v.ShipLen.Value / 2 - 5
 			local bowH = SeaHeight(cx, bowZ, t, S)
