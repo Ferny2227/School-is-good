@@ -161,8 +161,8 @@ for i = 0, 2 do lb("Couch", 4, 2, 3, HX - 26 + i * 4.5, 1, HZ + HD / 2 - 3, "Roy
 -- the vote stations: step on a pad to vote. Boats on the left wall, themes on the right wall.
 local votes = { boat = {}, theme = {} }
 local voteLabels = { boat = {}, theme = {} }
-local BOAT_NAMES = { "Cruise Liner", "Pirate Galleon", "Navy Destroyer" }
-local BOAT_COLORS = { "Bright blue", "Brown", "Medium stone grey" }
+local BOAT_NAMES = { "Cruise Liner", "Pirate Galleon", "Navy Destroyer", "Fishing Boat" }
+local BOAT_COLORS = { "Bright blue", "Brown", "Medium stone grey", "Bright red" }
 local THEME_COLORS = { "Bright green", "Bright orange", "Royal purple" }
 local function countVotes(kind)
 	local n = {}
@@ -179,7 +179,7 @@ local function votePads(kind, names, colors, x, title)
 	local board = lb("VoteBoard", 1, 5, 30, x, 9, HZ, "Navy blue", "SmoothPlastic")
 	sign(board, title, x < 0 and "Right" or "Left", Color3.new(1, 0.85, 0.3))
 	for i, name in ipairs(names) do
-		local z = HZ - 12 + (i - 1) * 12
+		local z = HZ + (i - (#names + 1) / 2) * (#names > 3 and 10 or 12)
 		local padX = x + (x < 0 and 7 or -7)
 		local pad = lb("VotePad", 8, 0.4, 8, padX, 1, z, colors[i], "Neon")
 		local plate = lb("VoteSign", 0.6, 3, 9, x + (x < 0 and 0.8 or -0.8), 4, z, "Institutional white", "SmoothPlastic")

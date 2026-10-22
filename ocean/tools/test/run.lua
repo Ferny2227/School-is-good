@@ -41,7 +41,7 @@ MOCK.run(1)
 say("terrain water: " .. tostring(D.terrainWater))
 -- the three boats: parts, rooms, places to stand
 local function count(m, pred) local n = 0 for _, o in ipairs(m:GetDescendants()) do if pred(o) then n = n + 1 end end return n end
-for _, kind in ipairs({ "Cruise Liner", "Pirate Galleon", "Navy Destroyer" }) do
+for _, kind in ipairs({ "Cruise Liner", "Pirate Galleon", "Navy Destroyer", "Fishing Boat" }) do
 	local before = #MOCK.errors
 	local sh = D.buildShip(kind)
 	local parts = count(sh.model, function(o) return o:IsA("BasePart") end)

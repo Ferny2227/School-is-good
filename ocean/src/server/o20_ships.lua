@@ -14,6 +14,7 @@ local function newBuilder(name)
 	local base = shipBase(0)
 	B.base = base
 	function B.part(n, size, lcf, color, mat, opt, br)
+		if opt and opt.class == "Seat" then opt.class = nil end      -- no seats on the boats: chairs are just chairs
 		local p = P(B.model, n, size, base * lcf, color, mat, opt)
 		table.insert(B.parts, p)
 		if br then table.insert(B.breakable, p) end
@@ -317,6 +318,109 @@ SHIPS["Navy Destroyer"] = function()
 	for _, z in ipairs({ -65, -35, 40, 70 }) do for _, x in ipairs({ -7, 7 }) do B.spot(x, D, z) end end
 	for _, s in ipairs({ -1, 1 }) do for _, z in ipairs({ -30, 30, 55 }) do B.lifeboat(s * (WID / 2 + 4), DECK + 3, z) end end
 	B.halloween(LEN, WID, DECK + 1)
+	return B, hull, LEN, WID, DECK
+end
+
+------------------------------------------------------------------ 4. FISHING BOAT: small, with lots of rooms below deck
+-- The hull is hollow: the deck is high (y 15) and under it, on a dry floor above the waves (y 5), a corridor runs
+-- down the middle with 4 rooms on each side and the engine room at the back. Two hatches with ladders go down.
+SHIPS["Fishing Boat"] = function()
+	local B = newBuilder("Lucky Catch (Fishing Boat)")
+	local LEN, WID, DECK = 80, 24, 15
+	local LOW = 5                       -- the floor below deck
+	local red, white = "Bright red", "Institutional white"
+	local hull = B.box("Hull", WID, LOW + 6, LEN, 0, -6, 0, red, "SmoothPlastic")
+	for i = 1, 3 do B.box("Bow", WID - i * 6, DECK + 6 - i, 6, 0, -6 + i, -LEN / 2 - i * 6 + 3, red, "SmoothPlastic") end
+	for _, s in ipairs({ -1, 1 }) do
+		B.box("HullSide", 1, DECK - LOW, LEN, s * (WID / 2 - 0.5), LOW, 0, white, "SmoothPlastic")
+		B.box("Stripe", 1.2, 1.2, LEN, s * (WID / 2 - 0.5), DECK - 4, 0, "Navy blue", "SmoothPlastic", { nc = true })
+		for z = -32, 32, 8 do       -- portholes
+			B.part("Porthole", V(1.4, 2, 2), CFrame.new(s * (WID / 2 - 0.4), LOW + 5, z), "Pastel light blue", "Glass", { tr = 0.3 })
+		end
+	end
+	B.box("HullFront", WID - 2, DECK - LOW, 1, 0, LOW, -LEN / 2 + 0.5, white, "SmoothPlastic")
+	B.box("HullStern", WID - 2, DECK - LOW, 1, 0, LOW, LEN / 2 - 0.5, white, "SmoothPlastic")
+	B.box("LowerFloor", WID - 2, 0.3, LEN - 2, 0, LOW, 0, "Medium stone grey", "DiamondPlate")
+	-- the deck, with two hatches (6 x 6) at z = -26 and z = 8
+	local function deckPiece(z0, z1, x0, x1) B.box("Deck", x1 - x0, 1, z1 - z0, (x0 + x1) / 2, DECK - 1, (z0 + z1) / 2, "Brick yellow", "WoodPlanks") end
+	local H = WID / 2
+	deckPiece(-LEN / 2, -29, -H, H)
+	deckPiece(-29, -23, -H, -3) deckPiece(-29, -23, 3, H)
+	deckPiece(-23, 5, -H, H)
+	deckPiece(5, 11, -H, -3) deckPiece(5, 11, 3, H)
+	deckPiece(11, LEN / 2, -H, H)
+	for _, z in ipairs({ -26, 8 }) do
+		B.ladder(0, LOW, z + 2, DECK - LOW)
+		for _, s in ipairs({ -1, 1 }) do B.box("HatchRail", 0.4, 2.5, 6, s * 3.2, DECK, z, "Bright yellow", "Metal") end
+		local sg = B.box("HatchSign", 6, 1.4, 0.3, 0, DECK + 1.2, z - 3.2, "Navy blue", "SmoothPlastic", { nc = true })
+		sign(sg, "BELOW DECK", "Front", Color3.new(1, 1, 1))
+	end
+	-- BELOW DECK: a corridor down the middle, 4 rooms each side, the engine room at the back
+	local RH = DECK - 1 - LOW
+	local function room(n, side, zc, color)
+		return B.room(n, side * 7.5, LOW, zc, 9, 16, RH, side < 0 and { e = 0 } or { w = 0 }, { noWindows = true, color = color or "Sand blue", floor = "Brick yellow" })
+	end
+	-- port side
+	room("Galley", -1, -28, "Institutional white")
+	B.box("Stove", 3, 3, 3, -10.3, LOW, -32, "Dark stone grey", "Metal")
+	B.box("Counter", 2.5, 3, 8, -10.5, LOW, -25, "Brown", "Wood")
+	B.box("Fridge", 3, 6, 3, -10.3, LOW, -20.5, "Institutional white", "SmoothPlastic")
+	B.part("Pot", V(1.6, 1.4, 1.6), CFrame.new(-10.3, LOW + 3.7, -32), "Black", "Metal", { shape = "cyl" })
+	room("MessRoom", -1, -12, "Bright orange")
+	B.tableSet(-7.5, LOW, -12, 4, "Brown")
+	room("BunkRoom", -1, 4)
+	for _, z in ipairs({ -1, 9 }) do
+		B.bed(-9, LOW, z, 0, "Bright blue")
+		B.bed(-9, LOW + 4, z, 0, "Bright red")
+		B.box("BunkPost", 0.4, 6, 0.4, -11, LOW, z + 3.4, "Dark stone grey", "Metal")
+	end
+	room("CaptainsCabin", -1, 20, "Brown")
+	B.bed(-9, LOW, 24, 0, "Navy blue")
+	B.box("Desk", 3, 2.6, 5, -10.5, LOW, 15, "Brown", "Wood")
+	B.box("Chart", 2.6, 0.05, 3.6, -10.5, LOW + 2.65, 15, "Brick yellow", "SmoothPlastic", { nc = true })
+	-- starboard side
+	room("FishHold", 1, -28, "Medium stone grey")
+	for i = 0, 5 do
+		local x, z = 6 + (i % 2) * 4, -33 + math.floor(i / 2) * 4.5
+		B.box("Crate", 3.4, 2, 3.4, x, LOW, z, "Brown", "Wood")
+		B.box("Ice", 3, 0.6, 3, x, LOW + 2, z, "Pastel light blue", "Ice")
+		for f = -1, 1, 2 do B.part("Fish", V(0.6, 0.5, 2), CFrame.new(x + f * 0.7, LOW + 2.9, z) * CFrame.Angles(0, f * 0.4, 0), "Medium stone grey", "SmoothPlastic", { nc = true }) end
+	end
+	room("NetLocker", 1, -12, "Olive")
+	for i = 0, 2 do B.box("Net", 6, 1.2, 4, 7.5, LOW + i * 1.2, -16 + i * 3, "Brick yellow", "Fabric") end
+	for i = 0, 3 do B.part("Buoy", V(1.8, 1.8, 1.8), CFrame.new(10, LOW + 1, -8 + i * 2), "Bright orange", "SmoothPlastic", { shape = "ball" }) end
+	room("Storage", 1, 4, "Dark stone grey")
+	for i = 0, 3 do B.part("Barrel", V(2.4, 3, 2.4), CFrame.new(10, LOW + 1.5, -2 + i * 3), "Brown", "Wood", { shape = "cyl" }) end
+	for i = 0, 2 do B.box("Box", 3, 3, 3, 5.5, LOW, -1 + i * 4, "Brick yellow", "Wood") end
+	room("RadioRoom", 1, 20, "Navy blue")
+	B.box("RadioDesk", 3, 2.6, 7, 10.5, LOW, 20, "Dark stone grey", "Metal")
+	local radio = B.box("Radio", 2, 2, 3, 10.7, LOW + 2.6, 19, "Really black", "Metal")
+	local screen = B.box("RadarScreen", 0.2, 1.6, 2.4, 9.5, LOW + 3.2, 22, "Lime green", "Neon", { nc = true })
+	light(screen, Color3.new(0.3, 1, 0.3), 10, 1)
+	-- the engine room at the back
+	B.room("EngineRoom", 0, LOW, 33.5, 22, 10, RH, { n = 0 }, { noWindows = true, color = "Dark stone grey", floor = "Medium stone grey", floorMat = "DiamondPlate" })
+	B.box("Engine", 8, 4.5, 5, 0, LOW, 34, "Dark stone grey", "Metal")
+	for _, x in ipairs({ -3, 0, 3 }) do B.part("Pipe", V(1, 4, 1), CFrame.new(x, LOW + 6.5, 34), "Bright yellow", "Metal", { shape = "cyl" }) end
+	local warn = B.box("WarningLight", 1, 1, 1, 9, LOW + RH - 2, 30, "Really red", "Neon", { nc = true })
+	light(warn, Color3.new(1, 0.2, 0.1), 16, 1.5)
+	B.spot(0, LOW, -26 + 6) B.spot(0, LOW, 0) B.spot(0, LOW, 20)
+	-- ON DECK: the wheelhouse at the back, a crane, nets, outriggers, life rings
+	B.room("Wheelhouse", 0, DECK, 26, 16, 14, 8, { n = 0 }, { ceiling = true, color = white })
+	B.part("Wheel", V(0.4, 3, 3), CFrame.new(0, DECK + 3.5, 30) * CFrame.Angles(0, math.rad(90), 0), "Brown", "Wood", { shape = "cyl" })
+	B.box("Console", 10, 3, 1.5, 0, DECK, 32, "Dark stone grey", "Metal")
+	local beacon = B.box("Beacon", 1.4, 1.4, 1.4, 0, DECK + 8.6, 26, "Bright yellow", "Neon", { nc = true })
+	light(beacon, Color3.new(1, 0.85, 0.3), 30, 2)
+	B.box("CraneMast", 1.6, 16, 1.6, 0, DECK, -10, "Bright yellow", "Metal")
+	B.part("CraneBoom", V(1, 1, 22), CFrame.new(0, DECK + 15, -18) * CFrame.Angles(math.rad(-25), 0, 0), "Bright yellow", "Metal")
+	B.part("CraneHook", V(0.6, 6, 0.6), CFrame.new(0, DECK + 15, -27), "Dark stone grey", "Metal", { nc = true })
+	for _, s in ipairs({ -1, 1 }) do
+		B.part("Outrigger", V(0.6, 0.6, 26), CFrame.new(s * 16, DECK + 14, -10) * CFrame.Angles(0, 0, s * math.rad(-50)) * CFrame.Angles(math.rad(90), 0, 0), "Dark stone grey", "Metal", { nc = true })
+		B.part("LifeRing", V(0.6, 3, 3), CFrame.new(s * (H - 0.2), DECK + 2.5, 0), "Bright orange", "SmoothPlastic", { shape = "cyl" })
+		B.box("DeckNet", 6, 0.8, 8, s * 6, DECK, -36 + 3, "Brick yellow", "Fabric")
+	end
+	for _, z in ipairs({ -36, -16, -4, 14 }) do for _, x in ipairs({ -7, 7 }) do B.spot(x, DECK, z) end end
+	for _, s in ipairs({ -1, 1 }) do B.lifeboat(s * (WID / 2 + 4), DECK - 4, -6, "Bright orange") end
+	B.halloween(LEN, WID, DECK)
 	return B, hull, LEN, WID, DECK
 end
 

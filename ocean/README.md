@@ -13,6 +13,10 @@ Open/upload `DisasterOcean.rbxl`.
     deck with the bridge and two funnels, a pool deck, 8 lifeboats.
   - Pirate Galleon: captain's cabin under the quarterdeck (chart table, treasure chest, bed), crew quarters with
     hammocks under the forecastle, 3 masts with sails, cannons, the Jolly Roger, 4 rowboats.
+  - Fishing Boat (the Lucky Catch): small and red, with a wheelhouse, a crane, outriggers and nets on deck, and two
+    hatches with ladders down to the rooms below deck: galley, mess room, bunk room, captain's cabin, fish hold, net
+    locker, storage, radio room and the engine room.
+  - (No seats on any boat.)
   - Navy Destroyer: mess hall, bunk room, a bridge with radar screens, a radar mast, gun turrets, a helipad,
     6 life rafts.
 - **The sea**: huge rolling swells (like Sea of Thieves, ~30 studs from trough to crest, taller than the boats) come
