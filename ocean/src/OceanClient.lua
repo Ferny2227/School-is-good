@@ -176,10 +176,10 @@ spawn(function()
 end)
 ------------------------------------------------------------------ the sea round the boat (only drawn here)
 -- The swells are drawn on this computer from the SeaState values, with the same maths (SeaHeight, at the top) the
--- server uses to rock the boat. The surface is a grid of slabs across the boat's path. Every frame each slab is put at
--- the height of the water under it and tilted to its slope, and coloured by height: dark in the troughs, lighter up
--- the faces, turquoise near the top and white foam on the crests. The swells roll from the bow to the stern, so the
--- boat looks like it's sailing into them, and every swell lifts the bow, then the middle, then the stern.
+-- server uses to rock the boat. The surface is a row of long strips across the boat's path (as wide as the whole
+-- ocean). Every frame each strip is laid from the water height at its front edge to the height at its back edge, so
+-- neighbouring strips meet exactly: one smooth, unbroken surface of rolling swells, no steps. Coloured by height: deep
+-- blue in the troughs, lighter up the faces, and white foam only where a big wave's top is breaking.
 spawn(function()
 	local st = game:GetService("ReplicatedStorage"):WaitForChild("SeaState")
 	local v = {}
@@ -201,11 +201,15 @@ spawn(function()
 		goalOffset = v.Clock.Value - tick()
 		if math.abs(goalOffset - offset) > 1 then offset = goalOffset end
 	end)
+	-- colours: trough -> middle (same as the flat ocean far away) -> top of a swell, and the foam
+	local c3 = Color3.new
 	local PAL = {
-		Normal = { "Navy blue", "Earth blue", "Steel blue", "Medium blue", "Pastel blue", "Institutional white" },
-		Sunset = { "Navy blue", "Earth blue", "Sand blue", "Medium blue", "Pastel blue", "Institutional white" },
-		Halloween = { "Really black", "Black", "Earth green", "Dark green", "Bright bluish green", "Lime green" },
+		Normal = { lo = c3(0.03, 0.12, 0.28), mid = c3(0.08, 0.25, 0.45), hi = c3(0.18, 0.45, 0.6), foam = c3(0.82, 0.9, 0.95) },
+		Sunset = { lo = c3(0.05, 0.08, 0.2), mid = c3(0.12, 0.2, 0.38), hi = c3(0.25, 0.32, 0.52), foam = c3(0.9, 0.85, 0.82) },
+		Halloween = { lo = c3(0.01, 0.03, 0.03), mid = c3(0.03, 0.1, 0.08), hi = c3(0.06, 0.28, 0.2), foam = c3(0.35, 0.9, 0.4) },
 	}
+	local function mix(a, b, u) return c3(a.r + (b.r - a.r) * u, a.g + (b.g - a.g) * u, a.b + (b.b - a.b) * u) end
+	local useColor = pcall(function() local p = Instance.new("Part") p.Color = c3(0, 0, 1) end)
 	local folder = Instance.new("Model")
 	folder.Name = "SeaFX"
 	folder.Parent = workspace.CurrentCamera
@@ -222,22 +226,19 @@ spawn(function()
 		p.Parent = folder
 		return p
 	end
-	-- the grid: fine (12 studs) near the boat, coarser (30) further out; it flattens out to the flat ocean at the edges
-	local XS = { -600, -330, -120, 120, 330, 600 }
+	local function paint(p, c)
+		if useColor then p.Color = c else p.BrickColor = BrickColor.new(c) end
+	end
+	-- the strips: 6 studs deep near the boat, 15 further out; the swells flatten out to the flat ocean at the ends
+	local WIDTH, THICK = 4000, 4
 	local ZS = { -500 }
 	while ZS[#ZS] < 500 do
 		local z = ZS[#ZS]
-		table.insert(ZS, z + ((z >= -200 and z < 200) and 12 or 30))
+		table.insert(ZS, z + ((z >= -220 and z < 220) and 6 or 15))
 	end
-	local THICK = 6
-	local cells = {}
-	for k = 1, #ZS - 1 do
-		for i = 1, #XS - 1 do
-			table.insert(cells, { k = k, i = i, part = part(Vector3.new(XS[i + 1] - XS[i] + 2, THICK, ZS[k + 1] - ZS[k] + 1.5), "Steel blue"), col = 0 })
-		end
-	end
-	local H = {}       -- heights at the grid's corners
-	for k = 1, #ZS do H[k] = {} end
+	local strips = {}
+	for k = 1, #ZS - 1 do table.insert(strips, { part = part(Vector3.new(WIDTH, THICK, ZS[k + 1] - ZS[k]), "Steel blue"), col = -1 }) end
+	local H = {}
 	-- bits of foam floating on the swells, streaming past the boat
 	local foams = {}
 	for i = 1, 40 do
@@ -251,6 +252,7 @@ spawn(function()
 		pcall(function() s.part.Shape = Enum.PartType.Ball end)
 		table.insert(spray, s)
 	end
+	local lastTheme
 	local last = tick()
 	while true do
 		wait(0.03)
@@ -266,26 +268,25 @@ spawn(function()
 		if near then
 			local t = now + offset
 			local pal = PAL[v.Theme.Value] or PAL.Normal
-			local norm = 1 / math.max(1, S.amp * 1.4)
-			for k = 1, #ZS do
-				local row = H[k]
-				for i = 1, #XS do row[i] = SeaHeight(cx + XS[i], cz + ZS[k], t, S) end
-			end
-			for _, c in ipairs(cells) do
-				local k, i = c.k, c.i
-				local a, b, d, e = H[k][i], H[k][i + 1], H[k + 1][i], H[k + 1][i + 1]
-				local dz, dx = ZS[k + 1] - ZS[k], XS[i + 1] - XS[i]
-				local h = (a + b + d + e) / 4
-				local sz = ((d + e) - (a + b)) / (2 * dz)       -- slope along the boat (+z = towards the stern)
-				local sx = ((b + e) - (a + d)) / (2 * dx)       -- slope across
-				c.part.CFrame = CFrame.new(cx + (XS[i] + XS[i + 1]) / 2, lv + h, cz + (ZS[k] + ZS[k + 1]) / 2)
-					* CFrame.Angles(-math.atan(sz), 0, math.atan(sx)) * CFrame.new(0, -THICK / 2, 0)
-				local r = h * norm
-				local col = r < -0.5 and 1 or r < -0.15 and 2 or r < 0.2 and 3 or r < 0.45 and 4 or r < 0.7 and 5 or 6
-				if col == 5 and sz < -0.15 then col = 6 end    -- the steep front of a big wave breaks white
-				if col ~= c.col then
-					c.col = col
-					c.part.BrickColor = BrickColor.new(pal[col])
+			if pal ~= lastTheme then lastTheme = pal for _, s in ipairs(strips) do s.col = -1 end end
+			local norm = 1 / math.max(1, S.amp * 1.3)
+			for k = 1, #ZS do H[k] = SeaHeight(cx, cz + ZS[k], t, S) end
+			for k, s in ipairs(strips) do
+				local a, b = H[k], H[k + 1]
+				local dz, dh = ZS[k + 1] - ZS[k], b - a
+				local len = math.sqrt(dz * dz + dh * dh)
+				-- from (front edge, height a) to (back edge, height b): the top face runs exactly between them
+				s.part.Size = Vector3.new(WIDTH, THICK, len + 0.4)
+				s.part.CFrame = CFrame.new(cx, lv + (a + b) / 2, cz + (ZS[k] + ZS[k + 1]) / 2)
+					* CFrame.Angles(-math.atan2(dh, dz), 0, 0) * CFrame.new(0, -THICK / 2, 0)
+				-- colour: 12 shades from trough to top, foam where a big wave's steep front is breaking
+				local r = math.max(-1, math.min(1, (a + b) / 2 * norm))
+				local col = math.floor((r + 1) * 6 + 0.5)
+				if r > 0.7 and dh / dz < -0.18 then col = 99 end
+				if col ~= s.col then
+					s.col = col
+					local u = col / 12
+					paint(s.part, col == 99 and pal.foam or (u < 0.5 and mix(pal.lo, pal.mid, u * 2) or mix(pal.mid, pal.hi, u * 2 - 1)))
 				end
 			end
 			for _, f in ipairs(foams) do
@@ -293,8 +294,8 @@ spawn(function()
 				if f.z > 450 then f.z = f.z - 900 f.x = math.random(-250, 250) end
 				local x, z = cx + f.x, cz + f.z
 				local h = SeaHeight(x, z, t, S)
-				local s = (SeaHeight(x, z + 6, t, S) - h) / 6
-				f.part.CFrame = CFrame.new(x, lv + h + 0.5, z) * CFrame.Angles(-math.atan(s), 0, 0)
+				local sl = (SeaHeight(x, z + 6, t, S) - h) / 6
+				f.part.CFrame = CFrame.new(x, lv + h + 0.5, z) * CFrame.Angles(-math.atan(sl), 0, 0)
 			end
 			local bowZ = cz - v.ShipLen.Value / 2 - 5
 			local bowH = SeaHeight(cx, bowZ, t, S)

@@ -1,16 +1,16 @@
------------------------------------------------------------------- the sea surface (shared: the server and every player use this same maths)
--- Height of the water above the still-water level at (x, z), time t, for sea state s. Big rolling swells about
--- 220 studs long travel from the boat's bow (-z) to its stern (+z) at about 30 studs a second, with smaller waves on
--- top, so the boat (which stays put) rides over one swell after another as if sailing into them. Sets of bigger
--- waves (s.rogueA) or one giant swell (a tsunami, s.rogueBump) roll through now and then. Far from the boat the
--- swells fade into the flat sea.
+-- SeaHeight(x, z, t, s): the height of the sea (studs above SEA.level) at (x, z) at sea time t. Shared by the server
+-- (rocks the boat, floats swimmers and lifeboats) and OceanClient (draws the surface), so they always agree.
+-- Swells roll from the bow (-z) to the stern (+z), one after another; s.rogueA adds a set of bigger waves (or, with
+-- s.rogueBump, one giant tsunami swell) travelling at 30 studs/s. The waves die out ~480 studs ahead of/behind the
+-- boat, where the flat ocean starts. The height doesn't change across (x), so the drawn surface can be long smooth
+-- strips with no steps.
 local function SeaHeight(x, z, t, s)
-	local dx, dz = math.abs(x - s.shipX), math.abs(z - s.shipZ)
-	local fade = (1 - math.min(1, math.max(0, dx - 330) / 250)) * (1 - math.min(1, math.max(0, dz - 330) / 150))
+	local dz = math.abs(z - s.shipZ)
+	local fade = 1 - math.min(1, math.max(0, dz - 330) / 150)
 	if fade <= 0 then return 0 end
 	local zz = z - s.speed * t
 	local main = math.sin(0.0285 * zz - 0.4 * t)
-	local h = s.amp * (main + 0.35 * math.sin(0.07 * zz + 0.011 * x - 1.1 * t) + 0.12 * math.sin(0.16 * zz - 0.04 * x - 2.1 * t))
+	local h = s.amp * (main + 0.3 * math.sin(0.07 * zz - 1.1 * t) + 0.1 * math.sin(0.16 * zz - 2.1 * t))
 	if s.rogueA > 0 then
 		local c = s.rogueZ + 30 * (t - s.rogueT)
 		local e = (z - c) / s.rogueLen

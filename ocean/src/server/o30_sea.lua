@@ -84,7 +84,9 @@ local function stepShip(dt, now)
 		end
 		s.dy = follow(s.dy, (h0 + (hb + hs) / 2) / 2 * 0.95 + s.air, 2.2, dt)
 		s.pitch = follow(s.pitch, math.atan((hb - hs) / (2 * L)) * 1.1 + (s.air > 0 and math.sin(now * 2) * 0.15 or 0), 2.0, dt)
-		s.roll = follow(s.roll, math.atan((hst - hp) / (2 * W)) * 1.4 + math.sin(now * 0.6) * 0.03 + (s.air > 0 and math.sin(now * 2.6) * 0.2 or 0), 1.6, dt)
+		-- side to side: the boat leans as each swell passes under it, more in big seas
+		local lean = math.sin(t * 0.85) * (0.015 + 0.005 * SEA.amp + 0.004 * math.abs(h0 - (hb + hs) / 2))
+		s.roll = follow(s.roll, lean + math.atan((hst - hp) / (2 * W)) + (s.air > 0 and math.sin(now * 2.6) * 0.2 or 0), 1.6, dt)
 		-- big waves hurt: while a set of big waves rolls through, the bow slams into them
 		if SEA.rogueA > 0 then
 			local c = SEA.rogueZ + 30 * (t - SEA.rogueT)

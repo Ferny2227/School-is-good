@@ -44,7 +44,7 @@ local function calmRogue() SEA.rogueA = 0 rogueVals.A.Value = 0 end
 
 -- the far, flat ocean all round. Around the boat (the hole in the middle) each player's computer draws the moving
 -- swells (OceanClient), which flatten out at the edges to meet this. Under the hole: a deep blue floor.
-local HOLE = { x0 = SHIP_AT.X - 600, x1 = SHIP_AT.X + 600, z0 = SHIP_AT.Z - 500, z1 = SHIP_AT.Z + 500 }
+local HOLE = { x0 = -2000, x1 = 2000, z0 = SHIP_AT.Z - 500, z1 = SHIP_AT.Z + 500 }
 local oceanTiles = {}
 local function oceanTile(x0, x1, z0, z1, y, color)
 	local t = P(WORLD, "Ocean", V(x1 - x0, 2, z1 - z0), CFrame.new((x0 + x1) / 2, y, (z0 + z1) / 2), color or "Deep blue", "SmoothPlastic", { nc = true })
@@ -52,8 +52,6 @@ local function oceanTile(x0, x1, z0, z1, y, color)
 end
 oceanTile(-2000, 2000, -2000, HOLE.z0, -1.6)
 oceanTile(-2000, 2000, HOLE.z1, 2000, -1.6)
-oceanTile(-2000, HOLE.x0, HOLE.z0, HOLE.z1, -1.6)
-oceanTile(HOLE.x1, 2000, HOLE.z0, HOLE.z1, -1.6)
 oceanTile(HOLE.x0, HOLE.x1, HOLE.z0, HOLE.z1, -30, "Navy blue")
 for ix = -2, 1 do
 	for iz = -2, 1 do P(WORLD, "Seabed", V(1000, 4, 1000), CFrame.new(ix * 1000 + 500, -62, iz * 1000 + 500), "Brick yellow", "Sand") end
@@ -66,9 +64,9 @@ end
 
 ------------------------------------------------------------------ themes: the look of the whole map (voted in the lobby)
 local THEMES = {
-	Normal = { time = "14:00:00", amb = Color3.new(0.5, 0.5, 0.5), out = Color3.new(0.55, 0.55, 0.6), fog = Color3.new(0.75, 0.82, 0.9), fogEnd = 2500, bright = 1, water = Color3.new(0.05, 0.32, 0.45) , sea = "Steel blue" },
-	Sunset = { time = "18:05:00", amb = Color3.new(0.55, 0.42, 0.38), out = Color3.new(0.65, 0.48, 0.42), fog = Color3.new(0.95, 0.62, 0.45), fogEnd = 1800, bright = 1, water = Color3.new(0.12, 0.25, 0.42) , sea = "Sand blue" },
-	Halloween = { time = "23:30:00", amb = Color3.new(0.32, 0.2, 0.38), out = Color3.new(0.38, 0.25, 0.45), fog = Color3.new(0.22, 0.08, 0.28), fogEnd = 650, bright = 0.6, water = Color3.new(0.04, 0.18, 0.14) , sea = "Earth green" },
+	Normal = { time = "14:00:00", amb = Color3.new(0.5, 0.5, 0.5), out = Color3.new(0.55, 0.55, 0.6), fog = Color3.new(0.75, 0.82, 0.9), fogEnd = 2500, bright = 1, water = Color3.new(0.05, 0.32, 0.45) , sea = Color3.new(0.08, 0.25, 0.45) },
+	Sunset = { time = "18:05:00", amb = Color3.new(0.55, 0.42, 0.38), out = Color3.new(0.65, 0.48, 0.42), fog = Color3.new(0.95, 0.62, 0.45), fogEnd = 1800, bright = 1, water = Color3.new(0.12, 0.25, 0.42) , sea = Color3.new(0.12, 0.2, 0.38) },
+	Halloween = { time = "23:30:00", amb = Color3.new(0.32, 0.2, 0.38), out = Color3.new(0.38, 0.25, 0.45), fog = Color3.new(0.22, 0.08, 0.28), fogEnd = 650, bright = 0.6, water = Color3.new(0.04, 0.18, 0.14) , sea = Color3.new(0.03, 0.1, 0.08) },
 }
 local THEME_ORDER = { "Normal", "Sunset", "Halloween" }
 local theme = "Normal"
@@ -84,7 +82,12 @@ local function applyLighting()
 		Lighting.Brightness = t.bright
 	end)
 	pcall(function() workspace.Terrain.WaterColor = t.water end)
-	for i, tile in ipairs(oceanTiles) do if i < #oceanTiles then tile.part.BrickColor = BrickColor.new(t.sea) end end
+	for i, tile in ipairs(oceanTiles) do
+		if i < #oceanTiles then
+			local ok = pcall(function() tile.part.Color = t.sea end)
+			if not ok then pcall(function() tile.part.BrickColor = BrickColor.new(t.sea) end) end
+		end
+	end
 end
 local function pumpkin(parent, cf, size)
 	size = size or 2.4
