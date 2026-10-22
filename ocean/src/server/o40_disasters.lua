@@ -93,6 +93,7 @@ DIS.Tsunami = { text = "TSUNAMI! A MASSIVE wave is coming!", time = 38, run = fu
 				hit = true
 				toAll("big", "THE TSUNAMI HITS!", "")
 				toAll("shake", 2.5)
+				dipShip(30)
 				for _, x in ipairs(players()) do
 					x.h:TakeDamage(25 * power())
 					if not x.h.Sit then fling(x, V(math.random(-15, 15), 30, 35), 0.3) end

@@ -333,7 +333,7 @@ spawn(function()
 	local st = game:GetService("ReplicatedStorage"):WaitForChild("SeaState")
 	local v = {}
 	for _, n in ipairs({ "Amp", "Speed", "Level", "Clock", "ShipAt", "ShipLen", "ShipWid", "ShipAir", "ShipYaw", "ShipSink", "Sailing", "Theme",
-		"RogueA", "RogueT", "RogueZ", "RogueLen", "RogueBump" }) do
+		"RogueA", "RogueT", "RogueZ", "RogueLen", "RogueBump", "ShipDipT", "ShipDipA" }) do
 		v[n] = st:WaitForChild(n)
 	end
 	local S = { shipX = 0, shipZ = 0, amp = 1, speed = 16, rogueA = 0, rogueT = 0, rogueZ = 0, rogueLen = 150, rogueBump = false }
@@ -341,9 +341,14 @@ spawn(function()
 		S.shipX, S.shipZ = v.ShipAt.Value.X, v.ShipAt.Value.Z
 		S.amp, S.speed = v.Amp.Value, v.Speed.Value
 		S.rogueA, S.rogueT, S.rogueZ, S.rogueLen, S.rogueBump = v.RogueA.Value, v.RogueT.Value, v.RogueZ.Value, math.max(1, v.RogueLen.Value), v.RogueBump.Value
+		S.dipT, S.dipA = v.ShipDipT.Value, v.ShipDipA.Value
 	end
 	read()
 	for _, o in pairs(v) do o.Changed:connect(read) end
+	-- the boat dips under: the sea comes over the deck and sweeps you along
+	v.ShipDipT.Changed:connect(function()
+		delay(0.6, function() if washMe then pcall(washMe, 1) end end)
+	end)
 	-- the server's sea clock: jump to it when far off, otherwise slide to it gently (no jerks in the waves)
 	local offset = v.Clock.Value - tick()
 	local goalOffset = offset

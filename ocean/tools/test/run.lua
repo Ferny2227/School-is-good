@@ -139,7 +139,7 @@ for _ = 1, 120 do
 		worst = math.max(worst, D.waveAt(0, -650 + lz) + lz * tp - sh.dy)
 	end
 end
-say(string.format("water above the boat's waterline anywhere along the hull (max over 30 s): %.1f studs (deck is %d up)", worst, sh.deck))
+say(string.format("water above the waterline along the hull (max over 30 s, includes the dips under big waves): %.1f studs (deck is %d up)", worst, sh.deck))
 local seen, rep = {}, 0
 local prevD
 for i = 1, 20 do
@@ -150,6 +150,21 @@ for i = 1, 20 do
 end
 local nseen = 0 for _ in pairs(seen) do nseen = nseen + 1 end
 say(string.format("disaster bag: first 10 picks had %d different disasters, same one twice in a row %d times", nseen, rep))
+-- a big wave buries the bow: the deck goes under the water, then the boat comes back up
+D.SEA.dipT = -100
+D.dipShip(14)
+local under, back = -1e9, nil
+for i = 1, 24 do
+	MOCK.run(0.25)
+	local tp, w = math.tan(sh.pitch), -1e9
+	for k = -2, 2 do
+		local lz = k * sh.len / 4
+		w = math.max(w, D.waveAt(0, -650 + lz) + lz * tp - sh.dy)
+	end
+	under = math.max(under, w)
+	if i == 24 then back = w end
+end
+say(string.format("the boat dips: the sea came %.1f studs over the waterline (deck %d up), 6 s later back to %.1f", under, sh.deck, back))
 local p1, r1, f1 = rock(30)
 say(string.format("galleon in normal swells (30 s): pitch range %.1f deg, roll range %.1f deg, bow-up/bow-down changes %d", p1, r1, f1))
 local hp0 = D.getShip().hp

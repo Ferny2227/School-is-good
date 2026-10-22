@@ -45,6 +45,16 @@ local function rogue(height, len, bump, from)
 	rogueVals.A.Value, rogueVals.T.Value, rogueVals.Z.Value, rogueVals.Len.Value, rogueVals.Bump.Value = SEA.rogueA, SEA.rogueT, SEA.rogueZ, len, SEA.rogueBump
 end
 local function calmRogue() SEA.rogueA = 0 rogueVals.A.Value = 0 end
+-- the boat dips under the water (ShipPose does the motion, on the server and on every player's computer)
+local dipVals = { T = value("NumberValue", "ShipDipT", -100), A = value("NumberValue", "ShipDipA", 0) }
+SEA.dipT, SEA.dipA = -100, 0
+local function dipShip(strength)
+	if seaTime() - SEA.dipT < 4 then return end
+	SEA.dipT, SEA.dipA = seaTime(), strength
+	dipVals.A.Value = strength
+	dipVals.T.Value = SEA.dipT
+	toAll("shake", 0.5 + strength / 40)
+end
 
 -- the far, flat ocean all round. Around the boat (the hole in the middle) each player's computer draws the moving
 -- swells (OceanClient), which flatten out at the edges to meet this. Under the hole: a deep blue floor.

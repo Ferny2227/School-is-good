@@ -86,6 +86,8 @@ local function stepShip(dt, now)
 		end
 		s.pose = s.pose or {}
 		local dy, pitch, roll = ShipPose(t, SEA, s.len, s.wid, nil, s.pose, dt)
+		-- now and then a bigger wave buries the bow as it comes down the back of a swell
+		if pitch < -0.13 and math.random() < dt / 12 then dipShip(9) end
 		if s.air > 0.1 then      -- swinging about in the tornado (players' computers do the same)
 			local k = math.min(1, s.air / 10)
 			pitch, roll = pitch + math.sin(t * 1.2) * 0.08 * k, roll + math.sin(t * 1.5) * 0.1 * k
@@ -101,6 +103,7 @@ local function stepShip(dt, now)
 				if not s.slammed or now - s.slammed > 2.5 then
 					s.slammed = now
 					toAll("shake", 0.5 + SEA.rogueA / 30)
+					if not SEA.rogueBump and math.random() < 0.5 then dipShip(10 + SEA.rogueA * 0.15) end   -- a big wave buries the bow
 				end
 			end
 			if c > SEA.rogueLen * 3 then calmRogue() end

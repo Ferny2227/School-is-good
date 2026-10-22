@@ -277,5 +277,5 @@ spawn(function()
 end)
 _G.OceanDebug = { DIS = DIS, SEA = SEA, swimmers = swimmers, STATE = STATE, getShip = function() return ship end,
 	buildShip = buildShip, damageShip = damageShip, deckSpot = deckSpot, onShip = onShip, shipFrame = shipFrame,
-	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, rogue = rogue, waveAt = waveAt, ghosts = function() return ghosts end, makeGhost = makeGhost, BOARD = BOARD, seaTime = seaTime, nextDisaster = function() return nextDisaster() end }
+	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, rogue = rogue, waveAt = waveAt, dipShip = dipShip, ghosts = function() return ghosts end, makeGhost = makeGhost, BOARD = BOARD, seaTime = seaTime, nextDisaster = function() return nextDisaster() end }
 print("OceanServer ready")

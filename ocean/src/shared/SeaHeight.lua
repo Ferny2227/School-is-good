@@ -78,6 +78,15 @@ local function ShipPose(t, s, len, wid, sinkAt, state, dt)
 		dy = math.max(dy, SeaHeight(x, z + lz, t, s) + lz * tp - 4)
 	end
 	dy = math.max(dy, SeaHeight(x - hw, z, t, s) + hw * tr - 4, SeaHeight(x + hw, z, t, s) - hw * tr - 4)
+	-- a big wave hit it: the boat plunges nose first under the water, then bobs back up (3.5 s)
+	if s.dipA and s.dipA > 0 and s.dipT then
+		local tau = t - s.dipT
+		if tau > 0 and tau < 3.5 then
+			local e = math.sin(math.pi * tau / 3.5)
+			dy = dy - s.dipA * e
+			pitch = pitch - 0.12 * e
+		end
+	end
 	return dy, pitch, roll
 end
 -- the boat's frame: at the ship's spot, raised by dy, turned by yaw, tipped by pitch and roll
