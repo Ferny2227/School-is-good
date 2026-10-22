@@ -26,6 +26,9 @@ Open/upload `DisasterOcean.rbxl`.
   builds up, rolls through the boat (screen shake, damage, water washing over the deck) and dies down again. The
   swells are drawn on each player's computer (dark troughs, turquoise faces, white foam on the crests) with the same
   maths the server uses to move the boat (`src/shared/SeaHeight.lua`), so the boat always sits on the drawn water.
+- **The waves try to throw you off**: the deck is wet, so when the boat leans you slide downhill; when the bow
+  crashes into a wave (and all through a set of big waves) water sweeps over the deck and throws you towards the back
+  and over the side - unless you're under a roof. The rails are only knee-high.
 - **It's hard**: meteors, hail, lightning, cannonballs and the Kraken aim at players (keep moving!), your health
   doesn't come back by itself (+20 for each disaster you survive), and disasters hurt 1.5x. Every 4 disasters the
   level goes up: one more disaster at once (up to 4), bigger waves, +25% damage per level, shorter calms, and Coins

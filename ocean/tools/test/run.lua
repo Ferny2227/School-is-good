@@ -228,6 +228,16 @@ spawn(assert(loadstring(CLIENT_SOURCE, "=OceanClient")))
 MOCK.run(3)
 spawn(assert(loadstring(CLIENT_SOURCE, "=OceanClient")))   -- respawned: a second copy of the script starts
 MOCK.run(2)
+-- standing on the deck: the wet deck pushes you downhill as the boat leans
+local me = ps[1].Character.Torso
+ps[1].Character.Humanoid.Health = 100
+local phase0 = D.STATE.phase
+D.STATE.phase = "calm"          -- (in the intermission anyone below the sky lobby is sent back up)
+me.CFrame = D.shipFrame() * CFrame.new(0, csh.deck + 3, 0)
+MOCK.run(2)
+local slide = me:FindFirstChild("DeckSlide")
+say(string.format("slippery deck: push on player %s (%.0f)", tostring(slide ~= nil), slide and slide.force.magnitude or 0))
+D.STATE.phase = phase0
 local want = D.shipFrame() * csh.rest:inverse()
 say(string.format("client moves the whole boat: hull moved %.1f, top part (%s) moved %.1f, top part where the server says %.1f studs off, still the same distance apart: %s",
 	(csh.root.Position - hull0).magnitude, top.Name, (top.Position - top0).magnitude, ((want * CFrame.new(top0)).p - top.Position).magnitude,

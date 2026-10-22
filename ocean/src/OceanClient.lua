@@ -55,6 +55,7 @@ local statusText = label(bar, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), "DIS
 -- big announcement
 local big = label(gui, UDim2.new(0.5, -400, 0.25, 0), UDim2.new(0, 800, 0, 60), "", 48, C.red)
 local sub = label(gui, UDim2.new(0.5, -400, 0.25, 60), UDim2.new(0, 800, 0, 30), "", 24, C.white)
+local washMe      -- (defined with the boat code below)
 -- HOW TO PLAY: shown when you join (once)
 local function panel(w, h)
 	local f = frame(gui, UDim2.new(0.5, -w / 2, 0.5, -h / 2), UDim2.new(0, w, 0, h), C.dark, 0.08)
@@ -379,6 +380,31 @@ spawn(function()
 		for _, c in ipairs(world:GetChildren()) do if c:FindFirstChild("IsShip") then return c end end
 	end
 	local air, yaw, frames, lastShipCF, pose = 0, 0, 0, nil, {}
+	local onBoat, slideMass, lastWash = false, nil, 0
+	-- a wave crashing over the deck sweeps you towards the back and over the side... unless there's a roof over you
+	function washMe(power)
+		local c = player.Character
+		local me = c and (c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso"))
+		local h = c and c:FindFirstChild("Humanoid")
+		if not me or not h or h.Health <= 0 or not onBoat or swimming or tick() - lastWash < 2 then return end
+		local covered = false
+		pcall(function()
+			local hit = workspace:FindPartOnRay(Ray.new(me.Position + Vector3.new(0, 3, 0), Vector3.new(0, 40, 0)), c)
+			covered = hit ~= nil and model ~= nil and hit:IsDescendantOf(model)
+		end)
+		if covered then return end
+		lastWash = tick()
+		local side = math.random() < 0.5 and -1 or 1
+		local push = lastShipCF and ((lastShipCF * Vector3.new(side * 0.8, 0, 1)) - lastShipCF.p) or Vector3.new(side, 0, 1)
+		push = Vector3.new(push.X, 0, push.Z).unit
+		local bv = Instance.new("BodyVelocity")
+		bv.maxForce = Vector3.new(3e4, 3e4, 3e4)
+		bv.velocity = push * (28 + 18 * power) + Vector3.new(0, 14 + 10 * power, 0)
+		bv.Parent = me
+		game:GetService("Debris"):AddItem(bv, 0.35)
+		showToast("A WAVE CRASHES OVER THE DECK! Get under a roof!", "red")
+		shaking = math.max(shaking, 0.3)
+	end
 	local function moveBoat(t, dt)
 		frames = frames + 1
 		if frames % 15 == 0 then      -- find the boat (and parts that arrived late); drop pieces that broke off
@@ -423,11 +449,38 @@ spawn(function()
 		-- carry YOU with the boat (like a moving platform): on a slow computer the deck could otherwise jump past your
 		-- feet between two frames and you'd drop through it into the sea
 		local me = player.Character and (player.Character:FindFirstChild("HumanoidRootPart") or player.Character:FindFirstChild("Torso"))
+		onBoat = false
 		if me and lastShipCF and not swimming then
 			local l = lastShipCF:inverse() * me.Position
 			if math.abs(l.X) < v.ShipWid.Value / 2 + 4 and math.abs(l.Z) < v.ShipLen.Value / 2 + 6 and l.Y > -4 and l.Y < 80 then
 				pcall(function() me.CFrame = shipCF * lastShipCF:inverse() * me.CFrame end)
+				onBoat = true
 			end
+		end
+		-- the deck is wet: when the boat leans, you slide downhill (a real push, so walls still stop you)
+		pcall(function()
+			if not me then return end
+			local f = me:FindFirstChild("DeckSlide")
+			if not f then
+				f = Instance.new("BodyForce")
+				f.Name = "DeckSlide"
+				f.Parent = me
+				slideMass = 0
+				for _, o in ipairs(player.Character:GetChildren()) do
+					if o:IsA("BasePart") then
+						local ok, m = pcall(function() return o:GetMass() end)
+						slideMass = slideMass + (ok and m or o.Size.X * o.Size.Y * o.Size.Z * 0.7)
+					end
+				end
+			end
+			local up = (shipCF * Vector3.new(0, 1, 0)) - shipCF.p
+			local down = Vector3.new(up.X, 0, up.Z)
+			f.force = onBoat and down * (slideMass or 10) * 196 * 1.6 or Vector3.new()
+		end)
+		-- big waves crash over the deck while a set of big waves rolls through
+		if onBoat and S.rogueA > 0 and not S.rogueBump then
+			local e = (S.rogueZ + 30 * (t - S.rogueT)) / S.rogueLen
+			if math.abs(e) < 0.8 and math.random() < dt / 3.5 then washMe(0.8) end
 		end
 		lastShipCF = shipCF
 		lastMove = move
@@ -491,6 +544,7 @@ spawn(function()
 			nextSlam = now + 2.5
 			local bz = cz - len / 2
 			splash(Vector3.new(cx, lv + SeaHeight(cx, bz, t, S), bz), 14, 40)
+			if math.random() < 0.6 then washMe(0.5) end     -- the white water comes over the bow
 		end
 		lastPitch = pitch
 		-- a whale leaps out of the waves
