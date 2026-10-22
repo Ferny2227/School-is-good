@@ -51,15 +51,8 @@ assert(gui, "client made no AirportUI")
 local away, lightsOn = {}, 0
 for i = 1, 10 do if not G.plots[i].Items.Parent then table.insert(away, i) end end
 for _, o in ipairs(workspace:GetDescendants()) do if o.ClassName == "PointLight" and o.Enabled ~= false then lightsOn = lightsOn + 1 end end
-local islandAway = not D.RESORT.root:FindFirstChild("Paradise Park")
-LOWGFX_OUT = "low graphics: airports put away " .. table.concat(away, ",") .. "; island put away " .. tostring(islandAway) .. "; lights still on " .. lightsOn
-local gb = gui:FindFirstChild("Graphics")
-if gb then
-	rawget(gb, "_p").MouseButton1Click:fireNow()   -- HIGH: everything comes back
-	local back = 0
-	for i = 1, 10 do if G.plots[i].Items.Parent then back = back + 1 end end
-	LOWGFX_OUT = LOWGFX_OUT .. "; after HIGH: airports shown " .. back .. "/10, island back " .. tostring(D.RESORT.root:FindFirstChild("Paradise Park") ~= nil)
-end
+local parkThere = D.RESORT.root:FindFirstChild("Paradise Park") ~= nil
+LOWGFX_OUT = "low graphics: airports moved away " .. #away .. " (must be 0); park still in place " .. tostring(parkThere) .. "; lights still on " .. lightsOn
 -- press every side button and every hire button
 local clicks = 0
 for _, o in ipairs(gui:GetDescendants()) do

@@ -4,6 +4,17 @@
 -- one CFrame per car/gondola/cup each frame. Seats are real Seats: touch one to sit and ride along, jump to get off.
 -- Some seats have a painted rider in them so the rides look busy.
 local PARK = { visitors = 0 }
+-- Where everything is (world x, z). The park is packed around its paths, right by the entrance arch (x -120):
+--   main path (z 2290) from the arch to x 230; side path (x -110) north to the back path (z 2460)
+--   south of the main path: Carousel, Teacups, Sky Swings, Free Fall
+--   north of it: Pirate Ship, Ferris Wheel, Go-Karts, Ghost Manor
+--   behind the back path: The Scream Machine and the Log Flume
+local SIDE, BACK = -110, 2460
+local LAYOUT = {
+	carousel = { -60, 2240 }, teacups = { 0, 2240 }, swings = { 60, 2240 }, drop = { 115, 2240 },
+	pirate = { -55, 2345 }, ferris = { 35, 2370 }, karts = { 150, 2350 }, ghost = { 255, 2340 },
+	coaster = { -60, 2490 }, flume = { 245, -157 },   -- (the flume is moved by this much from where it was drawn)
+}
 local function rideModel(parent, name, pivot)
 	local m = Instance.new("Model")
 	m.Name = name
@@ -102,7 +113,7 @@ end
 
 ------------------------------------------------------------------ 1. THE SCREAM MACHINE: lift hill, huge drop, a loop-the-loop, banked turn, camel hills
 local function coaster(root)
-	local O = CFrame.new(470, 0, 2330)
+	local O = CFrame.new(LAYOUT.coaster[1], 0, LAYOUT.coaster[2])
 	local ctrl = {}
 	local function add(x, y, z, up) table.insert(ctrl, { p = V(x, y, z), up = up }) end
 	for x = 0, 54, 6 do add(x, 4, 0) end                                         -- station
@@ -183,7 +194,7 @@ local function coaster(root)
 	local liftEnd, top = 0, 0
 	for k = 0, 260 do if T.P[k].y > top then top, liftEnd = T.P[k].y, k end end
 	local R = { name = "The Scream Machine", T = T, O = O, cars = cars, s = 30, v = 0, v_brake = 0, wait = 8, liftEnd = liftEnd,
-		path = { { 497, 2290 }, { 497, 2312 } } }
+		path = { { SIDE, 2290 }, { SIDE, BACK }, { O.p.x + 27, BACK }, { O.p.x + 27, O.p.z - 18 } } }
 	function R.step(dt)
 		if R.wait > 0 then
 			R.wait = R.wait - dt
@@ -204,7 +215,7 @@ local function coaster(root)
 			R.v_brake = R.v
 			ns = s + R.v * dt
 			if ns >= T.L then ns = ns - T.L end
-			if s < 30 and ns >= 30 then ns, R.wait, R.v = 30, 10, 0 end   -- stop in the station to let people on and off
+			if s < 30 and ns >= 30 then ns, R.wait, R.v = 30, 15, 0 end   -- stop in the station to let people on and off
 			R.s = ns
 		end
 		for k, car in ipairs(R.cars) do car.CFrame = R.O * trackCF(T, R.s - (k - 1) * 8) end
@@ -214,7 +225,7 @@ end
 
 ------------------------------------------------------------------ 2. Ferris wheel
 local function ferris(root)
-	local C = V(0, 52, 2650)
+	local C = V(LAYOUT.ferris[1], 52, LAYOUT.ferris[2])
 	local wm, wb, wroot = rideModel(root, "Ferris Wheel", CFrame.new(C))
 	U.P(wb, "Hub", V(6, 6, 6), CFrame.Angles(0, math.rad(90), 0), "Gold", "Metal", { shape = "cyl" })
 	for i = 0, 19 do
@@ -230,7 +241,7 @@ local function ferris(root)
 	local gond = {}
 	local cols = { "Bright red", "Bright blue", "Bright yellow", "Lime green", "Royal purple", "Bright orange", "Hot pink", "Cyan", "Teal", "Bright red" }
 	for k = 0, 9 do
-		local gm, gb, groot = rideModel(root, "Gondola " .. (k + 1), CFrame.new(C + V(0, -40, 4.5)))
+		local gm, gb, groot = rideModel(root, "Gondola " .. (k + 1), CFrame.new(C + V(0, -40, -4.5)))
 		U.P(gb, "Hanger", V(0.4, 3, 0.4), CFrame.new(0, -1.5, 0), "Dark stone grey", "Metal")
 		U.P(gb, "GondolaRoof", V(6, 0.4, 5), CFrame.new(0, -3.2, 0), cols[k + 1], "SmoothPlastic")
 		U.P(gb, "GondolaFloor", V(6, 0.4, 5), CFrame.new(0, -7.4, 0), cols[k + 1], "SmoothPlastic")
@@ -247,20 +258,20 @@ local function ferris(root)
 	local b = { model = m, cf = CFrame.new() }
 	for _, sx in ipairs({ -1, 1 }) do
 		for _, sz in ipairs({ -1, 1 }) do
-			local foot, top = V(sx * 24, 0, C.z + sz * 9), V(0, C.y, C.z + sz * 2.5)
+			local foot, top = V(C.x + sx * 24, 0, C.z + sz * 9), V(C.x, C.y, C.z + sz * 2.5)
 			U.P(b, "Leg", V(1.6, 1.6, (top - foot).magnitude), CFrame.new((foot + top) / 2, top), "Light stone grey", "Metal")
 		end
 	end
 	U.P(b, "Axle", V(9, 1.6, 1.6), CFrame.new(C) * CFrame.Angles(0, math.rad(90), 0), "Dark stone grey", "Metal", { shape = "cyl" })
-	U.blk(b, "Platform", 14, 4.6, 10, 0, 0, C.z + 4.5 + 8, "Light stone grey", "Concrete")
-	sign(b, "FERRIS WHEEL", 0, 8, C.z + 18, 16, 3, 180, Color3.new(0.1, 0.3, 0.8))
-	local R = { name = "Ferris Wheel", th = 0, path = { { 60, 2290 }, { 60, C.z + 22 }, { 0, C.z + 22 } } }
+	U.blk(b, "Platform", 14, 4.6, 10, C.x, 0, C.z - 4.5 - 8, "Light stone grey", "Concrete")
+	sign(b, "FERRIS WHEEL", C.x, 8, C.z - 18, 16, 3, 0, Color3.new(0.1, 0.3, 0.8))
+	local R = { name = "Ferris Wheel", th = 0, path = { { C.x, 2290 }, { C.x, C.z - 22 } } }
 	function R.step(dt)
 		R.th = R.th + 0.11 * dt
 		wroot.CFrame = CFrame.new(C) * CFrame.Angles(0, 0, R.th)
 		for k, g in ipairs(gond) do
 			local a = R.th + (k - 1) * 2 * math.pi / 10
-			g.CFrame = CFrame.new(C + V(40 * math.sin(a), -40 * math.cos(a), 4.5))
+			g.CFrame = CFrame.new(C + V(40 * math.sin(a), -40 * math.cos(a), -4.5))
 		end
 	end
 	return R
@@ -268,7 +279,7 @@ end
 
 ------------------------------------------------------------------ 3. FREE FALL drop tower
 local function droptower(root)
-	local X, Z = 360, 2180
+	local X, Z = LAYOUT.drop[1], LAYOUT.drop[2]
 	local m = Instance.new("Model")
 	m.Name = "Free Fall Tower"
 	m.Parent = root
@@ -308,7 +319,7 @@ local function droptower(root)
 		elseif R.phase == "brake" then
 			R.v = math.max(3, R.v - 140 * dt)
 			R.y = math.max(4.5, R.y - R.v * dt)
-			if R.y <= 4.5 then R.phase, R.t = "wait", 10 end
+			if R.y <= 4.5 then R.phase, R.t = "wait", 14 end
 		end
 		rroot.CFrame = CFrame.new(X, R.y, Z)
 	end
@@ -317,7 +328,7 @@ end
 
 ------------------------------------------------------------------ 4. Carousel
 local function carousel(root)
-	local C = V(0, 0, 2200)
+	local C = V(LAYOUT.carousel[1], 0, LAYOUT.carousel[2])
 	local m = Instance.new("Model")
 	m.Name = "Carousel"
 	m.Parent = root
@@ -357,20 +368,20 @@ end
 
 ------------------------------------------------------------------ 5. Pirate ship
 local function pirate(root)
-	local P = V(0, 34, 2400)
+	local P = V(LAYOUT.pirate[1], 34, LAYOUT.pirate[2])
 	local m = Instance.new("Model")
 	m.Name = "Pirate Ship Frame"
 	m.Parent = root
 	local b = { model = m, cf = CFrame.new() }
 	for _, sx in ipairs({ -1, 1 }) do
 		for _, sz in ipairs({ -1, 1 }) do
-			local foot, top = V(sx * 15, 0, P.z + sz * 10), V(0, P.y, P.z + sz * 4)
+			local foot, top = V(P.x + sx * 15, 0, P.z + sz * 10), V(P.x, P.y, P.z + sz * 4)
 			U.P(b, "Leg", V(1.8, 1.8, (top - foot).magnitude), CFrame.new((foot + top) / 2, top), "Dark stone grey", "Metal")
 		end
 	end
 	U.P(b, "Axle", V(10, 1.4, 1.4), CFrame.new(P) * CFrame.Angles(0, math.rad(90), 0), "Gold", "Metal", { shape = "cyl" })
-	U.blk(b, "Platform", 14, 4.4, 6, 0, 0, P.z + 9, "Light stone grey", "Concrete")
-	sign(b, "PIRATE SHIP", 0, 8, P.z + 13, 14, 3, 180, Color3.new(0.1, 0.1, 0.1), Color3.new(1, 0.85, 0.3))
+	U.blk(b, "Platform", 14, 4.4, 6, P.x, 0, P.z - 9, "Light stone grey", "Concrete")
+	sign(b, "PIRATE SHIP", P.x, 8, P.z - 13, 14, 3, 0, Color3.new(0.1, 0.1, 0.1), Color3.new(1, 0.85, 0.3))
 	local sm, sb, sroot = rideModel(root, "Pirate Ship", CFrame.new(P))
 	for _, z in ipairs({ -3, 3 }) do U.P(sb, "Arm", V(1, 25, 1), CFrame.new(0, -12.5, z), "Dark stone grey", "Metal") end
 	U.P(sb, "Hull", V(34, 1, 9), CFrame.new(0, -28, 0), "Reddish brown", "Wood")
@@ -384,7 +395,7 @@ local function pirate(root)
 		for j, z in ipairs({ -2, 2 }) do chair(sb, U.L(x, -27.2, z, x < 0 and -90 or 90), "Brown", (i + j) % 3 == 0, (i + j) % 2 == 0, 3) end
 	end
 	rig(sm, sroot)
-	local R = { name = "Pirate Ship", t = 0, path = { { 60, 2290 }, { 60, P.z + 20 }, { 0, P.z + 20 } } }
+	local R = { name = "Pirate Ship", t = 0, path = { { P.x, 2290 }, { P.x, P.z - 20 } } }
 	function R.step(dt)
 		R.t = (R.t + dt) % 50
 		local t = R.t
@@ -398,7 +409,7 @@ end
 
 ------------------------------------------------------------------ 6. Spinning teacups
 local function teacups(root)
-	local C = V(120, 0.8, 2200)
+	local C = V(LAYOUT.teacups[1], 0.8, LAYOUT.teacups[2])
 	local m = Instance.new("Model")
 	m.Name = "Teacups Base"
 	m.Parent = root
@@ -439,7 +450,7 @@ end
 
 ------------------------------------------------------------------ 7. Swing ride (swings fly outwards as it speeds up)
 local function swings(root)
-	local C = V(240, 20.6, 2200)
+	local C = V(LAYOUT.swings[1], 20.6, LAYOUT.swings[2])
 	local m = Instance.new("Model")
 	m.Name = "Swing Ride Tower"
 	m.Parent = root
@@ -481,7 +492,8 @@ local function gokarts(root)
 	local m = Instance.new("Model")
 	m.Name = "Go-Kart Track"
 	m.Parent = root
-	local b = { model = m, cf = CFrame.new() }
+	local OFF = V(LAYOUT.karts[1] - 180, 0, LAYOUT.karts[2] - 2420)   -- the track below is drawn around (180, 2420)
+	local b = { model = m, cf = CFrame.new(OFF) }
 	U.blk(b, "Straight", 100, 0.3, 14, 180, 0, 2390, "Dark stone grey", "Concrete")
 	U.blk(b, "Straight", 100, 0.3, 14, 180, 0, 2450, "Dark stone grey", "Concrete")
 	local pts = {}
@@ -500,11 +512,12 @@ local function gokarts(root)
 	end
 	U.blk(b, "StartLine", 1.4, 0.05, 14, 180, 0.3, 2390, "Institutional white", nil, { nc = true })
 	sign(b, "GO-KARTS", 180, 4, 2378, 14, 3, 0, Color3.new(0.1, 0.6, 0.1))
+	for _, q in ipairs(pts) do q.p = q.p + OFF end
 	local P = FLY.path(pts, true)
 	local karts = {}
 	local cols = { "Bright red", "Bright blue", "Bright yellow", "Lime green" }
 	for k = 1, 4 do
-		local km, kb, kroot = rideModel(root, "Go-Kart " .. k, CFrame.new(130, 0.3, 2390))
+		local km, kb, kroot = rideModel(root, "Go-Kart " .. k, CFrame.new(V(130, 0.3, 2390) + OFF))
 		U.P(kb, "Body", V(3, 1, 5), CFrame.new(0, 0.8, 0), cols[k], "SmoothPlastic")
 		chair(kb, CFrame.new(0, 1.6, 0.8), "Really black", k % 2 == 0, false)
 		U.P(kb, "SteeringWheel", V(0.3, 1.2, 1.2), CFrame.new(0, 2.2, -0.9) * CFrame.Angles(0, math.rad(90), math.rad(-30)), "Really black", nil, { shape = "cyl", nc = true })
@@ -513,16 +526,16 @@ local function gokarts(root)
 		rig(km, kroot)
 		karts[k] = { root = kroot, t = (k - 1) * P.total / 4, wait = 0 }
 	end
-	local R = { name = "Go-Karts", path = { { 180, 2290 }, { 180, 2374 } } }
+	local R = { name = "Go-Karts", path = { { 180 + OFF.x, 2290 }, { 180 + OFF.x, 2374 + OFF.z } } }
 	function R.step(dt)
 		for _, k in ipairs(karts) do
-			-- a 3-second pit stop at the start line every lap, so you can hop in or out
+			-- a 6-second pit stop at the start line every lap, so you can hop in or out
 			if k.wait > 0 then
 				k.wait = k.wait - dt
 			else
 				local before = k.t % P.total
 				k.t = k.t + dt
-				if before > k.t % P.total then k.wait = 3 end
+				if before > k.t % P.total then k.wait = 6 end
 			end
 			local p = FLY.at(P, k.t)
 			local a = FLY.at(P, k.t + 0.3)
@@ -539,7 +552,8 @@ local function haunted(root)
 	local m = Instance.new("Model")
 	m.Name = "Ghost Manor"
 	m.Parent = root
-	local b = { model = m, cf = CFrame.new() }
+	local OFF = V(LAYOUT.ghost[1] - 300, 0, LAYOUT.ghost[2] - 2395)   -- the manor below is drawn with its front-left at (300, 2395)
+	local b = { model = m, cf = CFrame.new(OFF) }
 	local x0, x1, z0, z1, h = 300, 360, 2395, 2445, 18
 	U.blk(b, "Floor", 60, 0.4, 50, 330, 0, 2420, "Really black", "WoodPlanks")
 	U.blk(b, "WallN", 60, h, 1, 330, 0, z1, "Dark stone grey", "Brick")
@@ -584,12 +598,12 @@ local function haunted(root)
 	local pts = {}
 	for _, q in ipairs({ { 314, 2380 }, { 330, 2380 }, { 346, 2383 }, { 351, 2398 }, { 352, 2412 }, { 345, 2436 }, { 330, 2438 }, { 314, 2432 },
 		{ 312, 2418 }, { 324, 2410 }, { 338, 2414 }, { 336, 2426 }, { 320, 2426 }, { 309, 2410 }, { 309, 2390 } }) do
-		table.insert(pts, { p = V(q[1], 0.4, q[2]), v = 5 })
+		table.insert(pts, { p = V(q[1], 0.4, q[2]) + OFF, v = 5 })
 	end
 	local P = FLY.path(FLY.round(pts, 3), true)
 	local cars = {}
 	for k = 1, 2 do
-		local cm, cb, croot = rideModel(root, "Ghost Car " .. k, CFrame.new(314, 0.4, 2380))
+		local cm, cb, croot = rideModel(root, "Ghost Car " .. k, CFrame.new(V(314, 0.4, 2380) + OFF))
 		U.P(cb, "Tub", V(3.6, 2, 4), CFrame.new(0, 1.2, 0), "Royal purple", "SmoothPlastic")
 		chair(cb, CFrame.new(-0.85, 2.4, 0.4), "Really black", k == 2, false, 1.6)
 		chair(cb, CFrame.new(0.85, 2.4, 0.4), "Really black", false, false, 1.6)
@@ -597,7 +611,7 @@ local function haunted(root)
 		rig(cm, croot)
 		cars[k] = { root = croot, t = (k - 1) * P.total / 2, wait = 0 }
 	end
-	local R = { name = "Ghost Manor", path = { { 322, 2290 }, { 322, 2360 } } }
+	local R = { name = "Ghost Manor", path = { { 322 + OFF.x, 2290 }, { 322 + OFF.x, 2360 + OFF.z } } }
 	function R.step(dt)
 		for _, c in ipairs(cars) do
 			if c.wait > 0 then
@@ -605,7 +619,7 @@ local function haunted(root)
 			else
 				local before = c.t % P.total
 				c.t = c.t + dt
-				if before > c.t % P.total then c.wait = 6 end   -- back at the platform: let people on and off
+				if before > c.t % P.total then c.wait = 10 end   -- back at the platform: let people on and off
 			end
 			local p = FLY.at(P, c.t)
 			local a = FLY.at(P, c.t + 0.4)
@@ -632,7 +646,8 @@ local function flume(root)
 	local m = Instance.new("Model")
 	m.Name = "Log Flume Channel"
 	m.Parent = root
-	local b = { model = m, cf = CFrame.new() }
+	local OFF = CFrame.new(LAYOUT.flume[1], 0, LAYOUT.flume[2])   -- the flume above is drawn around (175, 2680)
+	local b = { model = m, cf = OFF }
 	for k = 0, T.n - 1, 5 do
 		local c1, c2 = trackCF(T, k), trackCF(T, k + 5)
 		local a, e = c1.p, c2.p
@@ -648,7 +663,7 @@ local function flume(root)
 	sign(b, "SPLASH MOUNTAIN LOGS", 140, 8, 2630, 20, 3, 0, Color3.new(0.1, 0.4, 0.7))
 	local logs = {}
 	for k = 1, 2 do
-		local lm, lb, lroot = rideModel(root, "Log Boat " .. k, trackCF(T, 20))
+		local lm, lb, lroot = rideModel(root, "Log Boat " .. k, OFF * trackCF(T, 20))
 		U.P(lb, "Log", V(10, 3, 3), U.L(0, 0.9, 0, 90), "Brown", "Wood", { shape = "cyl" })
 		U.P(lb, "Hollow", V(2.4, 0.3, 7.6), CFrame.new(0, 2.25, 0), "Reddish brown", "Wood", { nc = true })
 		chair(lb, CFrame.new(0, 2.3, -1.8), "Reddish brown", k == 1, true, 2)
@@ -659,7 +674,8 @@ local function flume(root)
 	local peak, dropEnd = 0, 0
 	for k = 0, T.n - 1 do if T.P[k].y > T.P[peak].y then peak = k end end
 	for k = peak, T.n - 1 do if T.P[k].y < 3.5 then dropEnd = k break end end
-	local R = { name = "Log Flume", path = { { 60, 2290 }, { 60, 2550 }, { 140, 2550 }, { 140, 2626 } } }
+	local ex, ez = 140 + LAYOUT.flume[1], 2626 + LAYOUT.flume[2]
+	local R = { name = "Log Flume", path = { { SIDE, 2290 }, { SIDE, BACK }, { ex, BACK }, { ex, ez } } }
 	function R.step(dt)
 		for _, l in ipairs(logs) do
 			if l.wait > 0 then
@@ -674,10 +690,10 @@ local function flume(root)
 					l.v = U.clamp(math.sqrt(math.max(64, l.v * l.v - 2 * 50 * dy)) - 4 * dt, 8, 45)
 				end
 				local ns = l.s + l.v * dt
-				if s < 20 and (ns % T.L) >= 20 then ns, l.wait = l.s - s + 20, 6 end
+				if s < 20 and (ns % T.L) >= 20 then ns, l.wait = l.s - s + 20, 10 end
 				l.s = ns
 			end
-			l.root.CFrame = trackCF(T, l.s)
+			l.root.CFrame = OFF * trackCF(T, l.s)
 		end
 	end
 	return R
@@ -689,9 +705,10 @@ local function parkGrounds(root)
 	m.Name = "Park Grounds"
 	m.Parent = root
 	local b = { model = m, cf = CFrame.new() }
-	U.blk(b, "AvenueA", 660, 0.4, 16, 180, 0, 2290, "Brick yellow", "Concrete")
-	U.blk(b, "AvenueB", 16, 0.4, 470, 60, 0, 2525, "Brick yellow", "Concrete")
-	U.blk(b, "AvenueC", 400, 0.4, 14, 260, 0, 2550, "Brick yellow", "Concrete")
+	-- paths: main (from the arch east), side (north to the back), back (along the coaster and the flume)
+	U.blk(b, "MainPath", 450, 0.4, 16, 75, 0, 2290, "Brick yellow", "Concrete")
+	U.blk(b, "SidePath", 16, 0.4, 178, SIDE, 0, (2290 + BACK) / 2, "Brick yellow", "Concrete")
+	U.blk(b, "BackPath", 520, 0.4, 14, 150, 0, BACK, "Brick yellow", "Concrete")
 	-- the entrance arch
 	for _, z in ipairs({ 2280, 2300 }) do U.blk(b, "ArchPillar", 3, 22, 3, -120, 0, z, "Bright red", "SmoothPlastic") end
 	local s = U.blk(b, "ArchSign", 3, 7, 26, -120, 22, 2290, "Bright yellow", "SmoothPlastic")
@@ -701,24 +718,25 @@ local function parkGrounds(root)
 		U.blk(b, "TicketBooth", 6, 8, 6, p[1], 0, p[2], "Institutional white", "SmoothPlastic")
 		U.blk(b, "BoothRoof", 7, 1, 7, p[1], 8, p[2], "Bright red", "SmoothPlastic")
 	end
-	U.cyl(b, "FountainBasin", 18, 1.6, -60, 0, 2290 + 20, "Light stone grey", "Marble")
-	U.fx(U.cyl(b, "FountainWater", 16, 0.3, -60, 1.4, 2310, "Cyan", "Neon", { tr = 0.4, nc = true }), "Sparkles")
-	-- snack stands and benches along the avenue
+	U.cyl(b, "FountainBasin", 18, 1.6, -105, 0, 2245, "Light stone grey", "Marble")
+	U.cyl(b, "FountainWater", 16, 0.3, -105, 1.4, 2245, "Cyan", "Neon", { tr = 0.4, nc = true })
+	-- snack stands and benches along the back path, between the rides and the coaster
 	local stands = { { "POPCORN", "Bright red" }, { "COTTON CANDY", "Hot pink" }, { "ICE CREAM", "Cyan" }, { "HOT DOGS", "Bright yellow" }, { "CHURROS", "Bright orange" } }
 	for i, st in ipairs(stands) do
-		local x = -40 + i * 75
-		U.blk(b, "Stand", 6, 4, 4, x, 0, 2306, "Institutional white", "SmoothPlastic")
-		U.blk(b, "Awning", 7, 0.6, 5, x, 6, 2306, st[2], "Fabric")
-		for _, dx in ipairs({ -3, 3 }) do U.blk(b, "AwningPost", 0.3, 2, 0.3, x + dx, 4, 2304, "Institutional white", "Metal") end
-		local sg = U.blk(b, "StandSign", 6, 1.2, 0.2, x, 6.8, 2303.8, st[2], "SmoothPlastic")
+		local x = 90 + i * 40
+		U.blk(b, "Stand", 6, 4, 4, x, 0, 2444, "Institutional white", "SmoothPlastic")
+		U.blk(b, "Awning", 7, 0.6, 5, x, 6, 2444, st[2], "Fabric")
+		for _, dx in ipairs({ -3, 3 }) do U.blk(b, "AwningPost", 0.3, 2, 0.3, x + dx, 4, 2446, "Institutional white", "Metal") end
+		local sg = U.blk(b, "StandSign", 6, 1.2, 0.2, x, 6.8, 2446.2, st[2], "SmoothPlastic", nil, 180)
 		U.text(sg, st[1], Color3.new(1, 1, 1), nil, "Front")
-		U.seat(b, x, 0.4, 2275, 0, "Brown", 5)
+		U.seat(b, x + 16, 0.4, 2444, 180, "Brown", 5)
 	end
-	for x = -100, 880, 60 do RESORT.palm(b, x, 2265, 12) end
-	for z = 2320, 2760, 60 do RESORT.palm(b, 75, z, 12) end
-	for _, p in ipairs({ { -100, 2600 }, { -100, 2800 }, { 300, 2850 }, { 600, 2800 }, { 800, 2650 }, { 450, 2600 } }) do RESORT.palm(b, p[1], p[2], 15) end
-	-- lamp posts
-	for x = -80, 860, 80 do
+	-- palms round the edge of the park
+	for x = -140, 540, 85 do RESORT.palm(b, x, 2630, 13) end
+	for z = 2210, 2560, 70 do RESORT.palm(b, 560, z, 13) end
+	for x = -20, 280, 75 do RESORT.palm(b, x, 2195, 12) end
+	-- lamp posts along the main path (between the rides' paths)
+	for _, x in ipairs({ -90, -20, 90, 120, 200 }) do
 		U.blk(b, "LampPost", 0.5, 9, 0.5, x, 0, 2299, "Really black", "Metal")
 		U.light(U.ball(b, "Lamp", 1.4, x, 9.4, 2299, "Cool yellow", "Neon"), Color3.new(1, 0.9, 0.6), 18)
 	end
@@ -805,10 +823,6 @@ function RESORT.build()
 	root.Name = "Paradise Island"
 	root.Parent = workspace
 	RESORT.root = root
-	local centre = Instance.new("Vector3Value")
-	centre.Name = "Centre"
-	centre.Value = V(-210, 0, 2420)
-	centre.Parent = root
 	RESORT.buildIsland(root)
 	RESORT.buildAirport(root)
 	local park = Instance.new("Model")
@@ -827,7 +841,7 @@ function RESORT.build()
 	pad(root, CFrame.new(-176, 0.6, 2250), "FLY HOME", "Lime green", RESORT.goHome)
 	pad(workspace, CFrame.new(35, 0.6, -205), "FLY TO PARADISE PARK\n(10 rides!)", "Hot pink", RESORT.toPark)
 end
-RESORT.parkCenter = V(300, 0, 2450)
+RESORT.parkCenter = V(150, 0, 2400)
 -- the rides only run while someone is close enough to see them, and more smoothly the closer they are
 function RESORT.step(dt)
 	RESORT.rideAcc = (RESORT.rideAcc or 0) + dt
@@ -840,7 +854,9 @@ function RESORT.step(dt)
 		local ok, err = pcall(r.step, dt)
 		if not ok and not r.failed then
 			r.failed = true
-			print("Airport: ride " .. r.name .. " failed: " .. tostring(err))
+			local msg = "Airport: ride " .. r.name .. " failed: " .. tostring(err)
+			print(msg)
+			spawn(function() error(msg, 0) end)   -- shows in the on-screen error box
 		end
 	end
 end

@@ -1,7 +1,7 @@
 # Airport Tycoon
 
 `AirportTycoon-Admin.rbxl` is the place file to open in Studio. It is built from the sources in `src/`.
-The text at the bottom of the screen ("build 10") tells you which build is running.
+The text at the bottom of the screen ("build 11") tells you which build is running.
 
 ## What's in it
 - **Bigger land**: every airport is 600 x 900 studs (was 420 x 620). The ground is cloned, resized and swapped in
@@ -51,6 +51,11 @@ The text at the bottom of the screen ("build 10") tells you which build is runni
   8. Go-Karts (pit stop every lap), 9. **Ghost Manor** haunted house dark ride (floating ghosts, a spider, a coffin,
   skeletons, red lights), 10. Log Flume with a splash drop.
   Plus snack stands, benches, palms, a fountain, lamps, an entrance arch and visitors who queue at the rides.
+- The park is packed close together (about 650 x 390 studs): Carousel, Teacups, Sky Swings and Free Fall along one
+  side of the main path, Pirate Ship, Ferris Wheel, Go-Karts and Ghost Manor on the other, the coaster and the log
+  flume right behind. Rides stop longer to let you on (coaster 15 s, flume and ghost cars 10 s, karts 6 s).
+- **Low graphics** (default, GRAPHICS button) only switches off lights, sparkles, shadows and outlines on your own
+  screen; it never moves or removes anything the server owns (that froze the rides in build 10).
 - **Getting there**: AIRPORTS panel > FLY TO PARADISE PARK, or the pink pad next to the spawn. The green FLY HOME pad
   at the park takes you back to your airport.
 - **Roblox-style people** with swinging arms and legs; the visible body is welded to an invisible root part.

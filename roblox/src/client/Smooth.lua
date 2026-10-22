@@ -107,8 +107,8 @@ pcall(function()
 end)
 
 ------------------------------------------------------------------ low graphics (on by default: the game is played on Chromebooks)
--- Only on this computer: airports and the island that are far away aren't drawn (their buildings, people and decor
--- are put away until you come closer; planes still fly), lights and sparkles are switched off, no shadows or outlines.
+-- Only on this computer: lights and sparkles are switched off, no shadows or outlines. (Nothing the server owns is
+-- ever moved or removed here: in old Roblox that can stop the server's updates reaching it, which froze the rides.)
 -- The GRAPHICS button (bottom left) switches between LOW and HIGH.
 pcall(function()
 	local Players = game:GetService("Players")
@@ -116,9 +116,6 @@ pcall(function()
 	local pg = player:WaitForChild("PlayerGui")
 	local Lighting = game:GetService("Lighting")
 	local low = true
-	local hidden = {}    -- folder -> its real parent while it is put away
-	local AWAY = { Items = true, People = true, Guests = true, Crowd = true, Staff = true, Pads = true,
-		Island = true, ["Paradise Airport"] = true, ["Paradise Park"] = true }
 	local FX = { PointLight = true, SpotLight = true, SurfaceLight = true, Sparkles = true, Fire = true, Smoke = true, ParticleEmitter = true }
 	local function fx(o, on)
 		if FX[o.ClassName] then pcall(function() o.Enabled = on end) end
@@ -128,43 +125,9 @@ pcall(function()
 		pcall(function() Lighting.GlobalShadows = not v end)
 		pcall(function() Lighting.Outlines = not v end)
 		for _, o in ipairs(workspace:GetDescendants()) do fx(o, not v) end
-		if not v then
-			for f, parent in pairs(hidden) do pcall(function() f.Parent = parent end) end
-			hidden = {}
-		end
 	end
 	workspace.DescendantAdded:connect(function(o) if low then fx(o, false) end end)
 	setLow(true)
-	-- put far-away places away, bring them back when you come near (a gap between the two so it doesn't flicker)
-	spawn(function()
-		while gui == nil or gui.Parent ~= nil do
-			wait(1)
-			if low then
-				local cam = workspace.CurrentCamera
-				local eye = cam and cam.CoordinateFrame.p
-				if eye then
-					for _, top in ipairs(workspace:GetChildren()) do
-						local c = top:FindFirstChild("Centre")
-						if c and c:IsA("Vector3Value") then
-							local d = (c.Value - eye).magnitude
-							local far = top.Name == "Paradise Island" and 1500 or 1200
-							for _, f in ipairs(top:GetChildren()) do
-								if AWAY[f.Name] and d > far then
-									hidden[f] = top
-									f.Parent = nil
-								end
-							end
-							if d < far - 150 then
-								for f, parent in pairs(hidden) do
-									if parent == top then f.Parent = top hidden[f] = nil end
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-	end)
 	-- the button
 	local sg = pg:FindFirstChild("AirportUI")
 	if sg then
@@ -189,7 +152,7 @@ end)
 ------------------------------------------------------------------ Ghost Manor: floating ghosts and a spider on a thread (only drawn here)
 spawn(function()
 	local RunService = game:GetService("RunService")
-	-- (the park may be put away while you're far from it: keep looking until it's there)
+	-- (keep looking until the park has arrived)
 	local manor
 	while not manor do
 		local island = workspace:FindFirstChild("Paradise Island")
@@ -198,6 +161,8 @@ spawn(function()
 		if not manor then wait(5) end
 	end
 	wait(1)
+	local floor = manor:FindFirstChild("Floor")
+	local centre = floor and floor.Position or Vector3.new(330, 6, 2420)
 	local float = {}
 	for _, p in ipairs(manor:GetChildren()) do
 		local i = tonumber(p.Name:match("^Ghost(%d+)$") or p.Name:match("^GhostEye(%d+)$") or "")
@@ -206,7 +171,7 @@ spawn(function()
 	end
 	RunService.RenderStepped:connect(function()
 		local cam = workspace.CurrentCamera
-		if not cam or (cam.CoordinateFrame.p - Vector3.new(330, 6, 2420)).magnitude > 300 then return end
+		if not cam or (cam.CoordinateFrame.p - centre).magnitude > 300 then return end
 		local now = tick()
 		for _, f in ipairs(float) do
 			if f.spider then

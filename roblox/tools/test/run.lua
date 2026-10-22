@@ -106,6 +106,48 @@ if RES then
 		end
 	end
 	say("island parts: " .. table.concat(per, " "))
+	-- the park's layout: each ride's fixed parts must not overlap another ride's, and the whole park should be compact
+	if park then
+		local boxes, lo, hi = {}, Vector3.new(1e9, 0, 1e9), Vector3.new(-1e9, 0, -1e9)
+		local RIDEOF = { ["Scream Machine Track"] = "coaster", ["Ferris Wheel Stand"] = "ferris", ["Free Fall Tower"] = "drop",
+			Carousel = "carousel", ["Pirate Ship Frame"] = "pirate", ["Teacups Base"] = "teacups", ["Swing Ride Tower"] = "swings",
+			["Go-Kart Track"] = "karts", ["Ghost Manor"] = "ghost", ["Log Flume Channel"] = "flume" }
+		for _, m in ipairs(park:GetChildren()) do
+			local r = RIDEOF[m.Name]
+			if r or m:FindFirstChild("Root") then
+				for _, p in ipairs(m:GetDescendants()) do
+					if p:IsA("BasePart") and p.Name ~= "Root" then
+						local c, h = p.CFrame.p, math.max(p.Size.X, p.Size.Z) / 2
+						lo = Vector3.new(math.min(lo.X, c.X - h), 0, math.min(lo.Z, c.Z - h))
+						hi = Vector3.new(math.max(hi.X, c.X + h), 0, math.max(hi.Z, c.Z + h))
+						if r and p.Position.Y < 30 and p.CanCollide then
+							boxes[r] = boxes[r] or {}
+							table.insert(boxes[r], p)
+						end
+					end
+				end
+			end
+		end
+		local clash = {}
+		for r1, l1 in pairs(boxes) do
+			for r2, l2 in pairs(boxes) do
+				if r1 < r2 then
+					for _, a in ipairs(l1) do
+						for _, b in ipairs(l2) do
+							local d = a.Position - b.Position
+							if math.abs(d.X) < (a.Size.X + b.Size.X) / 2 - 0.5 and math.abs(d.Z) < (a.Size.Z + b.Size.Z) / 2 - 0.5
+								and math.abs(d.Y) < (a.Size.Y + b.Size.Y) / 2 then
+								clash[r1 .. "/" .. a.Name .. " x " .. r2 .. "/" .. b.Name] = true
+							end
+						end
+					end
+				end
+			end
+		end
+		local cl = {}
+		for k in pairs(clash) do table.insert(cl, k) end
+		say(string.format("park size: %.0f x %.0f studs; rides touching each other: %d %s", hi.X - lo.X, hi.Z - lo.Z, #cl, table.concat(cl, ", "):sub(1, 400)))
+	end
 end
 for s = 1, T do
 	MOCK.run(1, 0.05)

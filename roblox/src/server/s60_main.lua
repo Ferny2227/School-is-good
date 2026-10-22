@@ -97,6 +97,19 @@ G.remote.OnServerEvent:connect(function(player, what, a, b)
 end)
 
 ------------------------------------------------------------------ fast loop: walkers, NPC planes, flying
+-- Every system runs in its own pcall: one error must not stop rides, planes and elevators for the rest of the server.
+-- The first error of each system is raised in a separate thread so it shows in the on-screen error box.
+local reported = {}
+function U.safe(name, f, ...)
+	local ok, err = pcall(f, ...)
+	if not ok and not reported[name] then
+		reported[name] = true
+		local msg = "Airport: " .. name .. " failed: " .. tostring(err)
+		print(msg)
+		spawn(function() error(msg, 0) end)
+	end
+	return ok
+end
 spawn(function()
 	local last = tick()
 	while true do
@@ -115,14 +128,14 @@ spawn(function()
 			end
 			G.eyes = eyes
 		end
-		LIFT.step(dt)
-		NPC.step(dt)
-		FLY.step(dt)
-		OPS.step(dt)
-		RESORT.step(dt)
-		for _, g in ipairs(G.global) do FLY.place(g, g.path, now + g.off, dt) end
+		U.safe("elevators", LIFT.step, dt)
+		U.safe("people", NPC.step, dt)
+		U.safe("flying", FLY.step, dt)
+		U.safe("vehicles", OPS.step, dt)
+		U.safe("rides", RESORT.step, dt)
+		for _, g in ipairs(G.global) do U.safe("sky traffic", FLY.place, g, g.path, now + g.off, dt) end
 		for _, plot in ipairs(G.plots) do
-			for _, gp in pairs(plot.gatePlanes) do FLY.gateStep(gp, dt) end
+			for _, gp in pairs(plot.gatePlanes) do U.safe("airliners", FLY.gateStep, gp, dt) end
 		end
 	end
 end)
