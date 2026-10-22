@@ -1,0 +1,3 @@
+--Let it be known that Xilver101 took Robloxian firearms a step foward!!
+--Let it also be known that those who would take credit and copy this masterpiece are
+--one of the worst people to come across Roblox.
