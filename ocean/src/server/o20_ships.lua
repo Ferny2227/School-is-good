@@ -326,10 +326,11 @@ local function buildShip(kind)
 	-- the name on the hull
 	local nameplate = B.box("NamePlate", 0.3, 3, 30, -WID / 2 - 0.25, DECK - 5, -LEN / 2 + 25, "Institutional white", "SmoothPlastic", { nc = true })
 	sign(nameplate, B.model.Name:match("^(.-) %(") or kind, "Left", Color3.new(0.05, 0.05, 0.2))
-	-- invisible walls round the deck: the boat can rock on huge waves and nobody falls off (gone when it sinks)
+	-- invisible walls round the deck (8 studs high): the boat can rock on huge waves and nobody falls off, but you can
+	-- leap back over them out of the water (gone when it sinks)
 	local guards = {}
 	for _, g in ipairs({ { 1, LEN + 2, -WID / 2 - 0.6, 0 }, { 1, LEN + 2, WID / 2 + 0.6, 0 }, { WID + 2, 1, 0, -LEN / 2 - 0.6 }, { WID + 2, 1, 0, LEN / 2 + 0.6 } }) do
-		table.insert(guards, B.box("Guard", g[1], 30, g[2], g[3], DECK - 2, g[4], "Institutional white", "SmoothPlastic", { tr = 1 }))
+		table.insert(guards, B.box("Guard", g[1], 10, g[2], g[3], DECK - 2, g[4], "Institutional white", "SmoothPlastic", { tr = 1 }))
 	end
 	for _, p in ipairs(B.parts) do p.Anchored = true end
 	local max = 1000 + 250 * #Players:GetPlayers()

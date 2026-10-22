@@ -82,7 +82,7 @@ D.STATE.hold = true
 for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "intermission" then break end end
 -- each disaster on its own, against a fresh cruise liner
 local results = {}
-for _, name in ipairs({ "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack" }) do
+for _, name in ipairs({ "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack", "Hailstorm", "Whirlpool", "Iceberg", "Ghost Ship" }) do
 	local before = #MOCK.errors
 	D.buildShip("Cruise Liner")
 	ship = D.getShip()
@@ -137,14 +137,30 @@ local p2, r2, f2 = rock(45)
 say(string.format("a set of big waves rolls through (45 s): pitch range %.1f deg, roll %.1f deg, changes %d, ship lost %d hp of %d", p2, r2, f2, hp0 - D.getShip().hp, D.getShip().max))
 -- the server's sea and the drawn sea agree: water height under the bow equals what the client maths gives
 say(string.format("sea height at the bow now: %.1f studs (amp %.1f)", D.waveAt(0, -650 - 60), D.SEA.amp))
--- a whole round, coins, back to the lobby
+-- endless game: survive a disaster -> Coins; then a calm; when everyone is dead it resets to the lobby
 D.STATE.hold = false
 for _, p in ipairs(ps) do p.Character.Humanoid.MaxHealth = 1e6 p.Character.Humanoid.Health = 1e6 end
 local c0, sv0 = ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value
-for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "results" then break end end
+for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "calm" then break end end
+say(string.format("survived a disaster: phase %s, player 2 coins %d -> %d, survived +%d", D.STATE.phase, c0, ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value - sv0))
+-- someone falls in: jumping leaps them back up towards the boat
+local sw = ps[1].Character.Torso
+sw.CFrame = CFrame.new(D.getShip().root.Position.X + 40, D.SEA.level + D.waveAt(40, -650) - 45, -650)
+MOCK.run(1)
+local wasSwimming = D.swimmers[ps[1]] ~= nil
+game:GetService("ReplicatedStorage").OceanEvent.OnServerEvent:fireNow(ps[1], "swimjump")
+local bv
+for _, c in ipairs(sw:GetChildren()) do if c.ClassName == "BodyVelocity" then bv = c end end
+say(string.format("swimming %s, jump -> leap up %.0f towards the boat %.0f, still swimming %s", tostring(wasSwimming), bv and bv.velocity.Y or 0,
+	bv and -bv.velocity.X or 0, tostring(D.swimmers[ps[1]] ~= nil)))
+-- everyone dies -> reset
+for _, p in ipairs(ps) do p.Character.Humanoid.Health = 0 end
+for _ = 1, 100 do MOCK.run(0.5) if D.STATE.phase == "results" then break end end
+local resetOk = D.STATE.phase == "results"
 MOCK.run(7)
-say(string.format("after a round: player 2 coins %d -> %d, survived +%d, back in the lobby: %s", c0, ps[2].leaderstats.Coins.Value,
-	ps[2].leaderstats.Survived.Value - sv0, tostring((ps[2].Character.Torso.Position - D.LOBBY_AT).magnitude < 80)))
+for _, p in ipairs(ps) do p.Character.Humanoid.Health = 100 end
+D.STATE.hold = true
+say(string.format("everyone died -> reset: %s, back in the lobby: %s, phase now %s", tostring(resetOk), tostring((ps[2].Character.Torso.Position - D.LOBBY_AT).magnitude < 80), D.STATE.phase))
 -- someone who falls off the sky lobby in the intermission is put back up
 ps[3].Character.Humanoid.Health = 100
 ps[3].Character.Torso.CFrame = CFrame.new(50, -1, 50)

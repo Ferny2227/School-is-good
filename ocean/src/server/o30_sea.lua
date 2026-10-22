@@ -68,6 +68,11 @@ local function stepShip(dt, now)
 			s.air = math.min(55, s.air + 10 * dt)
 			s.yaw = s.yaw + 0.9 * dt
 			s.wasUp = math.max(s.wasUp or 0, s.air)
+		elseif s.whirl and now - s.whirl < 0.5 then     -- the whirlpool: spun round and dragged down into it
+			s.yaw = s.yaw + 0.45 * dt
+			s.air = math.max(-22, s.air - 6 * dt)
+		elseif s.air < 0 then
+			s.air = math.min(0, s.air + 8 * dt)
 		elseif s.air > 0 then
 			s.air = math.max(0, s.air - 30 * dt)
 			if s.air == 0 and (s.wasUp or 0) > 12 then
@@ -98,7 +103,7 @@ local function stepShip(dt, now)
 			if c > SEA.rogueLen * 3 then calmRogue() end
 		end
 	end
-	if s.air <= 0 then s.yaw = s.yaw * (1 - 0.15 * dt) end
+	if s.air == 0 then s.yaw = s.yaw * (1 - 0.15 * dt) end
 	if not s.sent or now - s.sent > 0.05 then      -- the extras, 20 times a second (players' computers smooth them)
 		s.sent = now
 		if math.abs(seaShipAir.Value - s.air) > 0.05 then seaShipAir.Value = s.air end
@@ -122,6 +127,7 @@ end
 
 ------------------------------------------------------------------ the water: you float, but it hurts (it's freezing)
 local swimmers = {}
+local swimJumpAt = {}     -- when each player last leapt out of the water (filled in by the remote handler)
 local washed = {}
 local WATER_DPS = 7
 local STATE = { phase = "intermission", left = 0, disaster = "" }
@@ -136,6 +142,7 @@ local function stepSwimmers(dt)
 		local h = c and c:FindFirstChild("Humanoid")
 		local bp = swimmers[p]
 		local inWater = t and h and h.Health > 0 and not h.Sit and t.Position.Y < SEA.level + 1.5 + (ship and onShip(t.Position) and -100 or waveAt(t.Position.X, t.Position.Z))
+			and not (swimJumpAt and swimJumpAt[p] and tick() - swimJumpAt[p] < 1.2)
 		if STATE.phase == "intermission" and t and h and h.Health > 0 and t.Position.Y < LOBBY_AT.Y - 120 then inWater = true end
 		if inWater and STATE.phase == "intermission" then   -- fell off the sky lobby: back up you go
 			toLobby(p)
@@ -149,6 +156,7 @@ local function stepSwimmers(dt)
 				bp.Parent = t
 				swimmers[p] = bp
 				h.WalkSpeed = 12
+				toClient(p, "swim", true)
 			end
 			bp.position = V(0, SEA.level - 0.6 + waveAt(t.Position.X, t.Position.Z), 0)
 			h:TakeDamage(WATER_DPS * dt)
@@ -156,7 +164,8 @@ local function stepSwimmers(dt)
 			pcall(function() bp:Destroy() end)
 			swimmers[p] = nil
 			if h then h.WalkSpeed = 16 end
+			toClient(p, "swim", false)
 		end
-		if t and t.Position.Y < -50 and h then h.Health = 0 end
+		if t and t.Position.Y < -240 and h then h.Health = 0 end      -- fell through to the sea floor
 	end
 end

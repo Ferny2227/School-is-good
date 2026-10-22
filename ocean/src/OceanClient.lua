@@ -55,6 +55,28 @@ local statusText = label(bar, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), "DIS
 -- big announcement
 local big = label(gui, UDim2.new(0.5, -400, 0.25, 0), UDim2.new(0, 800, 0, 60), "", 48, C.red)
 local sub = label(gui, UDim2.new(0.5, -400, 0.25, 60), UDim2.new(0, 800, 0, 30), "", 24, C.white)
+-- in the water: a hint, and jumping asks the server for a big leap back onto the boat
+local swimming = false
+local swimHint = label(gui, UDim2.new(0.5, -350, 0.62, 0), UDim2.new(0, 700, 0, 34), "", 24, C.gold)
+local lastSwimJump = 0
+local function swimJump()
+	if swimming and tick() - lastSwimJump > 1.5 then
+		lastSwimJump = tick()
+		pcall(function() remote:FireServer("swimjump") end)
+	end
+end
+pcall(function()
+	game:GetService("UserInputService").InputBegan:connect(function(i)
+		if i.KeyCode == Enum.KeyCode.Space or i.KeyCode == Enum.KeyCode.ButtonA then swimJump() end
+	end)
+end)
+spawn(function()     -- phones/tablets: the jump button sets Humanoid.Jump
+	while true do
+		wait(0.1)
+		local h = player.Character and player.Character:FindFirstChild("Humanoid")
+		if h and h.Jump then swimJump() end
+	end
+end)
 -- toast
 local toast = label(gui, UDim2.new(0.5, -300, 0, 82), UDim2.new(0, 600, 0, 28), "", 20, C.green)
 local toastId = 0
@@ -79,13 +101,14 @@ gui.Parent = pg
 ------------------------------------------------------------------ rain (only on this computer)
 local raining = false
 local drops = {}
-local function rain(on)
+local rainGen = 0
+local function rain(on, hail)
 	raining = on
-	if not on then
-		for _, d in ipairs(drops) do d:Destroy() end
-		drops = {}
-		return
-	end
+	rainGen = rainGen + 1
+	local gen = rainGen
+	for _, d in ipairs(drops) do d:Destroy() end
+	drops = {}
+	if not on then return end
 	spawn(function()
 		local folder = Instance.new("Model")
 		folder.Name = "Rain"
@@ -94,15 +117,15 @@ local function rain(on)
 			local d = Instance.new("Part")
 			d.Anchored = true
 			d.CanCollide = false
-			d.Size = Vector3.new(0.2, 4, 0.2)
-			d.BrickColor = BrickColor.new("Pastel light blue")
-			d.Transparency = 0.4
+			d.Size = hail and Vector3.new(0.8, 0.8, 0.8) or Vector3.new(0.2, 4, 0.2)
+			d.BrickColor = BrickColor.new(hail and "Institutional white" or "Pastel light blue")
+			d.Transparency = hail and 0.1 or 0.4
 			d.Parent = folder
 			table.insert(drops, d)
 		end
 		table.insert(drops, folder)
 		local t = 0
-		while raining do
+		while raining and rainGen == gen do
 			local dt = wait(0.05)
 			t = t + dt
 			local cam = workspace.CurrentCamera
@@ -128,6 +151,7 @@ remote.OnClientEvent:connect(function(what, a, b, c, d)
 		if a == "intermission" then statusText.Text = "INTERMISSION - the ship leaves in " .. b
 		elseif a == "boarding" then statusText.Text = "ALL ABOARD!"
 		elseif a == "disaster" then statusText.Text = c .. "  -  SURVIVE " .. b .. "s"
+		elseif a == "calm" then statusText.Text = "CALM... the next disaster comes in " .. b
 		else statusText.Text = "ROUND OVER - back to the island in " .. b end
 	elseif what == "big" then
 		big.Text = a
@@ -151,8 +175,11 @@ remote.OnClientEvent:connect(function(what, a, b, c, d)
 		end
 	elseif what == "shake" then
 		shaking = math.max(shaking, a or 0.5)
+	elseif what == "swim" then
+		swimming = a
+		swimHint.Text = a and "YOU'RE IN THE WATER! Press SPACE (jump) to leap back onto the boat!" or ""
 	elseif what == "weather" then
-		rain(a == "storm")
+		rain(a == "storm" or a == "hail", a == "hail")
 	elseif what == "flash" then
 		spawn(function()
 			flash.BackgroundTransparency = 0.3
@@ -244,6 +271,7 @@ spawn(function()
 	-- part, so moving it costs almost nothing (a real 4000-stud part touches the whole map every time it moves)
 	for k = 1, #ZS - 1 do
 		local p = part(Vector3.new(4, THICK, 4), "Steel blue")
+		p.Reflectance = 0.08     -- a wet sheen
 		local mesh = Instance.new("SpecialMesh")
 		mesh.MeshType = Enum.MeshType.Brick
 		mesh.Scale = Vector3.new(WIDTH / 4, 1, (ZS[k + 1] - ZS[k]) / 4)
@@ -441,6 +469,12 @@ spawn(function()
 					d.part.CFrame = hidden
 				end
 			end
+		end
+		-- spray blown off the tops of the waves round the boat
+		if math.random() < dt * 4 then
+			local x, z = cx + math.random(-250, 250), cz + math.random(-300, 300)
+			local h = SeaHeight(x, z, t, S)
+			if h > S.amp * 0.7 then splash(Vector3.new(x, lv + h, z), 4, 25) end
 		end
 		-- the wake: two lines of foam spreading out behind the stern
 		local sailing = v.Sailing.Value

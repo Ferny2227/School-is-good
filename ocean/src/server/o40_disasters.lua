@@ -263,5 +263,148 @@ DIS["Shark Attack"] = { text = "SHARK ATTACK! Don't fall in the water!", run = f
 	end)
 	return function() alive = false stopSets() SEA.waves = SEA.calm or 3 for _, s in ipairs(sharks) do s.m:Destroy() end end
 end }
-local ORDER = { "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack" }
+DIS.Hailstorm = { text = "HAILSTORM! Giant hailstones are falling - keep moving!", run = function()
+	local alive = true
+	toAll("weather", "hail")
+	pcall(function() Lighting.FogEnd = 700 Lighting.FogColor = Color3.new(0.6, 0.65, 0.7) end)
+	spawn(function()
+		while alive do
+			wait(0.25)
+			local huge = math.random() < 0.15
+			local at = onDeck()
+			local size = huge and 5 or 1.6
+			local m = P(junk, "Hail", V(size, size, size), CFrame.new(at + V(0, 160, 0)), "Pastel light blue", "Ice", { shape = "ball", nc = true })
+			spawn(function()
+				local y = at.Y + 160
+				while y > at.Y and m.Parent do
+					local dt = wait(0.03)
+					y = y - 150 * dt
+					m.CFrame = CFrame.new(at.X, y, at.Z)
+				end
+				if m.Parent then
+					m:Destroy()
+					hurtNear(at, huge and 8 or 4, huge and 20 or 6, huge and 6 or 1)
+				end
+			end)
+		end
+	end)
+	return function()
+		alive = false
+		toAll("weather", theme == "Normal" and "storm" or "clear")
+		applyLighting()
+	end
+end }
+DIS.Whirlpool = { text = "WHIRLPOOL! The sea is spinning the ship and pulling it down!", run = function()
+	local alive = true
+	local m = model(junk, "Whirlpool")
+	local rings, bars = {}, {}
+	for i = 1, 7 do
+		table.insert(rings, { part = cyl(m, "Swirl", 40 + i * 30, 1, 0, 0, 0, i % 2 == 0 and "Institutional white" or "Navy blue", "SmoothPlastic", { tr = 0.5, nc = true }), i = i })
+	end
+	for i = 1, 10 do
+		table.insert(bars, { part = P(m, "Foam", V(3, 0.6, 40), CFrame.new(), "Institutional white", "SmoothPlastic", { nc = true, tr = 0.2 }), r = 30 + i * 18, a = i * 0.9 })
+	end
+	spawn(function()
+		while alive do
+			local dt = wait(0.1)
+			local now = tick()
+			local c = SHIP_AT
+			local water = SEA.level + (ship and ship.dy or 0)
+			for _, r in ipairs(rings) do
+				r.part.CFrame = CFrame.new(c.X, water - 2 - (8 - r.i) * 3, c.Z) * CFrame.Angles(0, now, math.rad(90))
+			end
+			for _, b in ipairs(bars) do
+				b.a = b.a + dt * (1.6 - b.r / 300)
+				b.part.CFrame = CFrame.new(c.X + math.cos(b.a) * b.r, water - 1 - (220 - b.r) / 30, c.Z + math.sin(b.a) * b.r) * CFrame.Angles(0, -b.a, 0)
+			end
+			if ship then
+				ship.whirl = now          -- stepShip spins the boat and drags it down while this is fresh
+				damageShip(5 * dt)
+			end
+			for _, x in ipairs(players()) do
+				if swimmers[x.p] then     -- swimmers get sucked round and round
+					local dd = V(SHIP_AT.X - x.t.Position.X, 0, SHIP_AT.Z - x.t.Position.Z)
+					if dd.magnitude > 1 then fling(x, dd.unit:Cross(V(0, 1, 0)) * 30 + dd.unit * 15, 0.15, true) end
+					x.h:TakeDamage(4 * dt)
+				end
+			end
+		end
+	end)
+	return function() alive = false m:Destroy() end
+end }
+DIS.Iceberg = { text = "ICEBERG AHEAD! Brace for impact!", run = function()
+	local alive = true
+	local m = model(junk, "Iceberg")
+	local bits = {
+		{ P(m, "Ice", V(70, 60, 80), CFrame.new(), "Institutional white", "Ice", { nc = true }), CFrame.new(0, 10, 0) * CFrame.Angles(0.2, 0.3, 0.1) },
+		{ P(m, "Ice", V(50, 45, 50), CFrame.new(), "Pastel light blue", "Ice", { nc = true }), CFrame.new(20, 40, -10) * CFrame.Angles(0.5, 0.1, 0.3) },
+		{ P(m, "Ice", V(40, 30, 40), CFrame.new(), "Institutional white", "Ice", { nc = true }), CFrame.new(-25, 30, 15) * CFrame.Angles(0.1, 0.7, 0.4) },
+		{ P(m, "Ice", V(90, 20, 100), CFrame.new(), "Pastel light blue", "Ice", { nc = true }), CFrame.new(0, -15, 0) * CFrame.Angles(0, 0.2, 0) },
+	}
+	spawn(function()
+		local z, x, hit = -900, 0, false
+		while alive and z < 800 do
+			local dt = wait(0.1)
+			z = z + (hit and 15 or 45) * dt
+			if hit then x = math.min((ship and ship.wid or 30) / 2 + 50, x + 10 * dt) end
+			local px, pz = SHIP_AT.X + x, SHIP_AT.Z + z
+			local cf = CFrame.new(px, SEA.level + waveAt(px, pz), pz)
+			for _, b in ipairs(bits) do b[1].CFrame = cf * b[2] end
+			if not hit and ship and z + 45 >= -ship.len / 2 then
+				hit = true
+				toAll("big", "CRASH!", "The iceberg ripped open the hull!")
+				toAll("shake", 1.5)
+				damageShip(ship.max * 0.25)
+				for _, p in ipairs(players()) do if onShip(p.t.Position) and not p.h.Sit then fling(p, V(math.random(-10, 10), 15, -45), 0.3) end end
+			end
+		end
+	end)
+	return function() alive = false m:Destroy() end
+end }
+DIS["Ghost Ship"] = { text = "GHOST SHIP! Phantom pirates are firing cannons at us!", run = function()
+	local alive = true
+	local m = model(junk, "GhostShip")
+	local hull = P(m, "GhostHull", V(26, 14, 110), CFrame.new(), "Really black", "SmoothPlastic", { nc = true, tr = 0.3 })
+	local mast = P(m, "Mast", V(2, 60, 2), CFrame.new(), "Really black", "Wood", { nc = true, tr = 0.3 })
+	local sail = P(m, "Sail", V(30, 26, 1), CFrame.new(), "Lime green", "Neon", { nc = true, tr = 0.5 })
+	light(sail, Color3.new(0.3, 1, 0.4), 60, 3)
+	local a = math.random() * 6.3
+	spawn(function()
+		local lastShot = tick()
+		while alive do
+			local dt = wait(0.1)
+			local now = tick()
+			a = a + dt * 0.09
+			local px, pz = SHIP_AT.X + math.cos(a) * 230, SHIP_AT.Z + math.sin(a) * 230
+			local water = SEA.level + waveAt(px, pz)
+			local cf = CFrame.new(V(px, water + 4, pz), V(px - math.sin(a), water + 4, pz + math.cos(a)))
+			hull.CFrame = cf
+			mast.CFrame = cf * CFrame.new(0, 35, 0)
+			sail.CFrame = cf * CFrame.new(0, 40, 0) * CFrame.Angles(0, math.pi / 2, 0)
+			if now - lastShot > 2.5 then
+				lastShot = now
+				local from, to = cf.p + V(0, 6, 0), onDeck()
+				local ball = P(junk, "Cannonball", V(3, 3, 3), CFrame.new(from), "Really black", "SmoothPlastic", { shape = "ball", nc = true })
+				local f = Instance.new("Fire")
+				f.Size = 5
+				pcall(function() f.Color = Color3.new(0.3, 1, 0.4) end)
+				f.Parent = ball
+				spawn(function()
+					for k = 0, 1, 0.05 do
+						if not ball.Parent then return end
+						ball.CFrame = CFrame.new(from + (to - from) * k + V(0, math.sin(k * math.pi) * 40, 0))
+						wait(0.05)
+					end
+					if ball.Parent then
+						ball:Destroy()
+						boom(to, 8)
+						hurtNear(to, 10, 25, 30)
+					end
+				end)
+			end
+		end
+	end)
+	return function() alive = false m:Destroy() end
+end }
+local ORDER = { "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kraken", "Shark Attack", "Hailstorm", "Whirlpool", "Iceberg", "Ghost Ship" }
 
