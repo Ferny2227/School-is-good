@@ -1,5 +1,5 @@
 -- Runs ZombieDirector in the mock Roblox (roblox/tools/test/mockrbx.lua): kills pay 30, new zombie types appear,
--- the boss comes when all are dead and has a health bar, and everyone comes back after it dies.
+-- 5x zombies, the boss comes after as many kills as there are zombies and has a health bar, dead zombies respawn.
 local MOCK = MOCK
 local out = {}
 local function say(s) table.insert(out, s) end
@@ -138,13 +138,13 @@ if king then
 	MOCK.run(2)
 	say(string.format("boss dead: player 1 +%d, player 2 +%d, bar hidden %s", players[1].leaderstats.Credits.Value - c1,
 		players[2].leaderstats.Credits.Value - c2, tostring(not bar.Back.Visible)))
-	MOCK.run(8)
+	MOCK.run(15)
 	local back = {}
 	for _, m in ipairs(zombies()) do back[m.Name] = (back[m.Name] or 0) + 1 end
 	local bs = {}
 	for k, v in pairs(back) do table.insert(bs, k .. "=" .. v) end
 	table.sort(bs)
-	say("zombies back after the boss: " .. table.concat(bs, " "))
+	say("zombies respawned (15 s after dying): " .. table.concat(bs, " "))
 end
 say("errors: " .. #MOCK.errors)
 for i = 1, math.min(8, #MOCK.errors) do say("  " .. MOCK.errors[i]:sub(1, 300)) end

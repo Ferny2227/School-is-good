@@ -21,3 +21,11 @@
 
 ## Test
 `python3 tools/test/runner.py` runs the director in a mock Roblox (`../roblox/tools/test/mockrbx.lua`).
+
+## Update: 5x zombies, respawning, no friendly fire
+- Zombies no longer hurt each other: the arm scripts only damage players now.
+- Every zombie that was in the map is there 5 times, plus 15 Bombers, 15 Shooters, 15 Runners and 10 Brutes.
+- Every zombie comes back 15 seconds after it dies. The Zombie King comes once the lobby has killed as many zombies
+  as there are.
+- The new zombie types and the King can take at most 25 health a second off one player (plus a burst of 40), so a
+  crowd can't kill you in a blink.

@@ -3,10 +3,10 @@
 --  * every zombie kill pays 30 Credits to the player who killed it (guns tag the zombie with a "creator" value)
 --  * new zombie types next to the old ones: Bomber (runs at you and explodes), Shooter (keeps its distance and
 --    throws slime balls), Runner (fast but weak) and Brute (slow and tough). None of them are overpowered.
---  * when every zombie is dead, the ZOMBIE KING spawns: a giant boss with a health bar on everyone's screen. The
---    whole lobby has to kill it; when it dies everybody gets a bonus and every zombie comes back.
---  * zombies only chase players who are near, check that their target still exists, and nobody respawns on their
---    own any more (the director brings them all back after the boss), so the old respawn/chase scripts are off.
+--  * 5x as many zombies as the map had, and every zombie comes back 15 seconds after it dies.
+--  * once the lobby has killed as many zombies as there are, the ZOMBIE KING spawns: a giant boss with a health bar
+--    on everyone's screen. The whole lobby has to kill it; when it dies everybody gets a bonus.
+--  * zombies only chase players who are near and never hurt each other; the old respawn/chase scripts are off.
 local Players = game:GetService("Players")
 local Debris = game:GetService("Debris")
 local pcall = ypcall or pcall
@@ -14,7 +14,9 @@ local pcall = ypcall or pcall
 local KILL_REWARD = 30      -- Credits per zombie
 local BOSS_BONUS = 150      -- Credits for everyone in the server when the Zombie King dies
 local CHASE_RANGE = 250     -- zombies only chase players this close
-local EXTRA = { Bomber = 3, Shooter = 3, Runner = 3, Brute = 2 }   -- new zombies per wave (+1 of each per 3 players)
+local EXTRA = { Bomber = 15, Shooter = 15, Runner = 15, Brute = 10 }   -- the new zombie types (5x as many as before)
+local COPIES = 5             -- every zombie that was in the map is there 5 times
+local RESPAWN = 15           -- a dead zombie comes back this many seconds later, somewhere on the map
 
 ------------------------------------------------------------------ Credits
 local function credits(player)
@@ -94,6 +96,21 @@ local function nearestPlayer(pos, range)
 	return best, bd
 end
 -- once = a player is hurt by at most one of these every 2 seconds (bombers that arrive together don't stack)
+-- with 5x as many zombies a crowd could kill you in a blink: the new zombie types (and the King) can take at most
+-- 25 health a second off one player, plus a short burst of 40
+local budget = setmetatable({}, { __mode = "k" })
+local function hurt(h, dmg)
+	local now = tick()
+	local b = budget[h] or { v = 40, t = now }
+	b.v = math.min(40, b.v + (now - b.t) * 25)
+	b.t = now
+	local d = math.min(dmg, b.v)
+	if d > 0 then
+		b.v = b.v - d
+		h:TakeDamage(d)
+	end
+	budget[h] = b
+end
 local blasted = {}
 local function hurtPlayersNear(pos, radius, damage, once)
 	local now = tick()
@@ -105,7 +122,7 @@ local function hurtPlayersNear(pos, radius, damage, once)
 			local d = (t.Position - pos).magnitude
 			if d < radius and not (once and blasted[p] and now - blasted[p] < 2) then
 				if once then blasted[p] = now end
-				h:TakeDamage(damage * (1 - 0.5 * d / radius))
+				hurt(h, damage * (1 - 0.5 * d / radius))
 			end
 		end
 	end
@@ -118,8 +135,11 @@ local spawnPoints = {}  -- where zombies were standing at the start
 local boss = nil
 local comingBack = false   -- between the boss dying and the zombies coming back
 local lastKill = tick()
+local killsSinceBoss = 0
+local total = 0            -- how many zombies there are (the boss comes after this many kills)
+local spawnBoss, makeKind, KINDS
 
-local function track(m, kind)
+local function track(m, kind, tmpl)
 	local h = humanoidOf(m)
 	if not h then return end
 	local z = { model = m, kind = kind or "Classic", h = h, next = 0, hit = 0 }
@@ -132,6 +152,28 @@ local function track(m, kind)
 		local c = killer and credits(killer)
 		if c then c.Value = c.Value + KILL_REWARD end
 		delay(6, function() pcall(function() m:Destroy() end) Z[m] = nil end)
+		if z.isBoss then return end
+		killsSinceBoss = killsSinceBoss + 1
+		if killsSinceBoss >= total and not boss and #Players:GetPlayers() > 0 then
+			killsSinceBoss = 0
+			pcall(spawnBoss)
+		end
+		-- it comes back a little later, somewhere on the map
+		delay(RESPAWN, function()
+			if #spawnPoints == 0 then return end
+			local at = spawnPoints[math.random(1, #spawnPoints)]
+			pcall(function()
+				if kind == "Classic" and tmpl then
+					local m2 = tmpl.model:Clone()
+					m2.Parent = tmpl.parent and tmpl.parent.Parent and tmpl.parent or workspace
+					pcall(function() m2:MakeJoints() end)
+					m2:MoveTo(at + Vector3.new(math.random(-10, 10), 3, math.random(-10, 10)))
+					track(m2, "Classic", tmpl)
+				elseif KINDS[kind] then
+					makeKind(kind, at)
+				end
+			end)
+		end)
 	end)
 	return z
 end
@@ -182,13 +224,13 @@ end
 
 -- the classic zombie template the new types are made from
 local base
-local KINDS = {
+KINDS = {
 	Bomber = { color = "Bright orange", hp = 80, speed = 18, text = "BOMBER", rgb = Color3.new(1, 0.5, 0) },
 	Shooter = { color = "Lime green", hp = 110, speed = 12, text = "SHOOTER", rgb = Color3.new(0.4, 1, 0.3) },
 	Runner = { color = "Bright yellow", hp = 60, speed = 24, text = "RUNNER", rgb = Color3.new(1, 1, 0.3) },
 	Brute = { color = "Really black", hp = 400, speed = 9, text = "BRUTE", rgb = Color3.new(0.8, 0.8, 0.8) },
 }
-local function makeKind(kind, at)
+function makeKind(kind, at)
 	if not base then return end
 	local k = KINDS[kind]
 	local m = base:Clone()
@@ -299,7 +341,7 @@ Players.PlayerAdded:connect(function(p)
 	end)
 end)
 
-local function spawnBoss()
+function spawnBoss()
 	if not base or #spawnPoints == 0 then return end
 	local m = base:Clone()
 	m.Name = "ZOMBIE KING"
@@ -333,7 +375,7 @@ local function spawnBoss()
 	h.WalkSpeed = 12
 	boss = track(m, "Boss")
 	boss.isBoss = true
-	showBar(true, "ZOMBIE KING  " .. hp .. " / " .. hp, 1, "ALL ZOMBIES DOWN! THE ZOMBIE KING IS HERE - EVERYONE ATTACK!")
+	showBar(true, "ZOMBIE KING  " .. hp .. " / " .. hp, 1, "THE ZOMBIE KING IS HERE - EVERYONE ATTACK!")
 	delay(8, function() showBar(boss ~= nil, nil, nil, "") end)
 	h.Died:connect(function()
 		for _, p in ipairs(Players:GetPlayers()) do
@@ -342,12 +384,9 @@ local function spawnBoss()
 		end
 		boss = nil
 		comingBack = true
-		showBar(false, nil, nil, "THE ZOMBIE KING IS DEAD! +" .. BOSS_BONUS .. " Credits for everyone. The zombies are coming back...")
+		showBar(false, nil, nil, "THE ZOMBIE KING IS DEAD! +" .. BOSS_BONUS .. " Credits for everyone!")
 		delay(8, function() showBar(boss ~= nil, nil, nil, "") end)
-		delay(6, function()
-			pcall(bringEveryoneBack)
-			comingBack = false
-		end)
+		comingBack = false
 	end)
 end
 
@@ -392,7 +431,7 @@ local function shoot(z, from, target)
 		local h = hit.Parent:FindFirstChild("Humanoid")
 		if h and Players:GetPlayerFromCharacter(hit.Parent) then
 			done = true
-			h:TakeDamage(8)
+			hurt(h, 8)
 			ball:Destroy()
 		end
 	end)
@@ -439,7 +478,7 @@ local function think(z, now)
 			if kind == "Brute" then dmg, every = 10, 1.5 end
 			if kind == "Boss" then dmg, every = 22, 1.5 end
 			z.hit = now + every
-			th:TakeDamage(dmg)
+			hurt(th, dmg)
 		end
 		-- the King stomps every 8 seconds: hurts everyone close
 		if kind == "Boss" and now > z.next then
@@ -464,9 +503,19 @@ for _, m in ipairs(allZombieModels()) do
 	else
 		table.insert(spawnPoints, torso.Position)
 		local t = m:Clone()
-		table.insert(templates, { model = t, parent = m.Parent })
+		local tmpl = { model = t, parent = m.Parent }
+		table.insert(templates, tmpl)
 		if not base and m:FindFirstChild("zarm") and m:FindFirstChild("Head") then base = t end
-		track(m, "Classic")
+		track(m, "Classic", tmpl)
+		for _ = 2, COPIES do
+			pcall(function()
+				local c = t:Clone()
+				c.Parent = m.Parent
+				pcall(function() c:MakeJoints() end)
+				c:MoveTo(torso.Position + Vector3.new(math.random(-12, 12), 3, math.random(-12, 12)))
+				track(c, "Classic", tmpl)
+			end)
+		end
 	end
 end
 if not base and templates[1] then base = templates[1].model end
@@ -475,17 +524,16 @@ for kind, count in pairs(EXTRA) do
 		if #spawnPoints > 0 then pcall(makeKind, kind, spawnPoints[math.random(1, #spawnPoints)]) end
 	end
 end
-print("ZombieDirector: " .. #templates .. " zombies, " .. #spawnPoints .. " spawn points")
+for _ in pairs(Z) do total = total + 1 end
+print("ZombieDirector: " .. total .. " zombies, " .. #spawnPoints .. " spawn points")
 
 while true do
 	wait(0.4)
 	local now = tick()
-	local alive = 0
 	for m, z in pairs(Z) do
 		if not m.Parent then
 			Z[m] = nil
 		elseif not z.dead and z.h.Health > 0 then
-			if not z.isBoss then alive = alive + 1 end
 			local ok, err = pcall(think, z, now)
 			if not ok then z.dead = true print("ZombieDirector: " .. tostring(err)) end
 		end
@@ -493,13 +541,5 @@ while true do
 	if boss and boss.h.Parent then
 		local h = boss.h
 		showBar(true, "ZOMBIE KING  " .. math.floor(h.Health) .. " / " .. math.floor(h.MaxHealth), h.Health / h.MaxHealth)
-	end
-	-- zombies left somewhere nobody can reach: after 4 minutes without a kill they give up and the boss comes
-	if not boss and alive > 0 and alive <= 3 and now - lastKill > 240 then
-		for m, z in pairs(Z) do if not z.dead then pcall(function() z.h.Health = 0 end) end end
-		alive = 0
-	end
-	if alive == 0 and not boss and not comingBack and #Players:GetPlayers() > 0 and #spawnPoints > 0 then
-		spawnBoss()
 	end
 end

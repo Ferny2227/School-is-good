@@ -79,6 +79,29 @@ for r in set(off):
     assert p.set_bool("Script", "Disabled", r, True), r
 print("switched off %d scripts in %d zombie models + extras" % (len(set(off)), len(zombies)))
 
+# zombie arms: only hurt PLAYERS (they used to hurt any Humanoid they touched, so zombies ate each other)
+ZARM = '''-- a zombie's arm: hurts a player it touches (never another zombie), at most once every 2 seconds
+local damage = %d
+local debounce = false
+script.Parent.Touched:connect(function(part)
+	if debounce or not part.Parent then return end
+	local player = game.Players:GetPlayerFromCharacter(part.Parent)
+	local h = player and part.Parent:FindFirstChild("Humanoid")
+	if not h then return end
+	debounce = true
+	h:TakeDamage(damage)
+	wait(2)
+	debounce = false
+end)
+'''
+arms = {}
+for (cn, r, path, code) in p.scripts():
+    if path.endswith("zarm.Script") and cn == "Script":
+        m = re.search(rb"HealthLoss\s*=\s*(\d+)", code)
+        arms[r] = ZARM % (int(m.group(1)) if m else 20)
+p.set_sources(arms)
+print("zombie arms fixed:", len(arms))
+
 # badge awarders: once per player, only if they don't have it
 BADGE = '''-- awards the badge once, and only if the player doesn't have it yet
 local BadgeService = game:GetService("BadgeService")
