@@ -94,19 +94,19 @@ spawn(function()
 			DIFF.level = 1
 			while not gameOver() do
 				n = n + 1
-				-- CHALLENGE: every 3 disasters it gets harder: one more disaster stacked at once (up to 5), bigger
+				-- CHALLENGE: every 4 disasters it gets harder: one more disaster stacked at once (up to 4), bigger
 				-- waves, disasters hit harder, shorter calms, more Coins
-				local level = math.floor((n - 1) / 3) + 1
+				local level = math.floor((n - 1) / 4) + 1
 				if level ~= DIFF.level then
 					DIFF.level = level
-					toAll("big", "LEVEL " .. level .. "!", "It's getting harder: " .. math.min(level, 5) .. " disasters at once, bigger waves!")
+					toAll("big", "LEVEL " .. level .. "!", "It's getting harder: " .. math.min(level, 4) .. " disasters at once, bigger waves!")
 					toAll("shake", 0.6)
 					wait(4)
 				end
 				SEA.calm = 40 + 8 * (level - 1)
 				SEA.waves = math.max(SEA.waves, SEA.calm)
 				local list = { nextDisaster() }
-				while #list < math.min(level, 5) do
+				while #list < math.min(level, 4) do
 					local d = nextDisaster(list[#list])
 					local dup = false
 					for _, x in ipairs(list) do if x == d then dup = true end end
@@ -139,12 +139,13 @@ spawn(function()
 						addCoins(x.p, 40 * DIFF.level)
 						local sv = stats(x.p):FindFirstChild("Survived")
 						if sv then sv.Value = sv.Value + 1 end
+						x.h.Health = math.min(x.h.MaxHealth, x.h.Health + 20)      -- a little health back
 						toAll("toastTo", x.p.Name, "You survived the " .. names .. "! +" .. 40 * DIFF.level .. " Coins")
 					end
 				end
 				toAll("survivors", survivors, false)
 				STATE.phase, STATE.disaster = "calm", ""
-				for s = math.max(3, 8 - 2 * (DIFF.level - 1)), 1, -1 do
+				for s = math.max(4, 10 - 2 * (DIFF.level - 1)), 1, -1 do
 					STATE.left = s
 					status()
 					wait(1)
@@ -212,6 +213,8 @@ Players.PlayerAdded:connect(function(p)
 	p.CharacterAdded:connect(function(c)
 		local h = c:WaitForChild("Humanoid")
 		h.Died:connect(function() inRound[p] = nil diedThisGame[p] = true ghosts[p] = nil end)
+		-- HARDER: no health coming back by itself (you only get a little back for each disaster you survive)
+		delay(1, function() pcall(function() local r = c:FindFirstChild("Health") if r and r:IsA("Script") then r:Destroy() end end) end)
 		-- joined (or died) while a game is going: you're in the lobby - wait, or play as a ghost
 		delay(2, function()
 			if gameOn() and not inRound[p] and not ghosts[p] then toClient(p, "ghostOffer", true) end

@@ -164,9 +164,9 @@ for _, p in ipairs(ps) do p.Character.Humanoid.MaxHealth = 1e6 p.Character.Human
 local c0, sv0 = ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value
 for _ = 1, 400 do MOCK.run(0.5) if D.STATE.phase == "calm" then break end end
 say(string.format("survived a disaster: phase %s, player 2 coins %d -> %d, survived +%d", D.STATE.phase, c0, ps[2].leaderstats.Coins.Value, ps[2].leaderstats.Survived.Value - sv0))
--- harder every 3 disasters: level 2 stacks two at once
+-- harder every 4 disasters: level 2 stacks two at once
 for _ = 1, 1200 do MOCK.run(0.5) if D.STATE.disaster:sub(1, 3) == "LV2" then break end end
-say("after 3 disasters: '" .. D.STATE.disaster .. "', waves " .. D.SEA.calm)
+say("after 4 disasters: '" .. D.STATE.disaster .. "', waves " .. D.SEA.calm)
 -- someone joins mid-game: they're in the lobby and can choose to play as a ghost (doesn't count)
 local late = MOCK.addPlayer("late", 99)
 MOCK.run(0.5)

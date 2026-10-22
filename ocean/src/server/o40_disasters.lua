@@ -19,7 +19,7 @@ local function fling(x, vel, time, flat)
 	Debris:AddItem(bv, time or 0.4)
 end
 -- how hard the game is right now: goes up every 5 disasters (o50). Disasters hit harder at higher levels.
-local DIFF = { level = 1, mult = 3 }     -- mult: everything hurts 3x (the game was too easy)
+local DIFF = { level = 1, mult = 1.5 }   -- mult: everything hurts 1.5x what it used to
 local function power() return DIFF.mult * (1 + 0.25 * (DIFF.level - 1)) end
 local function hurtNear(pos, radius, dmg, shipDmg)
 	dmg = dmg * power()
@@ -36,6 +36,15 @@ local function boom(pos, size)
 	pcall(function() e.BlastPressure = 0 end)
 	pcall(function() e.DestroyJointRadiusPercent = 0 end)
 	e.Parent = workspace
+end
+-- HARDER: most attacks aim at a player who is aboard (a few studs off), so you have to keep moving to dodge them
+local function nearPlayer(spread)
+	local aboard = {}
+	for _, x in ipairs(players()) do if ship and onShip(x.t.Position) then table.insert(aboard, x) end end
+	if #aboard == 0 then return nil end
+	local x = aboard[math.random(1, #aboard)]
+	spread = spread or 6
+	return x.t.Position + V(math.random(-spread, spread), -2, math.random(-spread, spread))
 end
 -- a random spot on (or just over) the ship
 local function onDeck(spread)
@@ -159,7 +168,7 @@ DIS.Hurricane = { text = "HURRICANE! Wind, rain and lightning!", run = function(
 	spawn(function()
 		while alive do
 			wait(math.random(8, 20) / 10)
-			local at = onDeck()
+			local at = (math.random() < 0.7 and nearPlayer(5)) or onDeck()
 			local bolt = P(junk, "Lightning", V(1.2, 300, 1.2), CFrame.new(at + V(0, 150, 0)), "Institutional white", "Neon", { nc = true })
 			light(bolt, Color3.new(0.8, 0.9, 1), 60, 5)
 			Debris:AddItem(bolt, 0.25)
@@ -181,7 +190,7 @@ DIS["Meteor Shower"] = { text = "METEOR SHOWER! Watch the sky and keep moving!",
 	spawn(function()
 		while alive do
 			wait(0.6)
-			local at = math.random() < 0.6 and onDeck() or (function() local x, z = SHIP_AT.X + math.random(-150, 150), SHIP_AT.Z + math.random(-200, 200) return V(x, SEA.level + waveAt(x, z), z) end)()
+			local at = math.random() < 0.75 and (nearPlayer(6) or onDeck()) or (function() local x, z = SHIP_AT.X + math.random(-150, 150), SHIP_AT.Z + math.random(-200, 200) return V(x, SEA.level + waveAt(x, z), z) end)()
 			local m = P(junk, "Meteor", V(6, 6, 6), CFrame.new(at.X + 60, 420, at.Z), "Black", "Slate", { shape = "ball", nc = true })
 			local f = Instance.new("Fire")
 			f.Size = 12
@@ -215,6 +224,11 @@ DIS.Kraken = { text = "THE KRAKEN! Giant tentacles are smashing the ship!", run 
 			-- a tentacle rises out of the sea next to the ship, then slams down across the deck
 			local side = math.random() < 0.5 and 1 or -1
 			local z = math.random(-60, 60)
+			local target = nearPlayer(0)       -- the tentacle comes up next to someone and slams across them
+			if target and ship then
+				local l = shipFrame():inverse() * target
+				z = math.max(-ship.len / 2 + 5, math.min(ship.len / 2 - 5, l.Z))
+			end
 			local baseAt = SHIP_AT + V(side * ((ship and ship.wid or 30) / 2 + 12), SEA.level - 4 + (ship and ship.dy or 0), z)
 			local segs = {}
 			for i = 1, 8 do
@@ -290,7 +304,7 @@ DIS.Hailstorm = { text = "HAILSTORM! Giant hailstones are falling - keep moving!
 		while alive do
 			wait(0.12)
 			local huge = math.random() < 0.15
-			local at = onDeck()
+			local at = (math.random() < 0.7 and nearPlayer(5)) or onDeck()
 			local size = huge and 5 or 1.6
 			local m = P(junk, "Hail", V(size, size, size), CFrame.new(at + V(0, 160, 0)), "Pastel light blue", "Ice", { shape = "ball", nc = true })
 			spawn(function()
@@ -402,7 +416,7 @@ DIS["Ghost Ship"] = { text = "GHOST SHIP! Phantom pirates are firing cannons at 
 			sail.CFrame = cf * CFrame.new(0, 40, 0) * CFrame.Angles(0, math.pi / 2, 0)
 			if now - lastShot > 1.4 then
 				lastShot = now
-				local from, to = cf.p + V(0, 6, 0), onDeck()
+				local from, to = cf.p + V(0, 6, 0), nearPlayer(4) or onDeck()
 				local ball = P(junk, "Cannonball", V(3, 3, 3), CFrame.new(from), "Really black", "SmoothPlastic", { shape = "ball", nc = true })
 				local f = Instance.new("Fire")
 				f.Size = 5
