@@ -336,8 +336,11 @@ spawn(function()
 			conn = m.DescendantAdded:connect(add)
 		end
 	end
-	shipv.Changed:connect(function() setModel(shipv.Value) end)
-	setModel(shipv.Value)
+	-- find the boat by its tag (checked twice a second, so it never gets missed), and pick up any parts that arrive late
+	local world = workspace:WaitForChild("Ocean World")
+	local function findShip()
+		for _, c in ipairs(world:GetChildren()) do if c:FindFirstChild("IsShip") then return c end end
+	end
 	local cur = cfv.Value
 	local last, frames = tick(), 0
 	while true do
@@ -348,8 +351,12 @@ spawn(function()
 		local goal = cfv.Value
 		local ok = pcall(function() cur = cur:lerp(goal, math.min(1, dt * 10)) end)
 		if not ok then cur = goal end
+		frames = frames + 1
+		if frames % 15 == 0 then
+			local m = findShip()
+			if m ~= model then setModel(m) elseif m then all(m) end
+		end
 		if model then
-			frames = frames + 1
 			local prune = frames % 15 == 0     -- pieces that broke off / lifeboats that dropped are the server's now
 			for p, base in pairs(parts) do
 				if prune and not p:IsDescendantOf(model) then parts[p] = nil

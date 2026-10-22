@@ -340,6 +340,9 @@ local function buildShip(kind)
 		dy = 0, pitch = 0, roll = 0, yaw = 0, rest = shipBase(0, 0, 0, 0) }
 	seaShipCF.Value = CFrame.new()
 	seaShip.Value = B.model
+	local tag = Instance.new("StringValue")      -- players' computers find the boat by this tag
+	tag.Name = "IsShip"
+	tag.Parent = B.model
 	return ship
 end
 -- the boat's frame (the hull's CFrame without its height offset)
