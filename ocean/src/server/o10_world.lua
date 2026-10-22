@@ -46,12 +46,13 @@ local function rogue(height, len, bump, from)
 end
 local function calmRogue() SEA.rogueA = 0 rogueVals.A.Value = 0 end
 -- the boat dips under the water (ShipPose does the motion, on the server and on every player's computer)
-local dipVals = { T = value("NumberValue", "ShipDipT", -100), A = value("NumberValue", "ShipDipA", 0) }
-SEA.dipT, SEA.dipA = -100, 0
-local function dipShip(strength)
-	if seaTime() - SEA.dipT < 4 then return end
-	SEA.dipT, SEA.dipA = seaTime(), strength
+local dipVals = { T = value("NumberValue", "ShipDipT", -100), A = value("NumberValue", "ShipDipA", 0), D = value("NumberValue", "ShipDipD", 3.5) }
+SEA.dipT, SEA.dipA, SEA.dipD = -100, 0, 3.5
+local function dipShip(strength, dur)
+	if seaTime() - SEA.dipT < SEA.dipD + 0.5 then return end
+	SEA.dipT, SEA.dipA, SEA.dipD = seaTime(), strength, dur or 3.5
 	dipVals.A.Value = strength
+	dipVals.D.Value = SEA.dipD
 	dipVals.T.Value = SEA.dipT
 	toAll("shake", 0.5 + strength / 40)
 end

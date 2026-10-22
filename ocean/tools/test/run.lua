@@ -94,15 +94,16 @@ for _, name in ipairs({ "Tsunami", "Tornado", "Hurricane", "Meteor Shower", "Kra
 		p.Character.Torso.CFrame = D.shipFrame() * D.deckSpot()
 	end
 	local stop = D.DIS[name].run()
-	local hi, lo, air, maxPitch = -1e9, 1e9, 0, 0
+	local hi, lo, air, maxPitch, sub = -1e9, 1e9, 0, 0, -1e9
 	for _ = 1, 100 do
 		MOCK.run(0.5)
+		sub = math.max(sub, D.waveAt(0, -650) - ship.dy - ship.deck)
 		hi, lo = math.max(hi, ship.dy), math.min(lo, ship.dy)
 		air, maxPitch = math.max(air, ship.air or 0), math.max(maxPitch, math.abs(ship.pitch))
 	end
 	stop()
-	table.insert(results, string.format("%s: ship lost %d%%%s, boat went up %.0f / down %.0f studs, lifted into the air %.0f, max pitch %.0f deg, new errors %d",
-		name, math.floor(100 * (ship.max - ship.hp) / ship.max), ship.sinking and " (SANK)" or "", hi, -lo, air, math.deg(maxPitch), #MOCK.errors - before))
+	table.insert(results, string.format("%s: ship lost %d%%%s, boat went up %.0f / down %.0f studs, lifted into the air %.0f, max pitch %.0f deg, deepest under water %.0f, new errors %d",
+		name, math.floor(100 * (ship.max - ship.hp) / ship.max), ship.sinking and " (SANK)" or "", hi, -lo, air, math.deg(maxPitch), sub, #MOCK.errors - before))
 	MOCK.run(2)
 end
 for _, r in ipairs(results) do say(r) end

@@ -109,9 +109,10 @@ DIS.Tsunami = { text = "TSUNAMI! A MASSIVE wave is coming!", time = 38, run = fu
 			local front = SEA.rogueZ + 30 * (seaTime() - SEA.rogueT) + a * 0.8      -- where its wall meets the sea
 			if not hit and front >= -40 then
 				hit = true
-				toAll("big", "THE TSUNAMI HITS!", "")
+				toAll("big", "THE TSUNAMI HITS!", "The boat is going under - hold your breath!")
 				toAll("shake", 2.5)
-				dipShip(30)
+				SEA.dipT = -100
+				dipShip(55, 7)          -- the whole boat goes under, then shoots back up
 				for _, x in ipairs(players()) do
 					x.h:TakeDamage(25 * power())
 					if not x.h.Sit then fling(x, V(math.random(-15, 15), 30, 35), 0.3) end
@@ -130,12 +131,32 @@ DIS.Tornado = { text = "TORNADO! It's heading for the ship!", time = 25, run = f
 		local d = 14 + i * 5
 		table.insert(rings, { part = cyl(m, "Funnel", d, 10, 0, 0, 0, i % 2 == 0 and "Dark stone grey" or "Medium stone grey", "SmoothPlastic", { tr = 0.45, nc = true }), y = i * 10 + 5 })
 	end
+	local cloud = cyl(m, "StormCloud", 220, 14, 0, 0, 0, "Dark stone grey", "SmoothPlastic", { tr = 0.25, nc = true })
+	local cloud2 = cyl(m, "StormCloud", 150, 10, 0, 0, 0, "Really black", "SmoothPlastic", { tr = 0.35, nc = true })
+	local debris = {}
+	for i = 1, 16 do
+		table.insert(debris, { part = P(m, "Debris", V(math.random(1, 4), math.random(1, 3), math.random(1, 5)), CFrame.new(), pick({ "Brown", "Reddish brown", "Dark stone grey", "Brick yellow" }), "Wood", { nc = true }),
+			r = 14 + math.random() * 26, y = 6 + math.random() * 100, a = math.random() * 6.3, sp = 2 + math.random() * 2 })
+	end
+	local spray = {}
+	for i = 1, 3 do table.insert(spray, cyl(m, "Spray", 40 + i * 14, 6 - i, 0, 0, 0, "Institutional white", "SmoothPlastic", { tr = 0.4 + i * 0.15, nc = true })) end
 	local pos = SHIP_AT + V(math.random(-100, 100), 0, math.random() < 0.5 and -140 or 140)
 	local alive = true
 	spawn(function()
 		while alive do
 			local dt = wait(0.1)
 			local now = tick()
+			local sea = SEA.level + waveAt(pos.X, pos.Z)
+			cloud.CFrame = CFrame.new(pos.X, sea + 128, pos.Z) * CFrame.Angles(0, now * 0.6, math.rad(90))
+			cloud2.CFrame = CFrame.new(pos.X, sea + 122, pos.Z) * CFrame.Angles(0, -now * 0.9, math.rad(90))
+			for i, sp in ipairs(spray) do sp.CFrame = CFrame.new(pos.X, sea + 1 + i, pos.Z) * CFrame.Angles(0, now * (3 + i), math.rad(90)) end
+			for _, d in ipairs(debris) do
+				d.a = d.a + d.sp * dt
+				d.y = d.y + 10 * dt
+				if d.y > 115 then d.y = 4 end
+				local r = d.r * (0.5 + d.y / 120)
+				d.part.CFrame = CFrame.new(pos.X + math.cos(d.a) * r, sea + d.y, pos.Z + math.sin(d.a) * r) * CFrame.Angles(now * 3, d.a, now * 2)
+			end
 			-- wander over the ship, back and forth
 			local goal = SHIP_AT + V(math.sin(now * 0.15) * 30, 0, math.sin(now * 0.09) * 160)
 			local d = V(goal.X - pos.X, 0, goal.Z - pos.Z)
@@ -207,9 +228,14 @@ DIS["Meteor Shower"] = { text = "METEOR SHOWER! Watch the sky and keep moving!",
 			local at = math.random() < 0.75 and (nearPlayer(6) or onDeck()) or (function() local x, z = SHIP_AT.X + math.random(-150, 150), SHIP_AT.Z + math.random(-200, 200) return V(x, SEA.level + waveAt(x, z), z) end)()
 			local m = P(junk, "Meteor", V(6, 6, 6), CFrame.new(at.X + 60, 420, at.Z), "Black", "Slate", { shape = "ball", nc = true })
 			local f = Instance.new("Fire")
-			f.Size = 12
-			f.Heat = 20
+			f.Size = 14
+			f.Heat = 25
 			f.Parent = m
+			pcall(function()
+				local sm = Instance.new("Smoke")
+				sm.Size, sm.RiseVelocity, sm.Color = 8, 2, Color3.new(0.25, 0.22, 0.2)
+				sm.Parent = m
+			end)
 			light(m, Color3.new(1, 0.5, 0.1), 30, 3)
 			spawn(function()
 				local y, x = 420, at.X + 60
@@ -221,8 +247,17 @@ DIS["Meteor Shower"] = { text = "METEOR SHOWER! Watch the sky and keep moving!",
 				end
 				if m.Parent then
 					m:Destroy()
-					boom(V(x, at.Y, at.Z), 10)
-					hurtNear(V(x, at.Y, at.Z), 12, 25, 18)
+					local hit = V(x, at.Y, at.Z)
+					if hit.Y < SEA.level + waveAt(x, at.Z) + 3 and not onShip(hit) then
+						-- into the sea: a tall column of white water
+						for k = 1, 3 do
+							local c = P(junk, "Splash", V(10 - k * 2, 14 + k * 10, 10 - k * 2), CFrame.new(hit + V(0, (14 + k * 10) / 2, 0)), "Institutional white", "SmoothPlastic", { nc = true, tr = 0.2 + k * 0.2, shape = "ball" })
+							Debris:AddItem(c, 0.5 + k * 0.2)
+						end
+					else
+						boom(hit, 10)
+						hurtNear(hit, 12, 25, 18)
+					end
 				end
 			end)
 		end
@@ -232,6 +267,27 @@ end }
 DIS.Kraken = { text = "THE KRAKEN! Giant tentacles are smashing the ship!", run = function()
 	local alive = true
 	local m = model(junk, "Kraken")
+	-- the Kraken's huge head rises out of the sea beside the boat, glaring with glowing eyes
+	local hs = math.random() < 0.5 and 1 or -1
+	local head = P(m, "KrakenHead", V(34, 40, 34), CFrame.new(), "Royal purple", "SmoothPlastic", { shape = "ball", nc = true })
+	local eyes = {}
+	for _, e in ipairs({ -1, 1 }) do
+		local eye = P(m, "KrakenEye", V(5, 5, 5), CFrame.new(), "New Yeller", "Neon", { shape = "ball", nc = true })
+		light(eye, Color3.new(1, 0.9, 0.2), 30, 3)
+		table.insert(eyes, { part = eye, e = e })
+	end
+	spawn(function()
+		local rise = 0
+		while alive do
+			local dt = wait(0.1)
+			rise = math.min(1, rise + dt / 4)
+			local x, z = SHIP_AT.X + hs * ((ship and ship.wid or 30) / 2 + 45), SHIP_AT.Z - 20
+			local y = SEA.level + waveAt(x, z) - 30 + rise * 28 + math.sin(tick() * 1.3) * 2
+			local cf = CFrame.new(V(x, y, z), V(SHIP_AT.X, y, z))
+			head.CFrame = cf
+			for _, e in ipairs(eyes) do e.part.CFrame = cf * CFrame.new(e.e * 7, 8, -15) end
+		end
+	end)
 	spawn(function()
 		wait(3)
 		while alive do
@@ -244,26 +300,31 @@ DIS.Kraken = { text = "THE KRAKEN! Giant tentacles are smashing the ship!", run 
 				z = math.max(-ship.len / 2 + 5, math.min(ship.len / 2 - 5, l.Z))
 			end
 			local baseAt = SHIP_AT + V(side * ((ship and ship.wid or 30) / 2 + 12), SEA.level - 4 + (ship and ship.dy or 0), z)
-			local segs = {}
+			local segs, suckers = {}, {}
 			for i = 1, 8 do
-				local s = P(m, "Tentacle", V(5 - i * 0.4, 6, 5 - i * 0.4), CFrame.new(baseAt), i % 2 == 0 and "Bright violet" or "Royal purple", "SmoothPlastic", { nc = true })
+				local s = P(m, "Tentacle", V(5.5 - i * 0.45, 6.5, 5.5 - i * 0.45), CFrame.new(baseAt), i % 2 == 0 and "Bright violet" or "Royal purple", "SmoothPlastic", { nc = true, shape = "ball" })
 				table.insert(segs, s)
+				suckers[i] = P(m, "Sucker", V(1.6, 1.6, 1.6), CFrame.new(baseAt), "Pink", "SmoothPlastic", { nc = true, shape = "ball" })
+			end
+			local function place(i, cf)
+				segs[i].CFrame = cf
+				suckers[i].CFrame = cf * CFrame.new(-side * (2.6 - i * 0.2), 0, 0)
 			end
 			for t = 0, 1, 0.05 do      -- rise
-				for i, s in ipairs(segs) do s.CFrame = CFrame.new(baseAt + V(0, i * 5 * t, 0)) end
+				for i = 1, #segs do place(i, CFrame.new(baseAt + V(math.sin(t * 6 + i * 0.5) * i * 0.4, i * 5 * t, 0))) end
 				wait(0.05)
 			end
 			wait(0.6)
 			for t = 0, 1, 0.1 do       -- slam across the deck
 				local a = t * math.pi / 2
-				for i, s in ipairs(segs) do s.CFrame = CFrame.new(baseAt + V(-side * math.sin(a) * i * 5, math.cos(a) * i * 5 + 2, 0)) end
+				for i = 1, #segs do place(i, CFrame.new(baseAt + V(-side * math.sin(a) * i * 5, math.cos(a) * i * 5 + 2, 0))) end
 				wait(0.03)
 			end
 			local hitAt = baseAt + V(-side * 25, (ship and ship.deck or 10) + 2 - (SEA.level - 4), 0)
 			hurtNear(hitAt, 16, 40, 45)
 			toAll("shake", 0.4)
 			wait(1)
-			for _, s in ipairs(segs) do s:Destroy() end
+			for i, s in ipairs(segs) do s:Destroy() suckers[i]:Destroy() end
 			wait(math.random(3, 6))
 		end
 	end)

@@ -333,7 +333,7 @@ spawn(function()
 	local st = game:GetService("ReplicatedStorage"):WaitForChild("SeaState")
 	local v = {}
 	for _, n in ipairs({ "Amp", "Speed", "Level", "Clock", "ShipAt", "ShipLen", "ShipWid", "ShipAir", "ShipYaw", "ShipSink", "Sailing", "Theme",
-		"RogueA", "RogueT", "RogueZ", "RogueLen", "RogueBump", "ShipDipT", "ShipDipA" }) do
+		"RogueA", "RogueT", "RogueZ", "RogueLen", "RogueBump", "ShipDipT", "ShipDipA", "ShipDipD" }) do
 		v[n] = st:WaitForChild(n)
 	end
 	local S = { shipX = 0, shipZ = 0, amp = 1, speed = 16, rogueA = 0, rogueT = 0, rogueZ = 0, rogueLen = 150, rogueBump = false }
@@ -341,7 +341,7 @@ spawn(function()
 		S.shipX, S.shipZ = v.ShipAt.Value.X, v.ShipAt.Value.Z
 		S.amp, S.speed = v.Amp.Value, v.Speed.Value
 		S.rogueA, S.rogueT, S.rogueZ, S.rogueLen, S.rogueBump = v.RogueA.Value, v.RogueT.Value, v.RogueZ.Value, math.max(1, v.RogueLen.Value), v.RogueBump.Value
-		S.dipT, S.dipA = v.ShipDipT.Value, v.ShipDipA.Value
+		S.dipT, S.dipA, S.dipD = v.ShipDipT.Value, v.ShipDipA.Value, v.ShipDipD.Value
 	end
 	read()
 	for _, o in pairs(v) do o.Changed:connect(read) end
@@ -401,8 +401,18 @@ spawn(function()
 		local p, mesh = blob("Steel blue")
 		pcall(function() p.Material = Enum.Material.Glass end)
 		p.Reflectance = 0.2
-		table.insert(ridges, { part = p, mesh = mesh, col = -1 })
+		local cap, capMesh = blob("Institutional white", 0.25)      -- white water breaking along the crest
+		table.insert(ridges, { part = p, mesh = mesh, col = -1, cap = cap, capMesh = capMesh })
 	end
+	-- under the water: the screen goes deep blue
+	local under = Instance.new("Frame")
+	under.Size = UDim2.new(1, 0, 1, 40)
+	under.Position = UDim2.new(0, 0, 0, -40)
+	under.BackgroundColor3 = Color3.new(0.05, 0.2, 0.42)
+	under.BackgroundTransparency = 0.35
+	under.BorderSizePixel = 0
+	under.Visible = false
+	under.Parent = gui
 	-- choppy little waves riding on the swells, and wispy white streaks of foam all over the water round the boat
 	-- (in clumps of 5, all roughly the same way, like the foam on a stormy sea)
 	local chops, foams = {}, {}
@@ -746,6 +756,9 @@ spawn(function()
 				if uc and math.abs(uc) < 2000 + a then
 					r.part.CFrame = CFrame.new(cx + dx * uc, lv + A - b, cz + dz * uc) * turn
 					r.mesh.Scale = Vector3.new(8000 / 4, 2 * b / 4, 2 * a / 4)
+					local cb, ca = math.max(0.5, b * 0.05), a * (i == #ridges and 0.3 or 0.18)
+					r.cap.CFrame = CFrame.new(cx + dx * uc, lv + A + 0.25 - cb * 0.7, cz + dz * uc) * turn
+					r.capMesh.Scale = Vector3.new(8000 / 4, 2 * cb / 4, 2 * ca / 4)
 					local col = math.floor(math.min(1, A / math.max(1, S.amp * 1.6)) * 20 + 0.5)
 					if col ~= r.col then
 						r.col = col
@@ -753,6 +766,7 @@ spawn(function()
 					end
 				else
 					r.part.CFrame = CFrame.new(0, -2000, 0)
+					r.cap.CFrame = CFrame.new(0, -2000, 0)
 				end
 			end
 			-- chop and foam drift along with the water, sitting on the swells
@@ -772,6 +786,11 @@ spawn(function()
 					f.part.CFrame = CFrame.new(x, lv + h - sink, z) * turn * CFrame.Angles(-math.atan(sl), 0, 0) * CFrame.Angles(0, f.rot, 0)
 				end
 			end
+			-- is the camera under the water?
+			pcall(function()
+				local cp = cam.CoordinateFrame.p
+				under.Visible = cp.Y < lv + SeaHeight(cp.X, cp.Z, t, S) - 0.5 and (cp - Vector3.new(cx, cp.Y, cz)).magnitude < 600
+			end)
 			onSea(chops, 10, 1.2, 900)
 			onSea(foams, 14, -0.4, 330)
 			local bowZ = cz - v.ShipLen.Value / 2 - 5

@@ -78,12 +78,15 @@ local function ShipPose(t, s, len, wid, sinkAt, state, dt)
 		dy = math.max(dy, SeaHeight(x, z + lz, t, s) + lz * tp - 4)
 	end
 	dy = math.max(dy, SeaHeight(x - hw, z, t, s) + hw * tr - 4, SeaHeight(x + hw, z, t, s) - hw * tr - 4)
-	-- a big wave hit it: the boat plunges nose first under the water, then bobs back up (3.5 s)
+	-- a big wave hit it: the boat plunges nose first under the water, then bobs back up (3.5 s; the tsunami holds it
+	-- under much longer and much deeper)
 	if s.dipA and s.dipA > 0 and s.dipT then
-		local tau = t - s.dipT
-		if tau > 0 and tau < 3.5 then
-			local e = math.sin(math.pi * tau / 3.5)
-			dy = dy - s.dipA * e
+		local tau, D = t - s.dipT, s.dipD or 3.5
+		if tau > 0 and tau < D then
+			local e = math.sin(math.pi * tau / D)
+			if D > 4 then e = math.min(1, e * 1.6) end       -- (long dips: down fast, stay under, then shoot back up)
+			-- pulled down to dipA under the water at its middle (so a tsunami wall really rolls over it)
+			dy = dy + (h0 - s.dipA - dy) * e
 			pitch = pitch - 0.12 * e
 		end
 	end

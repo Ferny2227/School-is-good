@@ -173,5 +173,9 @@ local function stepSwimmers(dt)
 			toClient(p, "swim", false)
 		end
 		if t and t.Position.Y < -240 and h then h.Health = 0 end      -- fell through to the sea floor
+		-- the boat dragged under (the tsunami): if the water is over your head you're drowning
+		if t and h and h.Health > 0 and ship and not inWater and onShip(t.Position) and SEA.level + waveAt(t.Position.X, t.Position.Z) > t.Position.Y + 3 then
+			h:TakeDamage(8 * dt)
+		end
 	end
 end
