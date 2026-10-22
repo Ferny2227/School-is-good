@@ -173,7 +173,9 @@ local fx = cam:FindFirstChild("SeaFX")
 -- the drawn surface follows the swells: slabs at many different heights, several colours
 local ys, cols, n = {}, {}, 0
 if fx then for _, c in ipairs(fx:GetChildren()) do
-	if c.Size.X > 1000 then n = n + 1 ys[math.floor(c.Position.Y / 2)] = true cols[tostring(c.Color or c.BrickColor)] = true end
+	local hasMesh = false
+	for _, m in ipairs(c:GetChildren()) do if m.ClassName == "SpecialMesh" then hasMesh = true end end
+	if hasMesh then n = n + 1 ys[math.floor(c.Position.Y / 2)] = true cols[tostring(c.Color or c.BrickColor)] = true end
 end end
 local ny, nc = 0, 0 for _ in pairs(ys) do ny = ny + 1 end for _ in pairs(cols) do nc = nc + 1 end
 say(string.format("client surface: %d strips at %d different heights, %d colours", n, ny, nc))

@@ -240,7 +240,16 @@ spawn(function()
 		table.insert(ZS, z + (a < 220 and 10 or a < 700 and 25 or 80))
 	end
 	local strips = {}
-	for k = 1, #ZS - 1 do table.insert(strips, { part = part(Vector3.new(WIDTH, THICK, ZS[k + 1] - ZS[k]), "Steel blue"), col = -1, len = 0, far = ZS[k + 1] - ZS[k] > 50 }) end
+	-- each strip is a tiny 4x4 part stretched by a mesh to look 4000 studs wide: the physics engine only sees the tiny
+	-- part, so moving it costs almost nothing (a real 4000-stud part touches the whole map every time it moves)
+	for k = 1, #ZS - 1 do
+		local p = part(Vector3.new(4, THICK, 4), "Steel blue")
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Brick
+		mesh.Scale = Vector3.new(WIDTH / 4, 1, (ZS[k + 1] - ZS[k]) / 4)
+		mesh.Parent = p
+		table.insert(strips, { part = p, mesh = mesh, col = -1, len = 0, far = ZS[k + 1] - ZS[k] > 50 })
+	end
 	local H = {}
 	-- bits of foam floating on the swells, streaming past the boat
 	local foams = {}
@@ -375,7 +384,7 @@ spawn(function()
 				-- from (front edge, height a) to (back edge, height b): the top face runs exactly between them
 				if math.abs(len - s.len) > 0.3 then
 					s.len = len
-					s.part.Size = Vector3.new(WIDTH, THICK, len + 0.4)
+					s.mesh.Scale = Vector3.new(WIDTH / 4, 1, (len + 0.4) / 4)
 				end
 				local um = (ZS[k] + ZS[k + 1]) / 2
 				s.part.CFrame = CFrame.new(cx + dx * um, lv + (a + b) / 2, cz + dz * um) * turn
