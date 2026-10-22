@@ -1,5 +1,5 @@
--- StarterGui.OceanClient: the round status bar, disaster announcements, the Dockmaster's boat shop, your boat's
--- health, messages, and the storm (rain and lightning flashes, drawn only on this computer).
+-- StarterGui.OceanClient: the round status bar, big announcements, the ship's health bar, messages, screen shake
+-- when a wave hits, and the storm (rain and lightning flashes, drawn only on this computer).
 -- 2016-safe: no AnchorPoint/TweenService, FontSize instead of TextSize.
 local pcall = ypcall or pcall
 local Players = game:GetService("Players")
@@ -56,7 +56,7 @@ local statusText = label(bar, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), "DIS
 local big = label(gui, UDim2.new(0.5, -400, 0.25, 0), UDim2.new(0, 800, 0, 60), "", 48, C.red)
 local sub = label(gui, UDim2.new(0.5, -400, 0.25, 60), UDim2.new(0, 800, 0, 30), "", 24, C.white)
 -- toast
-local toast = label(gui, UDim2.new(0.5, -300, 0, 50), UDim2.new(0, 600, 0, 28), "", 20, C.green)
+local toast = label(gui, UDim2.new(0.5, -300, 0, 82), UDim2.new(0, 600, 0, 28), "", 20, C.green)
 local toastId = 0
 local function showToast(text, color)
 	toastId = toastId + 1
@@ -65,35 +65,13 @@ local function showToast(text, color)
 	toast.TextColor3 = color == "red" and C.red or (color == "gold" and C.gold or C.green)
 	delay(5, function() if toastId == id then toast.Text = "" end end)
 end
--- your boat (bottom left)
-local boatBox = frame(gui, UDim2.new(0, 10, 1, -110), UDim2.new(0, 230, 0, 60), C.dark, 0.25)
-boatBox.Visible = false
-local boatName = label(boatBox, UDim2.new(0, 8, 0, 2), UDim2.new(1, -16, 0, 22), "", 18, C.gold)
-local hpBack = frame(boatBox, UDim2.new(0, 8, 0, 28), UDim2.new(1, -16, 0, 12), rgb(60, 20, 20))
+-- the ship's health bar (top, under the status)
+local shipBox = frame(gui, UDim2.new(0.5, -230, 0, 48), UDim2.new(0, 460, 0, 30), C.dark, 0.2)
+shipBox.Visible = false
+local hpBack = frame(shipBox, UDim2.new(0, 4, 0, 4), UDim2.new(1, -8, 1, -8), rgb(60, 20, 20))
 local hpFill = frame(hpBack, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), C.green)
-local boatInfo = label(boatBox, UDim2.new(0, 8, 0, 40), UDim2.new(1, -16, 0, 18), "", 14, C.white)
--- the boat shop
-local shop = frame(gui, UDim2.new(0.5, -210, 0.5, -170), UDim2.new(0, 420, 0, 340), C.panel)
-shop.Visible = false
-label(shop, UDim2.new(0, 0, 0, 4), UDim2.new(1, 0, 0, 36), "DOCKMASTER - PICK A BOAT", 24, C.gold)
-local close = button(shop, UDim2.new(1, -38, 0, 6), UDim2.new(0, 32, 0, 32), "X", C.red)
-close.MouseButton1Click:connect(function() shop.Visible = false end)
-local shopRows = {}
-local function fillShop(list)
-	for _, r in ipairs(shopRows) do r:Destroy() end
-	shopRows = {}
-	for i, b in ipairs(list) do
-		local row = frame(shop, UDim2.new(0, 12, 0, 46 + (i - 1) * 70), UDim2.new(1, -24, 0, 62), C.dark)
-		label(row, UDim2.new(0, 10, 0, 4), UDim2.new(0, 220, 0, 26), b.key, 24, C.white).TextXAlignment = Enum.TextXAlignment.Left
-		label(row, UDim2.new(0, 10, 0, 32), UDim2.new(0, 240, 0, 22), "speed " .. b.speed .. "   health " .. b.hp, 18, rgb(180, 200, 230)).TextXAlignment = Enum.TextXAlignment.Left
-		local btn = button(row, UDim2.new(1, -130, 0, 12), UDim2.new(0, 120, 0, 38), b.price == 0 and "FREE" or (b.price .. " Coins"), b.price == 0 and C.green or C.blue)
-		btn.MouseButton1Click:connect(function()
-			pcall(function() remote:FireServer("buyBoat", b.key) end)
-			shop.Visible = false
-		end)
-		table.insert(shopRows, row)
-	end
-end
+local hpText = label(shipBox, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), "", 18, C.white)
+hpText.ZIndex = 2
 -- lightning flash
 local flash = frame(gui, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), C.white, 1)
 gui.Parent = pg
@@ -144,33 +122,35 @@ end
 ------------------------------------------------------------------ messages from the server
 local survivorsText = label(gui, UDim2.new(0.5, -300, 0.4, 0), UDim2.new(0, 600, 0, 120), "", 24, C.green)
 survivorsText.TextWrapped = true
+local shaking = 0
 remote.OnClientEvent:connect(function(what, a, b, c, d)
 	if what == "status" then
-		if a == "intermission" then statusText.Text = "INTERMISSION - next disaster in " .. b .. "  (get a boat!)"
+		if a == "intermission" then statusText.Text = "INTERMISSION - the ship leaves in " .. b
+		elseif a == "boarding" then statusText.Text = "ALL ABOARD!"
 		elseif a == "disaster" then statusText.Text = c .. "  -  SURVIVE " .. b .. "s"
-		else statusText.Text = "ROUND OVER - " .. b end
-	elseif what == "disaster" then
+		else statusText.Text = "ROUND OVER - back to the island in " .. b end
+	elseif what == "big" then
 		big.Text = a
-		sub.Text = b
+		sub.Text = b or ""
 		survivorsText.Text = ""
 		delay(6, function() if big.Text == a then big.Text = "" sub.Text = "" end end)
 	elseif what == "survivors" then
-		survivorsText.Text = #a > 0 and ("SURVIVORS: " .. table.concat(a, ", ")) or "NOBODY SURVIVED!"
+		survivorsText.Text = (b and "THE SHIP SANK!\n" or "") .. (#a > 0 and ("SURVIVORS: " .. table.concat(a, ", ")) or "NOBODY SURVIVED!")
 		delay(6, function() survivorsText.Text = "" end)
 	elseif what == "toast" then
 		showToast(a, b)
-	elseif what == "shop" then
-		fillShop(a)
-		shop.Visible = true
-	elseif what == "boat" then
-		boatBox.Visible = a ~= nil
+	elseif what == "toastTo" then
+		if a == player.Name then showToast(b, "green") end
+	elseif what == "ship" then
+		shipBox.Visible = a ~= nil
 		if a then
-			boatName.Text = "YOUR " .. string.upper(a)
-			local f = c > 0 and b / c or 0
+			local f = b > 0 and a / b or 0
 			hpFill.Size = UDim2.new(math.max(0, math.min(1, f)), 0, 1, 0)
 			hpFill.BackgroundColor3 = f > 0.5 and C.green or (f > 0.25 and C.gold or C.red)
-			boatInfo.Text = "health " .. b .. "/" .. c .. "    speed " .. d
+			hpText.Text = c and "THE SHIP IS SINKING!" or ("SS DISASTER  " .. a .. " / " .. b)
 		end
+	elseif what == "shake" then
+		shaking = math.max(shaking, a or 0.5)
 	elseif what == "weather" then
 		rain(a == "storm")
 	elseif what == "flash" then
@@ -181,6 +161,17 @@ remote.OnClientEvent:connect(function(what, a, b, c, d)
 			wait(0.08)
 			flash.BackgroundTransparency = 1
 		end)
+	end
+end)
+-- camera shake when a wave hits the ship
+spawn(function()
+	while true do
+		wait(0.03)
+		if shaking > 0 then
+			shaking = shaking - 0.03
+			local cam = workspace.CurrentCamera
+			if cam then pcall(function() cam.CoordinateFrame = cam.CoordinateFrame * CFrame.Angles(math.random(-10, 10) / 600, math.random(-10, 10) / 600, 0) end) end
+		end
 	end
 end)
 pcall(function() remote:FireServer("state") end)
