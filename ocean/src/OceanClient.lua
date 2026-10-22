@@ -230,7 +230,7 @@ spawn(function()
 	-- colours: trough -> middle (same as the flat ocean far away) -> top of a swell, and the foam
 	local c3 = Color3.new
 	local PAL = {
-		Normal = { lo = c3(0.04, 0.1, 0.12), mid = c3(0.08, 0.19, 0.2), hi = c3(0.2, 0.37, 0.35), foam = c3(0.78, 0.85, 0.83) },
+		Normal = { lo = c3(0.05, 0.16, 0.36), mid = c3(0.09, 0.26, 0.5), hi = c3(0.2, 0.42, 0.68), foam = c3(0.93, 0.96, 1) },
 		Sunset = { lo = c3(0.05, 0.08, 0.2), mid = c3(0.12, 0.2, 0.38), hi = c3(0.25, 0.32, 0.52), foam = c3(0.9, 0.85, 0.82) },
 		Halloween = { lo = c3(0.01, 0.03, 0.03), mid = c3(0.03, 0.1, 0.08), hi = c3(0.06, 0.28, 0.2), foam = c3(0.35, 0.9, 0.4) },
 	}
@@ -274,9 +274,10 @@ spawn(function()
 		p.Reflectance = 0.2
 		table.insert(ridges, { part = p, mesh = mesh, col = -1 })
 	end
-	-- choppy little waves riding on the swells, and round patches of foam
+	-- choppy little waves riding on the swells, and wispy white streaks of foam all over the water round the boat
+	-- (in clumps of 5, all roughly the same way, like the foam on a stormy sea)
 	local chops, foams = {}, {}
-	for i = 1, 60 do
+	for i = 1, 35 do
 		local p, mesh = blob("Steel blue")
 		local w, l = math.random(30, 70), math.random(40, 110)
 		mesh.Scale = Vector3.new(w / 4, 7 / 4, l / 4)
@@ -284,11 +285,13 @@ spawn(function()
 		p.Reflectance = 0.2
 		table.insert(chops, { part = p, u = math.random(-900, 900), w = math.random(-700, 700), rot = math.random() * 6.3 })
 	end
-	for i = 1, 40 do
-		local p, mesh = blob("Institutional white", 0.3 + math.random() * 0.3)
-		local w = math.random(5, 18)
-		mesh.Scale = Vector3.new(w / 4, 0.6 / 4, w * (1 + math.random()) / 4)
-		table.insert(foams, { part = p, u = math.random(-600, 600), w = math.random(-500, 500), rot = math.random() * 6.3 })
+	for c = 1, 28 do
+		local clump = { u = math.random(-330, 330), w = math.random(-330, 330), rot = math.random() * 6.3 }
+		for i = 1, 5 do
+			local p, mesh = blob("Institutional white", 0.2 + math.random() * 0.45)
+			mesh.Scale = Vector3.new((0.8 + math.random() * 2.2) / 4, 0.4 / 4, math.random(14, 50) / 4)
+			table.insert(foams, { part = p, clump = clump, du = math.random(-18, 18), dw = math.random(-18, 18), rot = clump.rot + (math.random() - 0.5) * 1.2 })
+		end
 	end
 	-- spray where the bow cuts into the waves
 	local spray = {}
@@ -562,19 +565,24 @@ spawn(function()
 				end
 			end
 			-- chop and foam drift along with the water, sitting on the swells
-			local function onSea(list, speed, sink, h0)
+			local moved = {}
+			local function onSea(list, speed, sink, lim)
 				for _, f in ipairs(list) do
-					f.u = f.u + speed * dt * 2
-					local lim = list == chops and 900 or 600
-					if f.u > lim then f.u = f.u - 2 * lim f.w = math.random(-lim, lim) end
-					local x, z = cx + dx * f.u + dz * f.w, cz + dz * f.u - dx * f.w
+					local g = f.clump or f      -- foam streaks move with their clump
+					if not moved[g] then
+						moved[g] = true
+						g.u = g.u + speed * dt * 2
+						if g.u > lim then g.u = g.u - 2 * lim g.w = math.random(-lim, lim) end
+					end
+					local fu, fw = g.u + (f.du or 0), g.w + (f.dw or 0)
+					local x, z = cx + dx * fu + dz * fw, cz + dz * fu - dx * fw
 					local h = SeaHeight(x, z, t, S)
 					local sl = (SeaHeight(x + dx * 10, z + dz * 10, t, S) - h) / 10
 					f.part.CFrame = CFrame.new(x, lv + h - sink, z) * turn * CFrame.Angles(-math.atan(sl), 0, 0) * CFrame.Angles(0, f.rot, 0)
 				end
 			end
-			onSea(chops, 10, 1.2)
-			onSea(foams, 14, -0.4)
+			onSea(chops, 10, 1.2, 900)
+			onSea(foams, 14, -0.4, 330)
 			local bowZ = cz - v.ShipLen.Value / 2 - 5
 			local bowH = SeaHeight(cx, bowZ, t, S)
 			local moving = v.Sailing.Value

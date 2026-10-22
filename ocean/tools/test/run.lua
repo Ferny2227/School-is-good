@@ -140,6 +140,16 @@ for _ = 1, 120 do
 	end
 end
 say(string.format("water above the boat's waterline anywhere along the hull (max over 30 s): %.1f studs (deck is %d up)", worst, sh.deck))
+local seen, rep = {}, 0
+local prevD
+for i = 1, 20 do
+	local d = D.nextDisaster()
+	if d == prevD then rep = rep + 1 end
+	prevD = d
+	if i <= 10 then seen[d] = true end
+end
+local nseen = 0 for _ in pairs(seen) do nseen = nseen + 1 end
+say(string.format("disaster bag: first 10 picks had %d different disasters, same one twice in a row %d times", nseen, rep))
 local p1, r1, f1 = rock(30)
 say(string.format("galleon in normal swells (30 s): pitch range %.1f deg, roll range %.1f deg, bow-up/bow-down changes %d", p1, r1, f1))
 local hp0 = D.getShip().hp

@@ -10,6 +10,19 @@ end
 -- EVERYONE is dead - then it resets: back to the sky lobby, vote, and a new boat. Every disaster you live through pays
 -- Coins. If the boat sinks and someone is still alive (in a lifeboat or swimming) a minute later, they win big.
 local diedThisGame = {}
+-- disasters come out of a shuffled bag: every one of them comes up once before any repeats (and never twice in a row)
+local bag, lastDisaster = {}, nil
+local function nextDisaster(not_)
+	if #bag == 0 then
+		for _, d in ipairs(ORDER) do table.insert(bag, d) end
+		for i = #bag, 2, -1 do local j = math.random(1, i) bag[i], bag[j] = bag[j], bag[i] end
+		if bag[#bag] == lastDisaster and #bag > 1 then bag[1], bag[#bag] = bag[#bag], bag[1] end
+	end
+	local d = table.remove(bag)
+	if d == not_ and #bag > 0 then table.insert(bag, 1, d) d = table.remove(bag) end
+	lastDisaster = d
+	return d
+end
 local function aliveAtSea()
 	local n = 0
 	for _, x in ipairs(players()) do if inRound[x.p] then n = n + 1 end end
@@ -54,9 +67,9 @@ spawn(function()
 			local n, sunkWin = 0, false
 			while aliveAtSea() > 0 do
 				n = n + 1
-				local list = { pick(ORDER) }
+				local list = { nextDisaster() }
 				if n >= 3 and math.random() < 0.35 then
-					local second = pick(ORDER)
+					local second = nextDisaster(list[1])
 					if second ~= list[1] then table.insert(list, second) end
 				end
 				local names = table.concat(list, " + ")
@@ -183,5 +196,5 @@ spawn(function()
 end)
 _G.OceanDebug = { DIS = DIS, SEA = SEA, swimmers = swimmers, STATE = STATE, getShip = function() return ship end,
 	buildShip = buildShip, damageShip = damageShip, deckSpot = deckSpot, onShip = onShip, shipFrame = shipFrame,
-	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, rogue = rogue, waveAt = waveAt, seaTime = seaTime }
+	votes = votes, setTheme = setTheme, getTheme = function() return theme end, LOBBY_AT = LOBBY_AT, SHIPS = SHIPS, rogue = rogue, waveAt = waveAt, seaTime = seaTime, nextDisaster = function() return nextDisaster() end }
 print("OceanServer ready")
