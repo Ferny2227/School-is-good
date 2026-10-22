@@ -1,7 +1,10 @@
 -- ==== o50_rounds.lua
 ------------------------------------------------------------------ rounds: lobby -> everyone onto the ship -> disaster -> back
 local inRound = {}
-local function status() toAll("status", STATE.phase, STATE.left, STATE.disaster) end
+local function status()
+	toAll("status", STATE.phase, STATE.left, STATE.disaster,
+		{ time = STATE.started and math.floor(tick() - STATE.started) or 0, events = STATE.events or 0, alive = STATE.alive or 0 })
+end
 local function sendShip()
 	if SHIP_UNBREAKABLE then toAll("ship", nil) return end      -- no health bar: the boat can't break
 	if ship and ship.model.Parent then toAll("ship", math.max(0, math.floor(ship.hp)), ship.max, ship.sinking ~= nil, ship.kind)
@@ -28,6 +31,7 @@ local function makeGhost(p)
 	if head then bill(head, "GHOST", 4, 1, 2.5, Color3.new(0.7, 0.9, 1)) end
 	t.CFrame = shipFrame() * deckSpot()
 	toClient(p, "ghostOffer", false)
+	toClient(p, "ghostMode", true)
 	toClient(p, "toast", "You're a GHOST: play along, but you don't count this game.", "gold")
 end
 local diedThisGame = {}
@@ -93,6 +97,7 @@ spawn(function()
 			-- WAVES: every 10 seconds a new random disaster hits (each lasts ~20 s, so they overlap). Every 3 waves the
 			-- level goes up and it gets WAY harder: +50% damage, bigger seas, and 2 (then 3) disasters per wave.
 			local wave, active = 0, {}
+			STATE.started, STATE.events = tick(), 0
 			DIFF.level = 1
 			local function stopExpired(all)
 				for i = #active, 1, -1 do
@@ -104,6 +109,7 @@ spawn(function()
 			end
 			while not gameOver() do
 				wave = wave + 1
+				STATE.events = wave
 				local level = math.floor((wave - 1) / 3) + 1
 				local levelUp = level ~= DIFF.level
 				if levelUp then
@@ -124,8 +130,7 @@ spawn(function()
 				STATE.phase, STATE.disaster = "disaster", "WAVE " .. wave .. " (LV" .. level .. "): " .. names
 				local texts = {}
 				for _, d in ipairs(list) do table.insert(texts, DIS[d].text) end
-				toAll("big", (levelUp and ("LEVEL " .. level .. "! ") or "") .. "WAVE " .. wave .. ": " .. string.upper(names),
-					levelUp and "WAY HARDER now: disasters hit harder, the sea is rougher, more at once!" or table.concat(texts, "  "))
+				toAll("event", (levelUp and ("LEVEL " .. level .. " - WAY HARDER!  ") or "") .. table.concat(texts, "  "))
 				for _, d in ipairs(list) do
 					local ok, stop = pcall(DIS[d].run)
 					if ok and stop then table.insert(active, { stop = stop, ends = tick() + (DIS[d].time or 20) })
@@ -133,6 +138,7 @@ spawn(function()
 				end
 				for s = 10, 1, -1 do
 					STATE.left = s
+					STATE.alive = aliveAtSea()
 					status()
 					wait(1)
 					stopExpired()
@@ -175,6 +181,8 @@ spawn(function()
 			end
 			ghosts = {}
 			toAll("ghostOffer", false)
+			toAll("ghostMode", false)
+			STATE.started, STATE.events, STATE.alive = nil, 0, 0
 			if ship then pcall(function() ship.model:Destroy() end) ship = nil seaShip.Value = nil end
 			seaSailing.Value = false
 			sendShip()

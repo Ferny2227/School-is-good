@@ -253,6 +253,13 @@ if fx then for _, c in ipairs(fx:GetChildren()) do
 end end
 local ny, nc = 0, 0 for _ in pairs(ys) do ny = ny + 1 end for _ in pairs(cols) do nc = nc + 1 end
 say(string.format("client surface: %d strips at %d different heights, %d colours", n, ny, nc))
+local ev = game:GetService("ReplicatedStorage").OceanEvent
+ev.OnClientEvent:fireNow("status", "disaster", 7, "WAVE 5 (LV2): Kraken", { time = 76, events = 5, alive = 19 })
+local hudTexts = {}
+for _, o in ipairs(ps[1].PlayerGui.OceanUI:GetDescendants()) do
+	if (o.ClassName == "TextLabel" or o.ClassName == "TextButton") and o.Text ~= "" and (o.Text:find("NEXT") or o.Text == "7" or o.Text == "1:16" or o.Text == "19" or o.Text:find("CLASSIC") or o.Text:find("COINS")) then table.insert(hudTexts, o.Text) end
+end
+say("HUD: " .. table.concat(hudTexts, " | "))
 say(string.format("client sea effects: %d parts, ship bar shown: %s, new errors %d", fx and #fx:GetChildren() or 0,
 	tostring(ps[1].PlayerGui:FindFirstChild("OceanUI") ~= nil), #MOCK.errors - before))
 say("errors: " .. #MOCK.errors)

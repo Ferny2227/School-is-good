@@ -29,6 +29,9 @@ Open/upload `DisasterOcean.rbxl`.
 - **The waves try to throw you off**: the deck is wet, so when the boat leans you slide downhill; when the bow
   crashes into a wave (and all through a set of big waves) water sweeps over the deck and throws you towards the back
   and over the side - unless you're under a roof. The rails are only knee-high.
+- **HUD** (like the big disaster games): "NEXT EVENT IN:" and a big countdown at the top ("EVENT:" and what's
+  happening when one hits), ROUND TIME / EVENTS OCCURRED / PLAYERS ALIVE / GAMEMODE boxes bottom right, your COINS
+  and WINS on the left with a "?" help button, and "YOU ARE NOW GHOST SPECTATING" for ghosts.
 - **Waves**: every 10 seconds a new random disaster hits (each lasts about 20 s, so they overlap). Every 3 waves
   the level goes up and it gets WAY harder: +50% damage per level, rougher seas, 2 disasters per wave from level 2
   and 3 from level 4. Each wave you live through: Coins (10 x level) and +8 health; health doesn't come back by

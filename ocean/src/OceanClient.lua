@@ -52,6 +52,55 @@ end
 -- status bar (top middle)
 local bar = frame(gui, UDim2.new(0.5, -200, 0, 4), UDim2.new(0, 400, 0, 40), C.dark, 0.2)
 local statusText = label(bar, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), "DISASTER OCEAN", 24, C.gold)
+bar.Visible = false      -- (replaced by the big HUD below)
+------------------------------------------------------------------ THE HUD
+-- top middle: "NEXT EVENT IN:" and the countdown, or "EVENT:" and what's happening
+local function big2(pos, size, text)
+	local t = label(gui, pos, size, text, 48, C.white)
+	t.TextScaled = true
+	t.TextStrokeTransparency = 0.2
+	return t
+end
+local hudTitle = big2(UDim2.new(0.5, -300, 0, 8), UDim2.new(0, 600, 0, 64), "")
+local hudNumber = big2(UDim2.new(0.5, -100, 0, 74), UDim2.new(0, 200, 0, 76), "")
+local hudEvent = big2(UDim2.new(0.5, -480, 0, 76), UDim2.new(0, 960, 0, 54), "")
+local eventUntil = 0
+-- bottom right: round time, events, players alive, game mode
+local stats = {}
+for i, name in ipairs({ "ROUND TIME", "EVENTS OCCURRED", "PLAYERS ALIVE", "GAMEMODE" }) do
+	local box = frame(gui, UDim2.new(1, -4 * 158 - 10 + (i - 1) * 158, 1, -96), UDim2.new(0, 150, 0, 86), C.dark, 0.45)
+	local t = label(box, UDim2.new(0, 4, 0, 4), UDim2.new(1, -8, 0, 30), name, 24, C.white)
+	t.TextScaled = true
+	local v = label(box, UDim2.new(0, 4, 0, 38), UDim2.new(1, -8, 0, 44), "-", 36, C.white)
+	v.TextScaled = true
+	stats[i] = v
+end
+stats[4].Text = "CLASSIC"
+-- left: your Coins and Wins, and a help button
+local mine = {}
+for i, name in ipairs({ "COINS", "WINS" }) do
+	local box = frame(gui, UDim2.new(0, 10, 0.5, -60 + (i - 1) * 92), UDim2.new(0, 150, 0, 84), C.dark, 0.45)
+	local t = label(box, UDim2.new(0, 4, 0, 2), UDim2.new(1, -8, 0, 32), name, 24, C.white)
+	t.TextScaled = true
+	local v = label(box, UDim2.new(0, 4, 0, 36), UDim2.new(1, -8, 0, 44), "0", 36, C.gold)
+	v.TextScaled = true
+	mine[name] = v
+end
+spawn(function()
+	while true do
+		local ls = player:FindFirstChild("leaderstats")
+		if ls then
+			local c, w = ls:FindFirstChild("Coins"), ls:FindFirstChild("Wins")
+			if c then mine.COINS.Text = tostring(c.Value) end
+			if w then mine.WINS.Text = tostring(w.Value) end
+		end
+		wait(0.5)
+	end
+end)
+local helpB = button(gui, UDim2.new(0, 10, 0.5, 132), UDim2.new(0, 60, 0, 60), "?", C.dark)
+pcall(function() helpB.FontSize = Enum.FontSize.Size48 end)
+-- bottom middle: shown while you're a ghost
+local ghostText = big2(UDim2.new(0.5, -400, 1, -170), UDim2.new(0, 800, 0, 56), "")
 -- big announcement
 local big = label(gui, UDim2.new(0.5, -400, 0.25, 0), UDim2.new(0, 800, 0, 60), "", 48, C.red)
 local sub = label(gui, UDim2.new(0.5, -400, 0.25, 60), UDim2.new(0, 800, 0, 30), "", 24, C.white)
@@ -62,16 +111,15 @@ local function panel(w, h)
 	f.ZIndex = 5
 	return f
 end
-if not _G.OceanSeenHowTo then
-	_G.OceanSeenHowTo = true
+local function showHowTo()
 	local f = panel(620, 380)
 	local title = label(f, UDim2.new(0, 0, 0, 10), UDim2.new(1, 0, 0, 44), "DISASTER OCEAN - HOW TO PLAY", 36, C.gold)
 	title.ZIndex = 6
 	local body = label(f, UDim2.new(0, 24, 0, 62), UDim2.new(1, -48, 0, 250),
 		"1.  In the sky lobby, step on a glowing pad to vote for the next BOAT and the map THEME.\n\n" ..
-		"2.  Everyone goes aboard. Huge waves rock the boat and disasters strike one after another.\n\n" ..
-		"3.  Stay on the boat - the water hurts! Fell in? Press SPACE to leap back aboard.\n\n" ..
-		"4.  Every disaster you live through: +40 Coins.  LAST ONE STANDING WINS: +1 Win, +150 Coins.\n\n" ..
+		"2.  Everyone goes aboard. Every 10 seconds a new EVENT hits, and every 3 it gets much harder.\n\n" ..
+		"3.  Stay on the boat - waves try to throw you off and the water hurts! Fell in? Press SPACE to leap back.\n\n" ..
+		"4.  Every event you live through pays Coins.  LAST ONE STANDING WINS: +1 Win, +150 Coins.\n\n" ..
 		"5.  Joined late or died? Wait in the lobby, or play as a GHOST (ghosts don't count).", 20, C.white)
 	body.TextWrapped = true
 	pcall(function() body.TextXAlignment = Enum.TextXAlignment.Left body.TextYAlignment = Enum.TextYAlignment.Top end)
@@ -79,6 +127,11 @@ if not _G.OceanSeenHowTo then
 	local go = button(f, UDim2.new(0.5, -110, 1, -62), UDim2.new(0, 220, 0, 46), "LET'S GO!", C.green)
 	go.ZIndex = 6
 	go.MouseButton1Click:connect(function() f:Destroy() end)
+end
+helpB.MouseButton1Click:connect(showHowTo)
+if not _G.OceanSeenHowTo then
+	_G.OceanSeenHowTo = true
+	showHowTo()
 end
 -- a game is going on and you're not in it: wait for the next one, or play as a ghost
 local ghostPanel = panel(560, 200)
@@ -189,11 +242,29 @@ survivorsText.TextWrapped = true
 local shaking = 0
 remote.OnClientEvent:connect(function(what, a, b, c, d)
 	if what == "status" then
+		local hud = d
+		if hud then
+			local tm = hud.time or 0
+			stats[1].Text = string.format("%d:%02d", math.floor(tm / 60), tm % 60)
+			stats[2].Text = tostring(hud.events or 0)
+			stats[3].Text = tostring(hud.alive or 0)
+		end
+		if tick() < eventUntil then
+			hudNumber.Text = ""
+		elseif a == "intermission" then hudTitle.Text, hudNumber.Text, hudEvent.Text = "NEXT BOAT IN:", tostring(b), ""
+		elseif a == "boarding" then hudTitle.Text, hudNumber.Text, hudEvent.Text = "ALL ABOARD!", "", ""
+		elseif a == "disaster" or a == "calm" then hudTitle.Text, hudNumber.Text, hudEvent.Text = "NEXT EVENT IN:", tostring(b), ""
+		else hudTitle.Text, hudNumber.Text, hudEvent.Text = "GAME OVER", tostring(b), "" end
 		if a == "intermission" then statusText.Text = "INTERMISSION - the ship leaves in " .. b
 		elseif a == "boarding" then statusText.Text = "ALL ABOARD!"
 		elseif a == "disaster" then statusText.Text = c .. "  -  next wave in " .. b .. "s"
 		elseif a == "calm" then statusText.Text = "CALM... the next disaster comes in " .. b
 		else statusText.Text = "ROUND OVER - back to the island in " .. b end
+	elseif what == "event" then
+		eventUntil = tick() + 4
+		hudTitle.Text, hudNumber.Text, hudEvent.Text = "EVENT:", "", a
+	elseif what == "ghostMode" then
+		ghostText.Text = a and "YOU ARE NOW GHOST SPECTATING" or ""
 	elseif what == "big" then
 		big.Text = a
 		sub.Text = b or ""
