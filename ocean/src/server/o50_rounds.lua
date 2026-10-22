@@ -80,7 +80,7 @@ spawn(function()
 				wait(1)
 			end
 			for _, x in ipairs(players()) do toLobby(x.p) end
-			if ship then pcall(function() ship.model:Destroy() end) ship = nil end
+			if ship then pcall(function() ship.model:Destroy() end) ship = nil seaShip.Value = nil end
 			seaSailing.Value = false
 			sendShip()
 		end

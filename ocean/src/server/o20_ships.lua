@@ -1,8 +1,9 @@
 ------------------------------------------------------------------ THE BOATS (voted in the lobby): Cruise Liner, Pirate Galleon, Navy Destroyer
 -- Each is built fresh every round at SHIP_AT, in the boat's own frame: x across, y up from the waterline, z along
--- (the bow is at -z). Rooms are real: walls with doorways and windows, furniture inside. Everything is welded to the
--- hull (one anchored root), so the boat rocks/sinks with one CFrame. Some pieces are "breakable": they snap off as
--- the boat takes damage.
+-- (the bow is at -z). Rooms are real: walls with doorways and windows, furniture inside. Every part stays anchored
+-- where it was built on the server; the server works out how the boat moves (ship.dy/pitch/roll/yaw) and sends it in
+-- SeaState.ShipCF, and each player's computer moves ALL the boat's parts together with it (OceanClient), smoothly
+-- every frame. Some pieces are "breakable": they snap off as the boat takes damage.
 local ship = nil   -- { kind, model, root, hp, max, len, wid, deck, hullY, breakable, lifeboats, spots }
 
 local function shipBase(dy, pitch, roll, yaw)
@@ -327,17 +328,17 @@ local function buildShip(kind)
 	-- the name on the hull
 	local nameplate = B.box("NamePlate", 0.3, 3, 30, -WID / 2 - 0.25, DECK - 5, -LEN / 2 + 25, "Institutional white", "SmoothPlastic", { nc = true })
 	sign(nameplate, B.model.Name:match("^(.-) %(") or kind, "Left", Color3.new(0.05, 0.05, 0.2))
-	-- one rig: everything welded to the hull (the parts are in the world already, so the welds work)
-	for _, p in ipairs(B.parts) do
-		if p ~= hull and p.Parent then weld(hull, p) p.Anchored = false end
-	end
-	hull.Anchored = true
+	for _, p in ipairs(B.parts) do p.Anchored = true end
 	local max = 1000 + 250 * #Players:GetPlayers()
 	ship = { kind = kind, model = B.model, root = hull, hp = max, max = max, len = LEN, wid = WID, deck = DECK,
 		hullY = hull.CFrame.p.Y - SEA.level - SHIP_AT.Y, breakable = B.breakable, lifeboats = B.lifeboats, spots = B.spots,
-		dy = 0, pitch = 0, roll = 0 }
+		dy = 0, pitch = 0, roll = 0, yaw = 0, rest = shipBase(0, 0, 0, 0) }
+	seaShipCF.Value = CFrame.new()
+	seaShip.Value = B.model
 	return ship
 end
 -- the boat's frame (the hull's CFrame without its height offset)
-local function shipFrame() return ship.root.CFrame * CFrame.new(0, -ship.hullY, 0) end
+local function shipFrame() return shipBase(ship.dy, ship.pitch, ship.roll, ship.yaw) end
+-- where a part built on the server really is now (the boat has moved since it was built)
+local function shipMoved() return shipFrame() * ship.rest:inverse() end
 local function deckSpot() return pick(ship.spots) end

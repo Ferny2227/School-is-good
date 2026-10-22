@@ -202,7 +202,7 @@ spawn(function()
 		if math.abs(goalOffset - offset) > 1 then offset = goalOffset end
 	end)
 	local PAL = {
-		Normal = { "Navy blue", "Earth blue", "Steel blue", "Medium blue", "Bright bluish green", "Institutional white" },
+		Normal = { "Navy blue", "Earth blue", "Steel blue", "Medium blue", "Pastel blue", "Institutional white" },
 		Sunset = { "Navy blue", "Earth blue", "Sand blue", "Medium blue", "Pastel blue", "Institutional white" },
 		Halloween = { "Really black", "Black", "Earth green", "Dark green", "Bright bluish green", "Lime green" },
 	}
@@ -306,6 +306,47 @@ spawn(function()
 				local u = s.t
 				s.part.CFrame = CFrame.new(cx + side * (4 + u * 16), lv + bowH + 2 + math.sin(u * math.pi) * (3 + S.amp), bowZ + u * 25)
 				s.part.Transparency = moving and (0.35 + u * 0.6) or 1
+			end
+		end
+	end
+end)
+------------------------------------------------------------------ the boat: move ALL of its parts together
+-- The server keeps the boat's parts still and sends how far the boat has moved (SeaState.ShipCF). Here every part of
+-- the boat is put there every frame, so the whole boat - hull, decks, rooms, funnels, masts - rocks as one piece.
+spawn(function()
+	local st = game:GetService("ReplicatedStorage"):WaitForChild("SeaState")
+	local cfv, shipv = st:WaitForChild("ShipCF"), st:WaitForChild("Ship")
+	local parts, model, conn = {}, nil, nil
+	local function add(p) if p:IsA("BasePart") and not parts[p] then parts[p] = p.CFrame end end
+	local function all(o)
+		for _, c in ipairs(o:GetChildren()) do add(c) all(c) end
+	end
+	local function setModel(m)
+		if conn then conn:disconnect() conn = nil end
+		parts, model = {}, m
+		if m then
+			all(m)
+			conn = m.DescendantAdded:connect(add)
+		end
+	end
+	shipv.Changed:connect(function() setModel(shipv.Value) end)
+	setModel(shipv.Value)
+	local cur = cfv.Value
+	local last, frames = tick(), 0
+	while true do
+		wait()
+		local now = tick()
+		local dt = math.min(0.2, now - last)
+		last = now
+		local goal = cfv.Value
+		local ok = pcall(function() cur = cur:lerp(goal, math.min(1, dt * 10)) end)
+		if not ok then cur = goal end
+		if model then
+			frames = frames + 1
+			local prune = frames % 15 == 0     -- pieces that broke off / lifeboats that dropped are the server's now
+			for p, base in pairs(parts) do
+				if prune and not p:IsDescendantOf(model) then parts[p] = nil
+				else p.CFrame = cur * base end
 			end
 		end
 	end

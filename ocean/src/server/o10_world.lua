@@ -22,6 +22,8 @@ local seaLevel = value("NumberValue", "Level", 0)
 local seaClock = value("NumberValue", "Clock", 0)
 value("Vector3Value", "ShipAt", SHIP_AT)
 local seaShipLen = value("NumberValue", "ShipLen", 200)
+local seaShip = value("ObjectValue", "Ship", nil)          -- the boat's model
+local seaShipCF = value("CFrameValue", "ShipCF", CFrame.new())   -- how far the boat has moved from where it was built
 local seaTheme = value("StringValue", "Theme", "Normal")
 local seaSailing = value("BoolValue", "Sailing", false)
 local rogueVals = { A = value("NumberValue", "RogueA", 0), T = value("NumberValue", "RogueT", 0), Z = value("NumberValue", "RogueZ", 0),

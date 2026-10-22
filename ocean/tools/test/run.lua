@@ -48,8 +48,8 @@ for _, kind in ipairs({ "Cruise Liner", "Pirate Galleon", "Navy Destroyer" }) do
 	local rooms = count(sh.model, function(o) return o.Name:match("Floor$") ~= nil and o.Name ~= "LifeboatFloor" end)
 	local seats = count(sh.model, function(o) return o.ClassName == "Seat" end)
 	local unwelded = 0
-	for _, o in ipairs(sh.model:GetDescendants()) do if o:IsA("BasePart") and o.Anchored and o ~= sh.root then unwelded = unwelded + 1 end end
-	say(string.format("%s: %d parts, %d rooms, %d seats, %d breakable, %d lifeboats, %d spots, loose anchored parts %d, new errors %d",
+	for _, o in ipairs(sh.model:GetDescendants()) do if o:IsA("BasePart") and not o.Anchored then unwelded = unwelded + 1 end end
+	say(string.format("%s: %d parts, %d rooms, %d seats, %d breakable, %d lifeboats, %d spots, unanchored parts %d, new errors %d",
 		kind, parts, rooms, seats, #sh.breakable, #sh.lifeboats, #sh.spots, unwelded, #MOCK.errors - before))
 end
 -- voting in the lobby house: 2 votes for the galleon + Halloween, 1 for the destroyer + Sunset
@@ -113,7 +113,7 @@ for _, lb in ipairs(ship.lifeboats) do
 	local p = lb.hull and lb.hull.Position
 	if p and math.abs(p.Y - (D.SEA.level + 1.2 + D.waveAt(p.X, p.Z))) < 2 then floating = floating + 1 end
 end
-say(string.format("sinking: destroyer went down to y %.0f, lifeboats floating %d/%d", ship.root.Position.Y, floating, #ship.lifeboats))
+say(string.format("sinking: destroyer went down %.0f studs, lifeboats floating %d/%d", -ship.dy, floating, #ship.lifeboats))
 -- the boat rocks with every swell: bow up, then stern up, again and again
 D.buildShip("Pirate Galleon")
 D.SEA.waves, D.SEA.amp = 7, 7
@@ -156,8 +156,17 @@ rawget(MOCK.services.Players, "_p").LocalPlayer = ps[1]
 local cam = MOCK.new("Camera", workspace)
 workspace.CurrentCamera = cam
 cam.CoordinateFrame = CFrame.new(0, 40, -600)
+local csh = D.buildShip("Cruise Liner")
+D.SEA.waves, D.SEA.amp = 7, 7
+local top
+for _, o in ipairs(csh.model:GetDescendants()) do if o:IsA("BasePart") and (not top or o.Position.Y > top.Position.Y) then top = o end end
+local hull0, top0 = csh.root.Position, top.Position
 spawn(assert(loadstring(CLIENT_SOURCE, "=OceanClient")))
 MOCK.run(3)
+local want = D.shipFrame() * csh.rest:inverse()
+say(string.format("client moves the whole boat: hull moved %.1f, top part (%s) moved %.1f, top part where the server says %.1f studs off, still the same distance apart: %s",
+	(csh.root.Position - hull0).magnitude, top.Name, (top.Position - top0).magnitude, ((want * CFrame.new(top0)).p - top.Position).magnitude,
+	tostring(math.abs((top.Position - csh.root.Position).magnitude - (top0 - hull0).magnitude) < 0.01)))
 local fx = cam:FindFirstChild("SeaFX")
 -- the drawn surface follows the swells: slabs at many different heights, several colours
 local ys, cols, n = {}, {}, 0

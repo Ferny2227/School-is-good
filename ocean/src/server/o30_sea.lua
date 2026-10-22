@@ -8,7 +8,9 @@ local function breakOff(n)
 			for _, w in ipairs(ship.root:GetChildren()) do
 				if w:IsA("Weld") and w.Part1 == p then w:Destroy() end
 			end
+			p.CFrame = shipMoved() * p.CFrame
 			p.Parent = workspace
+			p.Anchored = false
 			p.CanCollide = true
 			p.Velocity = V(math.random(-20, 20), 30, math.random(-20, 20))
 			Debris:AddItem(p, 15)
@@ -99,7 +101,10 @@ local function stepShip(dt, now)
 		end
 	end
 	s.yaw = s.air > 0 and s.yaw or s.yaw * (1 - 0.15 * dt)
-	s.root.CFrame = shipBase(s.dy, s.pitch, s.roll, s.yaw) * CFrame.new(0, s.hullY, 0)
+	if not s.sent or now - s.sent > 0.05 then      -- 20 times a second; players' computers smooth it out
+		s.sent = now
+		seaShipCF.Value = shipMoved()
+	end
 	for _, lb in ipairs(s.lifeboats) do
 		if lb.hull and lb.model.Parent then
 			local p = lb.cf.p
