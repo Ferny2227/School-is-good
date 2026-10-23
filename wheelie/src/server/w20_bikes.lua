@@ -88,6 +88,17 @@ local function getOff(p)
 	local c = p.Character
 	sitPose(c, false)
 	local h = c and c:FindFirstChild("Humanoid")
+	local root = c and c:FindFirstChild("HumanoidRootPart")
+	if root then
+		-- upright, so the character doesn't spring up getting back on its feet
+		pcall(function()
+			local lv = root.CFrame.lookVector
+			local flatLook = Vector3.new(lv.X, 0, lv.Z)
+			if flatLook.magnitude < 0.1 then flatLook = Vector3.new(0, 0, -1) end
+			root.CFrame = CFrame.new(root.Position, root.Position + flatLook.unit)
+			root.RotVelocity = Vector3.new()
+		end)
+	end
 	if h then pcall(function() h.PlatformStand = false end) end
 	toClient(p, "riding", nil)
 end

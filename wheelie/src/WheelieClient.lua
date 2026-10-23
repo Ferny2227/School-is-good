@@ -193,6 +193,16 @@ local function groundAt(p, fromY)
 end
 local function stopRide()
 	if not R then return end
+	-- stand the rider up straight on the ground first (being tipped over when the bike goes away made the
+	-- character jump up hard while getting back on its feet)
+	pcall(function()
+		local fwd = Vector3.new(-math.sin(R.yaw), 0, -math.cos(R.yaw))
+		local at = R.pos - fwd * (R.b.base / 2 + 1.5)
+		local g = groundAt(at, R.y) or R.y
+		R.root.CFrame = CFrame.new(at.X, g + 3.2, at.Z) * CFrame.Angles(0, R.yaw, 0)
+		R.root.Velocity = Vector3.new()
+		R.root.RotVelocity = Vector3.new()
+	end)
 	for _, n in ipairs({ "RideGyro", "RidePos" }) do
 		local o = R.root and R.root:FindFirstChild(n)
 		if o then o:Destroy() end
@@ -246,7 +256,7 @@ local function crash(why)
 	local root = R.root
 	local back = Vector3.new(math.sin(R.yaw), 0, math.cos(R.yaw))
 	stopRide()
-	pcall(function() root.Velocity = back * 20 + Vector3.new(0, 25, 0) end)
+	pcall(function() root.Velocity = back * 10 + Vector3.new(0, 8, 0) end)
 	remote:FireServer("crash", why)
 	popUntil = tick() + 2
 	wTimer.Text = "LOOPED OUT!"

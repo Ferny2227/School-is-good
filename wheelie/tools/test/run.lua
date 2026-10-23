@@ -153,8 +153,9 @@ local crashed = false
 frames(300, function() if not D.riding[p] then crashed = true end end)
 mouse.KeyUp:fireNow(" ")
 mouse.KeyUp:fireNow("w")
-say(string.format("held the wheelie too long: looped out %s, bike gone %s, platform stand off %s", tostring(crashed), tostring(c:FindFirstChild("Bike") == nil),
-	tostring(not c.Humanoid.PlatformStand)))
+say(string.format("held the wheelie too long: looped out %s, bike gone %s, platform stand off %s, rider stood up straight %s (height %.1f, up speed %.0f)",
+	tostring(crashed), tostring(c:FindFirstChild("Bike") == nil), tostring(not c.Humanoid.PlatformStand), tostring(root.CFrame.upVector.Y > 0.99),
+	root.Position.Y, root.Velocity.Y))
 -- cheating check: a made-up 100 s wheelie isn't paid
 remote.OnServerEvent:fireNow(p, "ride")
 MOCK.run(0.3)
