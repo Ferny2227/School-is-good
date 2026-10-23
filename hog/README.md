@@ -20,25 +20,21 @@ An original Piggy-style escape game for 2016 Roblox. Open/upload `EscapeTheHog.r
   - **School** (222 x 202, 16 rooms): two classrooms, the science lab, library, computer lab (keycard door),
     cafeteria, gym, principal's office, entrance, art room, music room, locker room, nurse's office, auditorium, the
     hallway and the janitor's closet.
-  - **Circus** (300 x 250 - the biggest, made like Piggy's Carnival): no rooms - one big OPEN fair at night inside a
-    purple fence with a white picket fence, cobblestone paths, lamp posts with glowing lanterns and trees. Standing
-    around in it: the giant red-and-white striped **Big Top** (ring, bleachers, trapezes, spotlights, and two metal
-    platforms up high with ladders - the Hog can't climb them), the **cafeteria**, a red **storage shed** (Red Door),
-    the **arcade** (game machines, claw machine), the **security office** (keycard door), the **haunted house**
-    (coffins, tombstones, a bubbling cauldron), the **roller coaster** "The Pig Dipper" behind a blue gate (Blue
-    Door), a big **ferris wheel**, a **carousel** with horses, ticket booths, food carts, a popcorn stand, game
-    stalls, balloons and benches. The Hog waits in the clowns' trailer; the way out is the gate under the big
-    **HOG'S CARNIVAL** arch (boards, padlock, bolt). The bot walks a grid of paths all over the fair, round the
-    buildings and rides.
-- **Puzzles like Piggy** (nothing tells you what goes where):
-  - Items look like the real thing: keys with a round bow and teeth (red, blue, gold), a claw hammer, a wrench, a
-    glass fuse, a keycard with a chip, and the stun gun - and you hold the same model in your hand.
-  - **Keycard doors**: grey metal doors with a card reader (green light). The keycard is behind another locked door.
-  - **The exit** needs everything: boards (hammer), a padlock (gold key), a **generator** (wrench - Manor and Circus)
-    or the **fuse box** (fuse - School), and a **keypad**: find the **code note** lying somewhere (a new 4-digit code
-    every round), click the keypad and type it in. A wrong code beeps loudly and the Hog comes running.
-- **Harder**: picking items up makes a noise the Hog can hear nearby, it hears every lock you open, it gets a bit
-  faster with every lock (up to +6%), and it lays 4 traps.
+  - **Circus** (300 x 250 - the biggest, made like Piggy's Carnival but all about the Hog): one big OPEN fair at
+    night inside a purple wall with gold lights on top, grass along the edges and a white picket fence. You come in
+    under the **HOG'S CARNIVAL** arch (pig ears, light bulbs) onto pink-and-white tiles and a brick path to the Big Top,
+    past ticket booths and a gold statue of "OUR FOUNDER". Strings of coloured bulbs hang over the walkways.
+    - **The Big Top**: red-and-white striped inside and out, a rounded striped roof, a gold band, a GIANT INFLATABLE
+      HOG HEAD on top, a striped entrance canopy with a hog face. Inside: the ring, bleachers, giant bouncy balls,
+      trapezes, spotlights, and metal platforms with ladders and a tightrope (items can be up there; the Hog can't climb).
+    - **The Pig Dipper** roller coaster (behind the blue-handle gate): a real track on red posts - lift hill, big drop,
+      camel hump, a loop - and a train with a pig-nosed front car at the station.
+    - **Mirror Maze**, **Hog Cafe**, red **Storage** shed, **Security** office (keycard door), **Haunted House**, and the
+      **Clowns Only** trailer where the Hog waits - every building has a roof and a lit sign over its door.
+    - A ferris wheel (two rims, hanging cabins, lights, a pig face on the hub), a carousel with **pigs** instead of
+      horses, two animal cages (one open to hide in, one with a big stuffed boar), carnival game tents (HOG TOSS,
+      SNOUT SHOT, PIG RINGS), three food carts, a popcorn stand, balloons, benches, trees and lamp posts.
+    - The way out is the gate under the arch (boards, padlock, generator, keypad).
 - **Vents** (like Piggy): every map has 3 vents. Each one is a square hole in the floor with a ladder, a metal
   tunnel under the floor, and another hole in a different room. The tunnel is only 4.6 studs high: standing up you
   don't fit - you have to **crouch (C or Ctrl)** and crawl through. The Hog can't follow you, can't see you and can't

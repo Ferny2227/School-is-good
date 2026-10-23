@@ -78,21 +78,21 @@ MAPS["School"] = {
 MAPS["Circus"] = {
 	H = 18, start = "cafeteria", pen = "pen", outside = "Dark green", trim = "White", noRoof = true,
 	rooms = {
-		{ id = "cafeteria", name = "Cafeteria", x1 = 20, z1 = 30, x2 = 80, z2 = 80, floor = "Institutional white", fmat = "Marble", wall = "Bright yellow", kind = "cafeteria", h = 14, inside = true },
-		{ id = "storage", name = "Storage Shed", x1 = 225, z1 = 22, x2 = 265, z2 = 58, floor = "Dark stone grey", fmat = "Concrete", wall = "Really red", wmat = "WoodPlanks", kind = "storage", h = 13, inside = true },
+		{ id = "cafeteria", name = "Cafeteria", x1 = 20, z1 = 30, x2 = 80, z2 = 80, floor = "Institutional white", fmat = "Marble", wall = "Bright yellow", kind = "cafeteria", h = 14, inside = true, sign = "HOG CAFE", roof = "Really red" },
+		{ id = "storage", name = "Storage Shed", x1 = 225, z1 = 22, x2 = 265, z2 = 58, floor = "Dark stone grey", fmat = "Concrete", wall = "Really red", wmat = "WoodPlanks", kind = "storage", h = 13, inside = true, sign = "STORAGE", roof = "Dark stone grey" },
 		{ id = "bigtop", name = "The Big Top", x1 = 100, z1 = 80, x2 = 200, z2 = 160, floor = "Brown", fmat = "Sand", wall = "White", wmat = "Fabric", kind = "bigtop", h = 30, tent = { "Really red", "White" }, inside = true },
-		{ id = "arcade", name = "Arcade", x1 = 232, z1 = 82, x2 = 285, z2 = 122, floor = "Black", fmat = "SmoothPlastic", wall = "Bright violet", kind = "arcade", h = 14, inside = true },
-		{ id = "coaster", name = "Roller Coaster", x1 = 18, z1 = 180, x2 = 122, z2 = 236, floor = "Brick yellow", fmat = "Cobblestone", wall = "Bright blue", wmat = "WoodPlanks", kind = "coaster", h = 14, outdoor = true, inside = true },
-		{ id = "pen", name = "Clown Trailer", x1 = 255, z1 = 195, x2 = 290, z2 = 232, floor = "Brown", fmat = "WoodPlanks", wall = "Bright green", kind = "pen", h = 13, inside = true },
-		{ id = "security", name = "Security Office", x1 = 248, z1 = 130, x2 = 280, z2 = 166, floor = "Dark stone grey", fmat = "DiamondPlate", wall = "Medium stone grey", kind = "security", h = 13, inside = true },
-		{ id = "haunted", name = "Haunted House", x1 = 140, z1 = 178, x2 = 200, z2 = 232, floor = "Black", fmat = "WoodPlanks", wall = "Dark indigo", wmat = "WoodPlanks", kind = "haunted", h = 16, inside = true },
+		{ id = "mirrors", name = "Mirror Maze", x1 = 232, z1 = 82, x2 = 285, z2 = 122, floor = "Black", fmat = "SmoothPlastic", wall = "Bright violet", kind = "mirrors", h = 14, inside = true, sign = "MIRROR MAZE", roof = "Hot pink" },
+		{ id = "coaster", name = "Roller Coaster", x1 = 18, z1 = 180, x2 = 122, z2 = 236, floor = "Brick yellow", fmat = "Cobblestone", wall = "Pastel light blue", wmat = "WoodPlanks", kind = "coaster", h = 10, outdoor = true, inside = true },
+		{ id = "pen", name = "Clown Trailer", x1 = 255, z1 = 195, x2 = 290, z2 = 232, floor = "Brown", fmat = "WoodPlanks", wall = "Bright green", kind = "pen", h = 13, inside = true, sign = "CLOWNS ONLY", roof = "White" },
+		{ id = "security", name = "Security Office", x1 = 248, z1 = 130, x2 = 280, z2 = 166, floor = "Dark stone grey", fmat = "DiamondPlate", wall = "Medium stone grey", kind = "security", h = 13, inside = true, sign = "SECURITY", roof = "Really black" },
+		{ id = "haunted", name = "Haunted House", x1 = 140, z1 = 178, x2 = 200, z2 = 232, floor = "Black", fmat = "WoodPlanks", wall = "Dark indigo", wmat = "WoodPlanks", kind = "haunted", h = 16, inside = true, sign = "HAUNTED HOUSE", roof = "Black" },
 		{ id = "fair", name = "The Fair", x1 = 0, z1 = 0, x2 = 300, z2 = 250, floor = "Brick yellow", fmat = "Cobblestone", wall = "Bright violet", kind = "open", outdoor = true },
 	},
 	doors = {
 		{ "cafeteria", "fair", 55, side = "E" }, { "cafeteria", "fair", 50, side = "S" },
 		{ "storage", "fair", 40, side = "W", lock = "Red Door" },
 		{ "bigtop", "fair", 150, side = "N", w = 12 }, { "bigtop", "fair", 120, side = "W", w = 9 }, { "bigtop", "fair", 120, side = "E", w = 9 },
-		{ "arcade", "fair", 102, side = "W" },
+		{ "mirrors", "fair", 102, side = "W" },
 		{ "coaster", "fair", 70, side = "N", lock = "Blue Door" },
 		{ "pen", "fair", 213, side = "W", gate = true },
 		{ "security", "fair", 148, side = "W", lock = "Green Door" }, { "haunted", "fair", 170, side = "N" },
@@ -100,22 +100,23 @@ MAPS["Circus"] = {
 	},
 	-- the rides and stalls standing out in the open: { kind, x, z }
 	props = {
-		{ "ferris", 225, 178 }, { "carousel", 60, 128 }, { "arch", 150, 6 },
+		{ "ferris", 225, 178 }, { "carousel", 60, 128 }, { "arch", 150, 6 }, { "plaza", 150, 20 }, { "statue", 192, 30 },
+		{ "cage", 225, 222, true }, { "cage", 243, 222, false },
 		{ "booth", 122, 14 }, { "booth", 178, 14 },
 		{ "cart", 105, 45, "Bright blue" }, { "cart", 195, 50, "Bright red" }, { "cart", 110, 168, "Lime green" },
 		{ "popcorn", 215, 70 }, { "balloons", 92, 172 }, { "balloons", 215, 86 },
 		{ "bench", 205, 205 }, { "bench", 245, 205 }, { "bench", 30, 100 }, { "bench", 275, 70 },
-		{ "games", 8, 160 }, { "games", 8, 200 }, { "games", 8, 120 },
+		{ "games", 8, 160, "HOG TOSS" }, { "games", 8, 200, "SNOUT SHOT" }, { "games", 8, 120, "PIG RINGS" },
 		{ "tree", 10, 15 }, { "tree", 290, 12 }, { "tree", 12, 240 }, { "tree", 215, 240 }, { "tree", 294, 184 }, { "tree", 88, 100 },
 		{ "tree", 215, 100 }, { "tree", 130, 60 },
 	},
-	vents = { { "cafeteria", "bigtop" }, { "arcade", { "fair", 270, 66 } }, { "haunted", { "fair", 60, 168 } } },
+	vents = { { "cafeteria", "bigtop" }, { "mirrors", { "fair", 270, 66 } }, { "haunted", { "fair", 60, 168 } } },
 	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Keycard", "storage" }, { "Gold Key", "security" }, { "Wrench", "coaster" }, { "Stun Gun", "open" } },
 	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Generator", "Wrench" }, { "Keypad" } },
 }
 -- how much ground each ride or stall takes up (the bot walks around these)
 local PROP_SIZE = { ferris = { 44, 10 }, carousel = { 26, 26 }, booth = { 8, 6 }, cart = { 7, 6 }, popcorn = { 5, 5 },
-	balloons = { 3, 3 }, bench = { 7, 3 }, games = { 10, 14 }, tree = { 3, 3 } }
+	balloons = { 3, 3 }, bench = { 7, 3 }, games = { 10, 14 }, tree = { 3, 3 }, cage = { 12, 9 }, statue = { 6, 6 } }
 local ITEM_LOOK = {
 	["Hammer"] = { "Reddish brown", "Dark stone grey" }, ["Blue Key"] = { "Really blue" }, ["Red Key"] = { "Really red" },
 	["Gold Key"] = { "Gold" }, ["Wrench"] = { "Medium stone grey" }, ["Fuse"] = { "New Yeller" }, ["Stun Gun"] = { "Black", "New Yeller" }, ["Keycard"] = { "Lime green" },
@@ -434,12 +435,30 @@ local function buildMap(name)
 		if not r.outdoor then wpart("Ceiling", R.w, 1, R.d, R.cx, RH, R.cz, r.tent and r.tent[2] or "Dark stone grey", r.tent and "Fabric" or "SmoothPlastic") end
 		if r.tent then
 			-- a striped tent roof going up to a point, with a flag on top
-			for i = 0, 5 do
-				local k = 1 - i * 0.16
-				wpart("TentRoof", R.w * k + 2, 3, R.d * k + 2, R.cx, RH + 1 + i * 3, R.cz, r.tent[(i % 2) + 1], "Fabric")
+			for i = 0, 6 do
+				local k = 1 - i * 0.135
+				local col = r.tent[(i % 2) + 1]
+				wpart("TentRoof", R.w * k + 2, 2.6, R.d * k + 2, R.cx, RH + 0.6 + i * 2.6, R.cz, col, "Fabric")
+				local sq = math.min(R.w, R.d) * k * 0.95
+				P(m, "TentRoof", V(sq, 2.6, sq), CFrame.new(R.cx, RH + 1.9 + i * 2.6, R.cz) * CFrame.Angles(0, math.pi / 4, 0), col, "Fabric")
 			end
-			wpart("TentPole", 0.6, 8, 0.6, R.cx, RH + 19, R.cz, "Brown", "Wood")
-			wpart("Flag", 3, 2, 0.2, R.cx + 1.6, RH + 24, R.cz, "Bright yellow", "Fabric")
+			-- a gold band round the top of the walls
+			wpart("TentBand", R.w + 1.4, 1.4, R.d + 1.4, R.cx, RH - 1.4, R.cz, "Gold", "Fabric")
+			local ty = RH + 19
+			wpart("TentPole", 0.6, 6, 0.6, R.cx, ty, R.cz, "Brown", "Wood")
+			if R.kind == "bigtop" then
+				-- a big inflatable HOG head on the very top
+				local hc = V(R.cx, ty + 9, R.cz)
+				P(m, "HogBalloon", V(9, 9, 9), CFrame.new(hc), "Pink", "SmoothPlastic", { shape = "ball" })
+				P(m, "HogBalloonSnout", V(1.4, 3.6, 3.6), CFrame.new(hc + V(0, -0.6, -4.3)) * CFrame.Angles(0, math.pi / 2, 0), "Carnation pink", "SmoothPlastic", { shape = "cyl" })
+				for _, sx in ipairs({ -1, 1 }) do
+					P(m, "HogBalloonEar", V(2.4, 3, 1), CFrame.new(hc + V(sx * 3, 4, -1)) * CFrame.Angles(0, 0, sx * -0.5), "Carnation pink", "SmoothPlastic")
+					P(m, "HogBalloonEye", V(1.4, 1.4, 0.6), CFrame.new(hc + V(sx * 1.8, 1.6, -4)), "Really black", "SmoothPlastic")
+					P(m, "HogBalloonNose", V(0.4, 0.8, 0.3), CFrame.new(hc + V(sx * 0.6, -0.6, -5.05)), "Really black", "SmoothPlastic")
+				end
+			else
+				wpart("Flag", 3, 2, 0.2, R.cx + 1.6, ty + 4, R.cz, "Bright yellow", "Fabric")
+			end
 		end
 		for _, side in ipairs({ "N", "S", "W", "E" }) do
 			local ns = side == "N" or side == "S"
@@ -457,9 +476,15 @@ local function buildMap(name)
 					-- red (or blue) stripes down the inside of the tent
 					local f3 = fixed + inward * 0.55
 					local q = math.ceil(a / 8) * 8
+					local f4 = fixed - inward * 0.55
 					while q + 4 <= b do
-						if ns then wpart("Stripe", 4, h, 0.1, q + 2, 0, f3, r.tent[1], "Fabric")
-						else wpart("Stripe", 0.1, h, 4, f3, 0, q + 2, r.tent[1], "Fabric") end
+						if ns then
+							wpart("Stripe", 4, h, 0.1, q + 2, 0, f3, r.tent[1], "Fabric")
+							wpart("Stripe", 4, h, 0.1, q + 2, 0, f4, r.tent[1], "Fabric")
+						else
+							wpart("Stripe", 0.1, h, 4, f3, 0, q + 2, r.tent[1], "Fabric")
+							wpart("Stripe", 0.1, h, 4, f4, 0, q + 2, r.tent[1], "Fabric")
+						end
 						q = q + 8
 					end
 				end
@@ -481,7 +506,7 @@ local function buildMap(name)
 		-- a skirting strip and a ceiling lamp
 		if r.kind == "open" then
 			-- (lamp posts: put up with the rides below)
-		elseif r.outdoor then
+		elseif r.outdoor and r.kind ~= "coaster" then
 			-- strings of coloured bulbs across the open-air plazas
 			local long = R.w >= R.d
 			local n = math.floor((long and R.w or R.d) / 10)
@@ -709,7 +734,300 @@ local function buildMap(name)
 					P(m, "Ladder", V(2, 10, 2), CFrame.new(px - sx * 5, 5, pz), "Dark stone grey", "Metal", { class = "TrussPart" })
 					table.insert(R.spots, V(px, 11, pz))
 				end
+				-- the tightrope between the two platforms on this side
+				wpart("Tightrope", 0.3, 0.3, 26, R.cx + sx * 40, 10.4, R.cz, "Institutional white", "Fabric")
 			end
+			-- giant bouncy balls round the ring
+			for i, c in ipairs({ "Really red", "Bright blue", "New Yeller", "Lime green", "Hot pink" }) do
+				local a = i / 5 * math.pi * 2 + 0.3
+				local d = 6 - (i % 2) * 1.5
+				local bx3, bz3 = R.cx + math.cos(a) * 22, R.cz + math.sin(a) * 22
+				if math.abs(bz3 - R.cz) > 5 and math.abs(bx3 - R.cx) > 5 then
+					P(m, "BouncyBall", V(d, d, d), CFrame.new(bx3, d / 2, bz3), c, "SmoothPlastic", { shape = "ball" })
+					table.insert(R.blocked, { bx3 - d / 2, bz3 - d / 2, bx3 + d / 2, bz3 + d / 2 })
+				end
+			end
+			-- the entrance: a striped canopy on poles and a big hog face over the door
+			local ez = R.z1
+			for _, sx in ipairs({ -1, 1 }) do wpart("CanopyPole", 0.8, 11, 0.8, R.cx + sx * 8, 0, ez - 9, "Gold", "Metal") end
+			for i = -4, 3 do wpart("Canopy", 2, 0.6, 9, R.cx + i * 2 + 1, 11, ez - 4.5, i % 2 == 0 and "Really red" or "White", "Fabric") end
+			local face = wpart("HogFace", 7, 6, 0.6, R.cx, 13, ez - 0.8, "Pink", "SmoothPlastic")
+			wpart("HogFaceSnout", 3, 2, 0.6, R.cx, 14, ez - 1.3, "Carnation pink", "SmoothPlastic")
+			for _, sx in ipairs({ -1, 1 }) do
+				wpart("HogFaceEye", 1.1, 1.1, 0.3, R.cx + sx * 1.8, 16.6, ez - 1.2, "Really black", "SmoothPlastic")
+				wpart("HogFaceEar", 2, 2.4, 0.6, R.cx + sx * 3, 19, ez - 0.8, "Carnation pink", "SmoothPlastic")
+			end
+			local bs = wpart("BigTopSign", 16, 3, 0.4, R.cx, 21.6, ez - 0.8, "Really red", "SmoothPlastic")
+			sign(bs, "THE BIG TOP", "Front", Color3.new(1, 0.9, 0.3))
+		elseif R.kind == "coaster" then
+			-- "THE PIG DIPPER": a track on red posts with a lift hill, a big drop, a camel hump and a loop
+			local x1, x2, z1, z2 = R.x1 + 10, R.x2 - 10, R.z1 + 10, R.z2 - 10
+			local door = R.open[1]
+			local pts = { V(x1, 4, z2), V(x1 + 40, 4, z2), V(x2, 20, z2), V(x2, 20, z2 - 8), V(x2 - 6, 7, z1 + 4), V(x2 - 20, 6, z1),
+				V((x1 + x2) / 2, 14, z1), V(x1 + 18, 6, z1), V(x1, 5, z1 + 6), V(x1, 4, z2) }
+			local function seg(a, b)
+				local len = (b - a).magnitude
+				local cf = CFrame.new((a + b) / 2, b)
+				P(m, "Track", V(2.6, 0.4, len + 0.6), cf, "Dark stone grey", "DiamondPlate")
+				for _, sx in ipairs({ -1.15, 1.15 }) do P(m, "Rail", V(0.3, 0.4, len + 0.6), cf * CFrame.new(sx, 0.4, 0), "Really red", "Metal") end
+				local n = math.floor(len / 9)
+				for k = 1, n do
+					local q = a + (b - a) * (k / (n + 1))
+					if not (door and math.abs(q.X - door.c) < 7 and q.Z < R.z1 + 14) then
+						wpart("Support", 0.8, q.Y - 0.2, 0.8, q.X, 0, q.Z, "Bright red", "Metal")
+					end
+				end
+			end
+			for k = 1, #pts - 1 do seg(pts[k], pts[k + 1]) end
+			-- the loop (a ring of track standing up), with legs
+			local lc = V(x2 - 18, 10, (z1 + z2) / 2 + 2)
+			for k = 0, 11 do
+				local a0, a1 = k / 12 * math.pi * 2, (k + 1) / 12 * math.pi * 2
+				local p0 = lc + V(math.cos(a0) * 7, math.sin(a0) * 7, 0)
+				local p1 = lc + V(math.cos(a1) * 7, math.sin(a1) * 7, 0)
+				P(m, "LoopTrack", V(2.4, 0.4, (p1 - p0).magnitude + 0.5), CFrame.new((p0 + p1) / 2, p1), "Really red", "Metal")
+			end
+			for _, sx in ipairs({ -5, 5 }) do wpart("LoopLeg", 1, 4, 1, lc.X + sx, 0, lc.Z, "Bright red", "Metal") end
+			table.insert(R.blocked, { lc.X - 8, lc.Z - 2, lc.X + 8, lc.Z + 2 })
+			-- the train waiting at the station (the front car is a pig)
+			for k = 0, 2 do
+				local cx = x1 + 10 + k * 5
+				wpart("CoasterCar", 4, 2, 3, cx, 4.4, z2, k == 0 and "Pink" or (k == 1 and "New Yeller" or "Really red"), "SmoothPlastic")
+				wpart("CarSeat", 1, 1.4, 2.6, cx + 1, 6.4, z2, "Black", "Fabric")
+			end
+			wpart("PigNose", 0.6, 1.2, 1.6, x1 + 7.8, 5, z2, "Carnation pink", "SmoothPlastic")
+			wpart("Station", 26, 1, 7, x1 + 16, 0, z2 - 6.5, "Brown", "WoodPlanks", { top = true })
+			for _, sx in ipairs({ -12, 12 }) do wpart("StationPost", 0.8, 9, 0.8, x1 + 16 + sx, 0, z2 - 9.5, "White", "Wood") end
+			wpart("StationRoof", 28, 0.8, 9, x1 + 16, 9, z2 - 6, "Really red", "WoodPlanks")
+			local sg = wpart("StationSign", 14, 3, 0.4, x1 + 16, 10, z2 - 10.6, "Really black", "SmoothPlastic")
+			sign(sg, "THE PIG DIPPER", "Front", Color3.new(1, 0.6, 0.75))
+			table.insert(R.blocked, { x1 + 3, z2 - 10, x1 + 29, z2 + 2 })
+		elseif R.kind == "mirrors" then
+			-- a maze of mirror panels on both sides of the middle walkway (you can hide in the gaps)
+			local mid = R.cz
+			local k = 0
+			for x = R.x1 + 8, R.x2 - 6, 8 do
+				for _, zz in ipairs({ R.z1 + 6, R.z1 + 13, R.z2 - 13, R.z2 - 6 }) do
+					k = k + 1
+					local along = (k % 3 == 0)
+					local w, d = along and 0.4 or 6, along and 6 or 0.4
+					local mp = wpart("Mirror", w, 10, d, x, 0, zz, "Pastel light blue", "Glass", { tr = 0.15 })
+					pcall(function() mp.Reflectance = 0.5 end)
+					wpart("MirrorFrame", w + 0.2, 0.4, d + 0.2, x, 10, zz, "Bright violet", "Neon")
+					table.insert(R.blocked, { x - w / 2 - 0.5, zz - d / 2 - 0.5, x + w / 2 + 0.5, zz + d / 2 + 0.5 })
+				end
+			end
+			light(wpart("MazeLight", 2, 0.4, 2, R.cx, R.h - 0.6, R.cz, "Hot pink", "Neon"), Color3.new(1, 0.4, 0.8), 40, 1)
+		elseif R.kind == "open" then
+			local rects = {}
+			for _, Q in ipairs(M.rooms) do
+				if Q ~= R then table.insert(rects, { Q.x1 - 2.5, Q.z1 - 2.5, Q.x2 + 2.5, Q.z2 + 2.5 }) end
+			end
+			for _, pr in ipairs(def.props or {}) do
+				local f = PROP_SIZE[pr[1]]
+				if f then table.insert(rects, { pr[2] - f[1] / 2 - 2, pr[3] - f[2] / 2 - 2, pr[2] + f[1] / 2 + 2, pr[3] + f[2] / 2 + 2 }) end
+			end
+			R.rects = rects
+			local function free(x, z)
+				if x < R.x1 + 3 or x > R.x2 - 3 or z < R.z1 + 3 or z > R.z2 - 3 then return false end
+				for _, b in ipairs(rects) do if x > b[1] and x < b[3] and z > b[2] and z < b[4] then return false end end
+				return true
+			end
+			local function clear(a, b, skip)
+				local d = b - a
+				local n = math.ceil(d.magnitude / 2)
+				for k = 0, n do
+					local q = a + d * (k / math.max(1, n))
+					if (q - a).magnitude >= (skip or 0) and not free(q.X, q.Z) then return false end
+				end
+				return true
+			end
+			R.free, R.clear = free, clear
+			local G = 10
+			local grid = {}
+			R.nodes = {}
+			for gx = R.x1 + 8, R.x2 - 8, G do
+				for gz = R.z1 + 8, R.z2 - 8, G do
+					if free(gx, gz) then
+						local n = addNode(gx, gz, R)
+						grid[gx .. "," .. gz] = n
+						table.insert(R.nodes, n)
+					end
+				end
+			end
+			for _, n in ipairs(R.nodes) do
+				for _, o in ipairs({ { G, 0 }, { 0, G }, { G, G }, { G, -G } }) do
+					local m2 = grid[(n.p.X + o[1]) .. "," .. (n.p.Z + o[2])]
+					if m2 and clear(n.p, m2.p) then link(n, m2) end
+				end
+			end
+			-- keep only the biggest connected set of points (a point boxed in by rides would be a dead end)
+			local best, bestN = nil, 0
+			local done = {}
+			for _, n in ipairs(R.nodes) do
+				if not done[n] then
+					local comp, q, k = {}, { n }, 1
+					done[n] = true
+					while q[k] do
+						local x = q[k]
+						k = k + 1
+						table.insert(comp, x)
+						for _, l in ipairs(x.links) do if not done[l] and l.room == R then done[l] = true table.insert(q, l) end end
+					end
+					if #comp > bestN then best, bestN = comp, #comp end
+				end
+			end
+			R.nodes = best or {}
+			-- each doorway joins the nearest grid points it can walk straight to
+			for _, dn in ipairs(M.doorNodes) do
+				if dn.A == R or dn.B == R then
+					local list = {}
+					for _, n in ipairs(R.nodes) do table.insert(list, { n, (n.p - dn.p).magnitude }) end
+					table.sort(list, function(a, b) return a[2] < b[2] end)
+					local got = 0
+					for _, e in ipairs(list) do
+						if got < 2 and e[2] < 40 and clear(dn.p, e[1].p, 4) then link(dn, e[1]) got = got + 1 end
+					end
+				end
+			end
+		else
+			local n = addNode(R.cx, R.cz, R)
+			R.nodes = { n }
+			for _, dn in ipairs(M.doorNodes) do if dn.A == R or dn.B == R then link(n, dn) end end
+		end
+	end
+	-- furniture in the corners
+	local function blocked(R, x, z, pad)
+		for _, b in ipairs(R.blocked) do
+			if x > b[1] - pad and x < b[3] + pad and z > b[2] - pad and z < b[4] + pad then return true end
+		end
+		return false
+	end
+	local function placeObj(R, cx, cz, kit)
+		local wall = kit[1]
+		local L, Dp = 0, 0
+		for i = 2, #kit do
+			local b = kit[i]
+			L = math.max(L, math.abs(b[5]) + b[2] / 2)
+			Dp = math.max(Dp, b[7] + b[4])
+		end
+		local along, nrm, ext, alongC
+		if wall == "ns" then
+			along, nrm, ext = V(1, 0, 0), V(0, 0, -cz), R.d
+			alongC = cx * (R.w / 2 - 2 - L)
+		else
+			along, nrm, ext = V(0, 0, 1), V(-cx, 0, 0), R.w
+			alongC = cz * (R.d / 2 - 2 - L)
+		end
+		local C = V(R.cx, 0, R.cz)
+		for i = 2, #kit do
+			local b = kit[i]
+			local o = b[10] or {}
+			local pos = C + along * (alongC + b[5]) + nrm * (-(ext / 2) + 1 + b[7] + b[4] / 2)
+			local cf = CFrame.new(V(pos.X, b[6] + b[3] / 2, pos.Z), V(pos.X, b[6] + b[3] / 2, pos.Z) + nrm)
+			local part = P(m, b[1], V(b[2], b[3], b[4]), cf, b[8], b[9], { tr = o.tr, nc = b[9] == "Neon" })
+			if o.top then table.insert(R.spots, V(pos.X, b[6] + b[3], pos.Z)) end
+			if b[9] == "Neon" then light(part, part.BrickColor.Color, 8, 0.6) end
+		end
+		-- the area it covers (items don't land inside furniture)
+		local c0 = C + along * alongC + nrm * (-(ext / 2) + 1 + Dp / 2)
+		local hx = wall == "ns" and L or Dp / 2
+		local hz = wall == "ns" and Dp / 2 or L
+		table.insert(R.blocked, { c0.X - hx, c0.Z - hz, c0.X + hx, c0.Z + hz })
+	end
+	for _, R in ipairs(M.rooms) do
+		local kit = KITS[R.kind]
+		if kit then
+			local corners = { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } }
+			for i, k in ipairs(kit) do
+				local c = corners[i]
+				-- keep doorways in the corners clear (e.g. a side door near a corner)
+				placeObj(R, c[1], c[2], k)
+			end
+			if kit.board then
+				-- a chalkboard on the wall opposite the door
+				local b = wpart("Chalkboard", 14, 5, 0.4, R.cx, 4, R.z1 + 1.2, "Dark green", "Slate")
+				sign(b, pick({ "2 + 2 = 4", "DON'T GET CAUGHT", "HOMEWORK: ESCAPE", "H2O", "THE HOG IS WATCHING" }), "Back", Color3.new(1, 1, 1))
+			end
+		elseif R.kind == "hall" then
+			wpart("Runner", R.w - 6, 0.1, 4, R.cx, 0, R.cz, "Crimson", "Fabric")
+			for x = R.x1 + 10, R.x2 - 10, 26 do
+				local clear = true
+				for _, dn in ipairs(M.doorNodes) do if math.abs(dn.p.Z - R.z1) < 1 and math.abs(dn.p.X - x) < 7 then clear = false end end
+				if clear then
+				local frame = wpart("Painting", 4, 3, 0.3, x, 5, R.z1 + 1.15, pick({ "Bright blue", "Bright green", "Bright orange", "Pink" }), "SmoothPlastic")
+				sign(frame, pick({ "OINK", ":)", "HOME", "RUN", "?" }), "Back", Color3.new(0.1, 0.1, 0.1))
+				end
+			end
+		end
+	end
+	-- windows on the outside walls (moonlight coming in), rugs on the floors
+	local RUG = { bedroom = "Bright violet", living = "Crimson", dining = "Dark green", office = "Bright red", library = "Navy blue", bath = "Pastel blue-green", class = "Bright yellow", entrance = "Crimson", kitchen = "Bright orange" }
+	for _, R in ipairs(M.rooms) do
+		for _, side in ipairs({ "N", "S", "W", "E" }) do
+			local outside = (side == "N" and R.z1 == minZ) or (side == "S" and R.z2 == maxZ) or (side == "W" and R.x1 == minX) or (side == "E" and R.x2 == maxX)
+			local free = true
+			for _, o in ipairs(R.open) do if o.side == side then free = false end end
+			if outside and free and not (side == "N" and KITS[R.kind] and KITS[R.kind].board) and R.kind ~= "pen" and R.kind ~= "hall" and not R.def.outdoor and not R.def.tent then
+				local ns = side == "N" or side == "S"
+				local f = side == "N" and R.z1 + 1.1 or side == "S" and R.z2 - 1.1 or side == "W" and R.x1 + 1.1 or R.x2 - 1.1
+				local wx, wz = ns and R.cx or f, ns and f or R.cz
+				local glass = wpart("Window", ns and 7 or 0.2, 5, ns and 0.2 or 7, wx, 4, wz, "Navy blue", "Glass", { tr = 0.1 })
+				light(glass, Color3.new(0.55, 0.65, 1), 18, 0.6)
+				wpart("WindowFrame", ns and 7.6 or 0.4, 0.5, ns and 0.4 or 7.6, wx, 3.6, wz, def.trim, "Wood")
+				wpart("WindowFrame", ns and 7.6 or 0.4, 0.5, ns and 0.4 or 7.6, wx, 9, wz, def.trim, "Wood")
+				wpart("WindowFrame", ns and 0.4 or 0.4, 5, ns and 0.4 or 0.4, wx, 4, wz, def.trim, "Wood")
+				wpart("WindowFrame", ns and 7 or 0.4, 0.3, ns and 0.4 or 7, wx, 6.35, wz, def.trim, "Wood")
+			end
+		end
+		if RUG[R.kind] then
+			wpart("Rug", R.w * 0.4, 0.1, R.d * 0.4, R.cx, 0, R.cz, RUG[R.kind], "Fabric", { nc = true })
+		end
+	end
+	-- the circus extras: the ring in the Big Top, trapezes, and a ferris wheel
+	for _, R in ipairs(M.rooms) do
+		if R.kind == "bigtop" then
+			P(m, "Ring", V(0.5, 36, 36), CFrame.new(R.cx, 0.25, R.cz) * CFrame.Angles(0, 0, math.pi / 2), "Really red", "SmoothPlastic", { shape = "cyl", nc = true })
+			P(m, "RingSand", V(0.52, 32, 32), CFrame.new(R.cx, 0.26, R.cz) * CFrame.Angles(0, 0, math.pi / 2), "Brick yellow", "Sand", { shape = "cyl", nc = true })
+			for _, sx in ipairs({ -1, 1 }) do
+				wpart("TrapezePole", 1, R.h - 2, 1, R.cx + sx * 30, 0, R.cz - 14, "Medium stone grey", "Metal")
+				wpart("TrapezePole", 1, R.h - 2, 1, R.cx + sx * 30, 0, R.cz + 14, "Medium stone grey", "Metal")
+				wpart("Trapeze", 0.4, 0.4, 6, R.cx + sx * 30, R.h - 12, R.cz, "Bright yellow", "Metal", { nc = true })
+				local spot = wpart("Spotlight", 2, 2, 2, R.cx + sx * 20, R.h - 3, R.cz, "New Yeller", "Neon", { nc = true })
+				light(spot, Color3.new(1, 0.9, 0.6), 50, 1.2)
+				-- a metal platform up high, with a ladder (items can be up there; the Hog can't climb)
+				for _, sz in ipairs({ -1, 1 }) do
+					local px, pz = R.cx + sx * 40, R.cz + sz * 17
+					wpart("Platform", 8, 1, 8, px, 10, pz, "Medium stone grey", "DiamondPlate")
+					for _, lx in ipairs({ -3.5, 3.5 }) do wpart("PlatformLeg", 0.6, 10, 0.6, px + lx, 0, pz + lx, "Dark stone grey", "Metal") end
+					P(m, "Ladder", V(2, 10, 2), CFrame.new(px - sx * 5, 5, pz), "Dark stone grey", "Metal", { class = "TrussPart" })
+					table.insert(R.spots, V(px, 11, pz))
+				end
+				-- the tightrope between the two platforms on this side
+				wpart("Tightrope", 0.3, 0.3, 26, R.cx + sx * 40, 10.4, R.cz, "Institutional white", "Fabric")
+			end
+			-- giant bouncy balls round the ring
+			for i, c in ipairs({ "Really red", "Bright blue", "New Yeller", "Lime green", "Hot pink" }) do
+				local a = i / 5 * math.pi * 2 + 0.3
+				local d = 6 - (i % 2) * 1.5
+				local bx3, bz3 = R.cx + math.cos(a) * 22, R.cz + math.sin(a) * 22
+				if math.abs(bz3 - R.cz) > 5 and math.abs(bx3 - R.cx) > 5 then
+					P(m, "BouncyBall", V(d, d, d), CFrame.new(bx3, d / 2, bz3), c, "SmoothPlastic", { shape = "ball" })
+					table.insert(R.blocked, { bx3 - d / 2, bz3 - d / 2, bx3 + d / 2, bz3 + d / 2 })
+				end
+			end
+			-- the entrance: a striped canopy on poles and a big hog face over the door
+			local ez = R.z1
+			for _, sx in ipairs({ -1, 1 }) do wpart("CanopyPole", 0.8, 11, 0.8, R.cx + sx * 8, 0, ez - 9, "Gold", "Metal") end
+			for i = -4, 3 do wpart("Canopy", 2, 0.6, 9, R.cx + i * 2 + 1, 11, ez - 4.5, i % 2 == 0 and "Really red" or "White", "Fabric") end
+			local face = wpart("HogFace", 7, 6, 0.6, R.cx, 13, ez - 0.8, "Pink", "SmoothPlastic")
+			wpart("HogFaceSnout", 3, 2, 0.6, R.cx, 14, ez - 1.3, "Carnation pink", "SmoothPlastic")
+			for _, sx in ipairs({ -1, 1 }) do
+				wpart("HogFaceEye", 1.1, 1.1, 0.3, R.cx + sx * 1.8, 16.6, ez - 1.2, "Really black", "SmoothPlastic")
+				wpart("HogFaceEar", 2, 2.4, 0.6, R.cx + sx * 3, 19, ez - 0.8, "Carnation pink", "SmoothPlastic")
+			end
+			local bs = wpart("BigTopSign", 16, 3, 0.4, R.cx, 21.6, ez - 0.8, "Really red", "SmoothPlastic")
+			sign(bs, "THE BIG TOP", "Front", Color3.new(1, 0.9, 0.3))
 		elseif R.kind == "coaster" then
 			-- a track loop up on posts round the yard, a lift hill and a train of cars at the station
 			local inset, y = 8, 7
@@ -745,35 +1063,56 @@ local function buildMap(name)
 				block(x, z, f[1], f[2])
 				if k == "ferris" then
 					local c = V(x, 24, z)
-					for i = 0, 15 do
-						local a = i / 16 * math.pi * 2
-						local rim = V(math.cos(a) * 18, math.sin(a) * 18, 0)
-						P(m, "WheelRim", V(7.4, 0.8, 0.8), CFrame.new(c + rim) * CFrame.Angles(0, 0, a + math.pi / 2), "White", "Metal")
-						if i % 2 == 0 then
-							P(m, "Spoke", V(18, 0.4, 0.4), CFrame.new(c + rim * 0.5) * CFrame.Angles(0, 0, a), "Medium stone grey", "Metal", { nc = true })
-							P(m, "Cabin", V(3.6, 3, 3.2), CFrame.new(c + rim - V(0, 2.4, 0)), pick({ "Really red", "Bright blue", "New Yeller", "Lime green", "Hot pink" }), "SmoothPlastic")
-						else
-							local bulb = P(m, "WheelBulb", V(1, 1, 1), CFrame.new(c + rim * 1.06), pick({ "Really red", "New Yeller", "Toothpaste" }), "Neon", { nc = true })
-							if i % 4 == 1 then light(bulb, bulb.BrickColor.Color, 26, 1) end
+					for _, side in ipairs({ -1.6, 1.6 }) do
+						for i2 = 0, 15 do
+							local a = i2 / 16 * math.pi * 2
+							local rim = V(math.cos(a) * 18, math.sin(a) * 18, side)
+							P(m, "WheelRim", V(7.4, 0.7, 0.7), CFrame.new(c + rim) * CFrame.Angles(0, 0, a + math.pi / 2), "White", "Metal")
+							if i2 % 2 == 0 then
+								P(m, "Spoke", V(18, 0.35, 0.35), CFrame.new(c + V(rim.X * 0.5, rim.Y * 0.5, side)) * CFrame.Angles(0, 0, a), "Medium stone grey", "Metal", { nc = true })
+							elseif side > 0 then
+								local bulb = P(m, "WheelBulb", V(0.9, 0.9, 0.9), CFrame.new(c + V(rim.X * 1.06, rim.Y * 1.06, 2.2)), pick({ "Really red", "New Yeller", "Toothpaste", "Hot pink" }), "Neon", { nc = true })
+								if i2 % 4 == 1 then light(bulb, bulb.BrickColor.Color, 26, 1) end
+							end
 						end
 					end
-					P(m, "Hub", V(2, 3, 3), CFrame.new(c) * CFrame.Angles(0, math.pi / 2, 0), "Dark stone grey", "Metal", { shape = "cyl" })
-					for _, sx in ipairs({ -1, 1 }) do
-						local foot = V(x + sx * 11, 0, z)
-						P(m, "Leg", V(1.4, (c - foot).magnitude, 1.4), CFrame.new((foot + c) / 2, c) * CFrame.Angles(math.pi / 2, 0, 0), "Medium stone grey", "Metal")
+					for i2 = 0, 7 do
+						local a = i2 / 8 * math.pi * 2
+						local at = c + V(math.cos(a) * 18, math.sin(a) * 18, 0)
+						local col = pick({ "Really red", "Bright blue", "New Yeller", "Lime green", "Hot pink" })
+						P(m, "CabinBar", V(0.4, 0.4, 3.6), CFrame.new(at), "Medium stone grey", "Metal")
+						P(m, "Cabin", V(3.4, 2.4, 3), CFrame.new(at - V(0, 2.6, 0)), col, "SmoothPlastic")
+						P(m, "CabinRoof", V(3.8, 0.4, 3.4), CFrame.new(at - V(0, 0.8, 0)), "Institutional white", "SmoothPlastic")
 					end
-					wpart("WheelBase", 26, 1, 8, x, 0, z, "Dark stone grey", "Concrete")
+					P(m, "Hub", V(4, 3, 3), CFrame.new(c) * CFrame.Angles(0, math.pi / 2, 0), "Dark stone grey", "Metal", { shape = "cyl" })
+					P(m, "HubFace", V(2.6, 2.6, 0.3), CFrame.new(c + V(0, 0, -2.2)), "Pink", "SmoothPlastic")
+					P(m, "HubSnout", V(1.2, 0.8, 0.3), CFrame.new(c + V(0, -0.4, -2.4)), "Carnation pink", "SmoothPlastic")
+					for _, sz in ipairs({ -2.6, 2.6 }) do
+						for _, sx in ipairs({ -1, 1 }) do
+							local foot = V(x + sx * 12, 0, z + sz)
+							local top = c + V(0, 0, sz)
+							P(m, "Leg", V(1.2, (top - foot).magnitude, 1.2), CFrame.new((foot + top) / 2, top) * CFrame.Angles(math.pi / 2, 0, 0), "Medium stone grey", "Metal")
+						end
+					end
+					wpart("WheelBase", 28, 1, 9, x, 0, z, "Dark stone grey", "Concrete")
+					wpart("WheelSteps", 6, 0.6, 3, x, 1, z - 5, "Medium stone grey", "DiamondPlate")
 				elseif k == "carousel" then
 					P(m, "CarouselBase", V(1, 24, 24), CFrame.new(x, 0.5, z) * CFrame.Angles(0, 0, math.pi / 2), "Institutional white", "WoodPlanks", { shape = "cyl" })
-					wpart("CenterPole", 3, 12, 3, x, 1, z, "Gold", "Metal")
-					P(m, "CarouselRoof", V(1.5, 27, 27), CFrame.new(x, 13.5, z) * CFrame.Angles(0, 0, math.pi / 2), "Really red", "Fabric", { shape = "cyl" })
-					P(m, "CarouselRoof", V(2, 16, 16), CFrame.new(x, 15, z) * CFrame.Angles(0, 0, math.pi / 2), "White", "Fabric", { shape = "cyl" })
-					for i = 0, 7 do
-						local a = i / 8 * math.pi * 2
+					P(m, "CarouselRim", V(1.1, 25, 25), CFrame.new(x, 0.45, z) * CFrame.Angles(0, 0, math.pi / 2), "Gold", "Metal", { shape = "cyl" })
+					wpart("CenterPole", 4, 12, 4, x, 1, z, "Hot pink", "SmoothPlastic")
+					for i2 = 0, 4 do
+						local d = 27 - i2 * 5.5
+						P(m, "CarouselRoof", V(1.2, d, d), CFrame.new(x, 13.4 + i2 * 1.2, z) * CFrame.Angles(0, 0, math.pi / 2), i2 % 2 == 0 and "Really red" or "White", "Fabric", { shape = "cyl" })
+					end
+					wpart("CarouselTop", 1.6, 1.6, 1.6, x, 19.6, z, "Gold", "Neon")
+					for i2 = 0, 7 do
+						local a = i2 / 8 * math.pi * 2
 						local hx, hz = x + math.cos(a) * 9, z + math.sin(a) * 9
-						wpart("HorsePole", 0.4, 12, 0.4, hx, 1, hz, "Gold", "Metal")
-						local horse = P(m, "Horse", V(1.2, 2, 4), CFrame.new(hx, 4, hz) * CFrame.Angles(0, -a, 0), pick({ "Institutional white", "Pastel brown", "Black" }), "SmoothPlastic")
-						P(m, "HorseHead", V(1, 2, 1.4), horse.CFrame * CFrame.new(0, 1.2, -2), horse.BrickColor.Name, "SmoothPlastic")
+						wpart("PigPole", 0.4, 12, 0.4, hx, 1, hz, "Gold", "Metal")
+						local body = P(m, "CarouselPig", V(1.8, 2, 3.4), CFrame.new(hx, 4.2 + (i2 % 2) * 1.2, hz) * CFrame.Angles(0, -a, 0), "Pink", "SmoothPlastic")
+						P(m, "PigHead", V(1.6, 1.6, 1.4), body.CFrame * CFrame.new(0, 0.8, -2), "Pink", "SmoothPlastic")
+						P(m, "PigSnout", V(0.9, 0.6, 0.4), body.CFrame * CFrame.new(0, 0.6, -2.85), "Carnation pink", "SmoothPlastic")
+						P(m, "PigSaddle", V(1.9, 0.4, 1.4), body.CFrame * CFrame.new(0, 1.1, 0.2), pick({ "Really red", "Bright blue", "New Yeller" }), "Fabric")
 					end
 					light(wpart("CarouselLight", 2, 1, 2, x, 12, z, "New Yeller", "Neon"), Color3.new(1, 0.85, 0.5), 30, 1.2)
 				elseif k == "arch" then
@@ -786,6 +1125,10 @@ local function buildMap(name)
 					local top = wpart("ArchSign", 29, 4, 1.2, x, 18, z, "Bright violet", "SmoothPlastic")
 					sign(top, "HOG'S CARNIVAL", "Back", Color3.new(1, 0.9, 0.3))
 					sign(top, "HOG'S CARNIVAL", "Front", Color3.new(1, 0.9, 0.3))
+					for _, sx in ipairs({ -1, 1 }) do
+						P(m, "ArchEar", V(4, 4, 1), CFrame.new(x + sx * 9, 23, z) * CFrame.Angles(0, 0, math.rad(45)), "Pink", "SmoothPlastic")
+					end
+					for i2 = -6, 6 do P(m, "ArchBulb", V(0.8, 0.8, 0.8), CFrame.new(x + i2 * 2.2, 16.3, z + 0.7), i2 % 2 == 0 and "New Yeller" or "Really red", "Neon", { nc = true }) end
 				elseif k == "booth" then
 					wpart("Booth", 7, 9, 5, x, 0, z, "Bright red", "WoodPlanks")
 					wpart("BoothWindow", 4, 2.5, 0.2, x, 4, z + 2.6, "Black", "Glass")
@@ -817,13 +1160,65 @@ local function buildMap(name)
 					wpart("BenchBack", 6, 2, 0.4, x, 2, z - 0.8, "Brown", "Wood")
 					table.insert(R.spots, V(x, 2, z))
 				elseif k == "games" then
-					-- a game stall against the fence: counter, striped awning, prizes
+					-- a carnival game tent against the fence: counter, prizes, a striped pointy roof and a sign
 					local face = x < R.cx and 1 or -1
 					wpart("Stall", 4, 7, 14, x - face * 1, 0, z, "Bright yellow", "WoodPlanks")
 					wpart("Counter", 2, 3.5, 14, x + face * 2.5, 0, z, "Bright red", "WoodPlanks")
 					table.insert(R.spots, V(x + face * 2.5, 3.5, z))
-					for i = -3, 3 do wpart("Awning", 6, 0.5, 2, x + face * 1.5, 8, z + i * 2, i % 2 == 0 and "Really red" or "White", "Fabric") end
+					for i = -3, 3 do wpart("TentRoof", 8, 1.2, 2, x + face * 1.5, 8, z + i * 2, i % 2 == 0 and "Really red" or "White", "Fabric") end
+					for i = -3, 3 do wpart("TentRoof", 5, 1.2, 2, x + face * 1.2, 9.2, z + i * 2, i % 2 == 0 and "White" or "Really red", "Fabric") end
+					wpart("TentRoof", 2, 1.2, 14, x + face * 1, 10.4, z, "Really red", "Fabric")
 					for i = -2, 2 do P(m, "Prize", V(1.2, 1.6, 1.2), CFrame.new(x - face * 0.5, 5, z + i * 2.4), pick({ "Hot pink", "Bright blue", "Lime green" }), "Fabric") end
+					for i = -1, 1 do P(m, "Target", V(0.3, 1.4, 1.4), CFrame.new(x - face * 0.9, 3, z + i * 4), "Institutional white", "SmoothPlastic", { shape = "cyl" }) end
+					local gs = wpart("GameSign", 0.4, 2, 10, x + face * 3.2, 5.6, z, "Really black", "SmoothPlastic")
+					sign(gs, pr[4] or "GAMES", face > 0 and "Right" or "Left", Color3.new(1, 0.85, 0.2))
+				elseif k == "cage" then
+					-- an animal cage on wheels (one is open - you can hide in it; the other has a big boar in it)
+					local open = pr[4]
+					wpart("CageFloor", 12, 1.2, 9, x, 0.6, z, "Reddish brown", "WoodPlanks")
+					wpart("CageRoof", 12.6, 1, 9.6, x, 9, z, "Really red", "WoodPlanks")
+					for _, sx in ipairs({ -1, 1 }) do
+						for _, sz in ipairs({ -1, 1 }) do
+							P(m, "CageWheel", V(0.6, 2.4, 2.4), CFrame.new(x + sx * 4.5, 1.2, z + sz * 4.7) * CFrame.Angles(0, math.pi / 2, 0), "Gold", "Metal", { shape = "cyl" })
+						end
+					end
+					for bx2 = -5.6, 5.6, 1.6 do
+						if not (open and math.abs(bx2) < 2.5) then wpart("CageBar", 0.3, 7.2, 0.3, x + bx2, 1.8, z - 4.3, "Gold", "Metal") end
+						wpart("CageBar", 0.3, 7.2, 0.3, x + bx2, 1.8, z + 4.3, "Gold", "Metal")
+					end
+					for bz2 = -3, 3, 1.5 do
+						wpart("CageBar", 0.3, 7.2, 0.3, x - 5.8, 1.8, z + bz2, "Gold", "Metal")
+						wpart("CageBar", 0.3, 7.2, 0.3, x + 5.8, 1.8, z + bz2, "Gold", "Metal")
+					end
+					if open then
+						table.insert(R.spots, V(x, 1.2, z))
+						wpart("Hay", 5, 1, 4, x + 2, 1.2, z + 1, "Bright yellow", "Grass")
+					else
+						-- a big stuffed boar
+						wpart("BoarBody", 4, 3.4, 6, x, 1.2, z, "Brown", "Fabric")
+						wpart("BoarHead", 3, 3, 2.6, x, 3, z - 3.8, "Brown", "Fabric")
+						wpart("BoarSnout", 1.6, 1.2, 0.6, x, 3.4, z - 5.2, "Nougat", "Fabric")
+						for _, sx in ipairs({ -1, 1 }) do
+							wpart("BoarTusk", 0.3, 1, 0.3, x + sx * 0.9, 3.6, z - 5.4, "Institutional white", "SmoothPlastic")
+							wpart("BoarEar", 0.8, 1, 0.4, x + sx * 1.2, 6, z - 3.6, "Brown", "Fabric")
+							wpart("BoarEye", 0.5, 0.5, 0.2, x + sx * 0.8, 5, z - 5.1, "Really red", "Neon")
+						end
+					end
+				elseif k == "statue" then
+					-- a statue of the Hog on a stone stand
+					wpart("Plinth", 6, 3, 6, x, 0, z, "Medium stone grey", "Marble")
+					local st = buildHog(m, CFrame.new(x, 3 + HOG_UP, z) * CFrame.Angles(0, math.pi, 0), "HogStatue", 0, 0.5)
+					for _, o in ipairs(st:GetChildren()) do if o:IsA("BasePart") and o.Transparency < 1 then o.BrickColor = BrickColor.new("Gold") pcall(function() o.Material = Enum.Material.Metal end) end end
+					local pl = wpart("PlinthSign", 5, 1.4, 0.3, x, 1, z + 3.1, "Really black", "SmoothPlastic")
+					sign(pl, "OUR FOUNDER", "Back", Color3.new(1, 0.85, 0.3))
+				elseif k == "plaza" then
+					-- pink and white tiles in front of the gate, and a red brick path to the Big Top
+					for tx = -2, 2 do
+						for tz = 0, 2 do
+							wpart("PlazaTile", 10, 0.1, 10, x + tx * 10, 0, z - 5 + tz * 10, (tx + tz) % 2 == 0 and "Pink" or "Institutional white", "Marble", { nc = true })
+						end
+					end
+					wpart("BrickPath", 12, 0.1, 50, x, 0, z + 33, "Brick yellow", "Brick", { nc = true })
 				elseif k == "tree" then
 					wpart("Trunk", 1.8, 10, 1.8, x, 0, z, "Brown", "Wood")
 					wpart("Leaves", 8, 7, 8, x, 9, z, "Bright green", "Grass")
@@ -840,6 +1235,59 @@ local function buildMap(name)
 						wpart("LampPost", 0.6, 12, 0.6, lx, 0, lz, "Black", "Metal")
 						local lan = wpart("Lantern", 1.6, 1.6, 1.6, lx, 12, lz, "New Yeller", "Neon")
 						light(lan, Color3.new(1, 0.85, 0.55), 40, 1.1)
+					end
+				end
+			end
+			-- strings of coloured bulbs over the main walkways
+			for _, line in ipairs({ { V(140, 0, 28), V(140, 0, 76) }, { V(160, 0, 28), V(160, 0, 76) }, { V(84, 0, 90), V(96, 0, 168) },
+				{ V(204, 0, 74), V(228, 0, 74) }, { V(206, 0, 168), V(246, 0, 168) }, { V(85, 0, 176), V(135, 0, 176) } }) do
+				local a, b = line[1], line[2]
+				for _, e in ipairs({ a, b }) do wpart("LightPole", 0.5, 11, 0.5, e.X, 0, e.Z, "Black", "Metal") end
+				local len = (b - a).magnitude
+				P(m, "LightWire", V(0.15, 0.15, len), CFrame.new((a + b) / 2 + V(0, 10.6, 0), b + V(0, 10.6, 0)), "Black", "SmoothPlastic", { nc = true })
+				local n2 = math.floor(len / 5)
+				for i2 = 1, n2 - 1 do
+					local q = a + (b - a) * (i2 / n2)
+					local sag = math.sin(i2 / n2 * math.pi) * 1.2
+					local bulb = P(m, "Bulb", V(0.7, 0.9, 0.7), CFrame.new(q + V(0, 10.1 - sag, 0)), pick({ "Really red", "New Yeller", "Lime green", "Toothpaste", "Hot pink" }), "Neon", { nc = true })
+					if i2 == math.floor(n2 / 2) then light(bulb, Color3.new(1, 0.85, 0.6), 30, 0.9) end
+				end
+			end
+			-- grass along the fence, flower beds, and gold lights on top of the purple wall
+			wpart("Grass", R.w - 2, 0.1, 7, R.cx, 0, R.z2 - 4.5, "Bright green", "Grass", { nc = true })
+			wpart("Grass", 7, 0.1, R.d - 10, R.x1 + 4.5, 0, R.cz + 4, "Bright green", "Grass", { nc = true })
+			wpart("Grass", 7, 0.1, R.d - 10, R.x2 - 4.5, 0, R.cz + 4, "Bright green", "Grass", { nc = true })
+			wpart("WallCap", R.w + 1, 0.8, 1.6, R.cx, R.h, R.z1 + 0.5, "Lavender", "SmoothPlastic")
+			wpart("WallCap", R.w + 1, 0.8, 1.6, R.cx, R.h, R.z2 - 0.5, "Lavender", "SmoothPlastic")
+			wpart("WallCap", 1.6, 0.8, R.d, R.x1 + 0.5, R.h, R.cz, "Lavender", "SmoothPlastic")
+			wpart("WallCap", 1.6, 0.8, R.d, R.x2 - 0.5, R.h, R.cz, "Lavender", "SmoothPlastic")
+			for gx2 = R.x1 + 25, R.x2 - 25, 50 do
+				for _, gz2 in ipairs({ R.z1 + 0.5, R.z2 - 0.5 }) do
+					local b2 = wpart("WallLight", 1.4, 1.4, 1.4, gx2, R.h + 0.8, gz2, "New Yeller", "Neon")
+					if gz2 > R.cz then light(b2, Color3.new(1, 0.8, 0.5), 24, 0.8) end
+				end
+			end
+			-- every building gets a roof and a sign over its door
+			local FACE = { N = "Front", S = "Back", W = "Left", E = "Right" }
+			for _, Q in ipairs(M.rooms) do
+				local qd = Q.def
+				if qd.roof then
+					wpart("RoofTrim", Q.w + 2, 1, Q.d + 2, Q.cx, Q.h + 1, Q.cz, qd.roof, "SmoothPlastic")
+					wpart("RoofTop", Q.w - 6, 1.4, Q.d - 6, Q.cx, Q.h + 2, Q.cz, qd.roof, "SmoothPlastic")
+					for _, dn in ipairs(M.doorNodes) do
+						if dn.A == Q and dn.B == R and qd.sign and not Q.signed then
+							Q.signed = true
+							local side = dn.door.side
+							local nx = side == "W" and -1 or side == "E" and 1 or 0
+							local nz = side == "N" and -1 or side == "S" and 1 or 0
+							local ns = nx == 0
+							local sp = wpart("BuildingSign", ns and 16 or 0.4, 3, ns and 0.4 or 16, dn.p.X + nx * 0.9, Q.h - 3.4, dn.p.Z + nz * 0.9, "Really black", "SmoothPlastic")
+							sign(sp, qd.sign, FACE[side], Color3.new(1, 0.85, 0.3))
+							for _, t in ipairs({ -1, 1 }) do
+								local lb = wpart("SignLight", 0.8, 0.8, 0.8, dn.p.X + nx * 1.4 + (ns and t * 7.5 or 0), Q.h - 0.6, dn.p.Z + nz * 1.4 + (ns and 0 or t * 7.5), "New Yeller", "Neon")
+								if t == 1 then light(lb, Color3.new(1, 0.85, 0.5), 18, 0.8) end
+							end
+						end
 					end
 				end
 			end
