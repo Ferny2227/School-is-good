@@ -65,34 +65,48 @@ MAPS["School"] = {
 	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Gold Key", "lab" }, { "Fuse", "office" }, { "Stun Gun", "open" } },
 	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Fuse Box", "Fuse" } },
 }
--- THE CIRCUS: a huge carnival at night. Open-air plazas (no roof, tall fences), the Big Top (a giant striped tent),
--- the Midway with string lights, a food court with carts, a funhouse, a clown tent, a prize booth, animal cages and
--- a ferris wheel.
+-- THE CIRCUS (like Piggy's Carnival): one big OPEN fair at night inside a purple fence, with buildings and rides
+-- standing around in it - the Big Top (a giant striped tent with metal platforms you can climb), the cafeteria, a red
+-- storage shed, the arcade, the roller coaster behind a blue gate, the ferris wheel, a carousel, food carts, benches,
+-- trees and lamp posts. The Hog waits in the clowns' trailer. The way out is the big gate under the CARNIVAL arch.
 MAPS["Circus"] = {
-	H = 16, start = "food", pen = "pen", outside = "Dark green", trim = "White", noRoof = true,
+	H = 18, start = "cafeteria", pen = "pen", outside = "Dark green", trim = "White", noRoof = true,
 	rooms = {
-		{ id = "ticket", name = "Ticket Plaza", x1 = 0, z1 = 0, x2 = 90, z2 = 70, floor = "Brick yellow", fmat = "Cobblestone", wall = "Reddish brown", wmat = "WoodPlanks", kind = "ticket", outdoor = true },
-		{ id = "bigtop", name = "The Big Top", x1 = 90, z1 = 0, x2 = 210, z2 = 70, floor = "Brown", fmat = "Sand", wall = "White", wmat = "Fabric", kind = "bigtop", h = 30, tent = { "Really red", "White" } },
-		{ id = "cages", name = "Animal Cages", x1 = 210, z1 = 0, x2 = 290, z2 = 70, floor = "Brick yellow", fmat = "Cobblestone", wall = "Reddish brown", wmat = "WoodPlanks", kind = "cages", outdoor = true },
-		{ id = "midway", name = "The Midway", x1 = 0, z1 = 70, x2 = 290, z2 = 100, floor = "Brick yellow", fmat = "Cobblestone", wall = "Reddish brown", wmat = "WoodPlanks", kind = "hall", outdoor = true },
-		{ id = "pen", name = "The Lion Cage", x1 = 290, z1 = 70, x2 = 308, z2 = 100, floor = "Brown", fmat = "Sand", wall = "Dark stone grey", kind = "pen" },
-		{ id = "food", name = "Food Court", x1 = 0, z1 = 100, x2 = 70, z2 = 170, floor = "Brick yellow", fmat = "Cobblestone", wall = "Reddish brown", wmat = "WoodPlanks", kind = "food", outdoor = true },
-		{ id = "funhouse", name = "Funhouse", x1 = 70, z1 = 100, x2 = 130, z2 = 170, floor = "Black", fmat = "SmoothPlastic", wall = "Hot pink", kind = "funhouse" },
-		{ id = "clown", name = "Clown Tent", x1 = 130, z1 = 100, x2 = 190, z2 = 170, floor = "Brown", fmat = "Sand", wall = "White", wmat = "Fabric", kind = "clown", h = 22, tent = { "Bright blue", "White" } },
-		{ id = "prize", name = "Prize Booth", x1 = 190, z1 = 100, x2 = 230, z2 = 170, floor = "Bright yellow", fmat = "WoodPlanks", wall = "Bright violet", kind = "prize" },
-		{ id = "park", name = "Ferris Wheel Park", x1 = 230, z1 = 100, x2 = 290, z2 = 170, floor = "Earth green", fmat = "Grass", wall = "Reddish brown", wmat = "WoodPlanks", kind = "park", outdoor = true },
+		{ id = "cafeteria", name = "Cafeteria", x1 = 20, z1 = 30, x2 = 80, z2 = 80, floor = "Institutional white", fmat = "Marble", wall = "Bright yellow", kind = "cafeteria", h = 14, inside = true },
+		{ id = "storage", name = "Storage Shed", x1 = 225, z1 = 22, x2 = 265, z2 = 58, floor = "Dark stone grey", fmat = "Concrete", wall = "Really red", wmat = "WoodPlanks", kind = "storage", h = 13, inside = true },
+		{ id = "bigtop", name = "The Big Top", x1 = 100, z1 = 80, x2 = 200, z2 = 160, floor = "Brown", fmat = "Sand", wall = "White", wmat = "Fabric", kind = "bigtop", h = 30, tent = { "Really red", "White" }, inside = true },
+		{ id = "arcade", name = "Arcade", x1 = 232, z1 = 82, x2 = 285, z2 = 122, floor = "Black", fmat = "SmoothPlastic", wall = "Bright violet", kind = "arcade", h = 14, inside = true },
+		{ id = "coaster", name = "Roller Coaster", x1 = 18, z1 = 180, x2 = 122, z2 = 236, floor = "Brick yellow", fmat = "Cobblestone", wall = "Bright blue", wmat = "WoodPlanks", kind = "coaster", h = 14, outdoor = true, inside = true },
+		{ id = "pen", name = "Clown Trailer", x1 = 255, z1 = 195, x2 = 290, z2 = 232, floor = "Brown", fmat = "WoodPlanks", wall = "Bright green", kind = "pen", h = 13, inside = true },
+		{ id = "fair", name = "The Fair", x1 = 0, z1 = 0, x2 = 300, z2 = 250, floor = "Brick yellow", fmat = "Cobblestone", wall = "Bright violet", kind = "open", outdoor = true },
 	},
 	doors = {
-		{ "midway", "ticket", 45, w = 14 }, { "midway", "bigtop", 150, w = 12 }, { "midway", "cages", 250, w = 14 },
-		{ "midway", "food", 35, w = 14 }, { "midway", "funhouse", 100 }, { "midway", "clown", 160, lock = "Red Door" },
-		{ "midway", "prize", 210, lock = "Blue Door" }, { "midway", "park", 260, w = 14 },
-		{ "ticket", "bigtop", 35, w = 10 }, { "bigtop", "cages", 35, w = 10 }, { "food", "funhouse", 135 },
-		{ "midway", "pen", 85, gate = true }, { "ticket", "out", 45, side = "N", exit = true },
+		{ "cafeteria", "fair", 55, side = "E" }, { "cafeteria", "fair", 50, side = "S" },
+		{ "storage", "fair", 40, side = "W", lock = "Red Door" },
+		{ "bigtop", "fair", 150, side = "N", w = 12 }, { "bigtop", "fair", 120, side = "W", w = 9 }, { "bigtop", "fair", 120, side = "E", w = 9 },
+		{ "arcade", "fair", 102, side = "W" },
+		{ "coaster", "fair", 70, side = "N", lock = "Blue Door" },
+		{ "pen", "fair", 213, side = "W", gate = true },
+		{ "fair", "out", 150, side = "N", exit = true },
 	},
-	vents = { { "food", "cages" }, { "funhouse", "ticket" }, { "park", "bigtop" } },
-	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Gold Key", "clown" }, { "Fuse", "prize" }, { "Stun Gun", "open" } },
-	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Fuse Box", "Fuse" } },
+	-- the rides and stalls standing out in the open: { kind, x, z }
+	props = {
+		{ "ferris", 225, 178 }, { "carousel", 60, 128 }, { "arch", 150, 6 },
+		{ "booth", 122, 14 }, { "booth", 178, 14 },
+		{ "cart", 105, 45, "Bright blue" }, { "cart", 195, 50, "Bright red" }, { "cart", 160, 200, "Lime green" },
+		{ "popcorn", 215, 70 }, { "balloons", 92, 172 }, { "balloons", 290, 150 },
+		{ "bench", 205, 205 }, { "bench", 245, 205 }, { "bench", 140, 175 }, { "bench", 30, 100 }, { "bench", 275, 70 },
+		{ "games", 8, 160 }, { "games", 8, 200 }, { "games", 150, 238 },
+		{ "tree", 10, 15 }, { "tree", 290, 12 }, { "tree", 12, 240 }, { "tree", 210, 240 }, { "tree", 290, 175 }, { "tree", 88, 100 },
+		{ "tree", 215, 100 }, { "tree", 130, 60 },
+	},
+	vents = { { "cafeteria", "bigtop" }, { "arcade", "fair" } },
+	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Gold Key", "storage" }, { "Wrench", "coaster" }, { "Stun Gun", "open" } },
+	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Bolt", "Wrench" } },
 }
+-- how much ground each ride or stall takes up (the bot walks around these)
+local PROP_SIZE = { ferris = { 44, 10 }, carousel = { 26, 26 }, booth = { 8, 6 }, cart = { 7, 6 }, popcorn = { 5, 5 },
+	balloons = { 3, 3 }, bench = { 7, 3 }, games = { 10, 14 }, tree = { 3, 3 } }
 local ITEM_LOOK = {
 	["Hammer"] = { "Reddish brown", "Dark stone grey" }, ["Blue Key"] = { "Really blue" }, ["Red Key"] = { "Really red" },
 	["Gold Key"] = { "Gold" }, ["Wrench"] = { "Medium stone grey" }, ["Fuse"] = { "New Yeller" }, ["Stun Gun"] = { "Black", "New Yeller" },
@@ -253,53 +267,24 @@ KITS.nurse = {
 	{ "we", bx("Desk", 5, 3, 3, 0, 0, 0, "Brick yellow", "Wood", { top = true }) },
 }
 -- (the Circus)
-local function tree(x, y, z) return bx("Trunk", 1.6, 9, 1.6, x, 0, 2.7, "Brown", "Wood"), bx("Leaves", 7, 6, 7, x, 8, 0, "Bright green", "Grass") end
-KITS.ticket = {
-	{ "ns", bx("Booth", 7, 9, 5, 0, 0, 0, "Bright red", "WoodPlanks"), bx("BoothWindow", 4, 2.5, 0.2, 0, 4, 5, "Black", "Glass"), bx("BoothRoof", 8, 1, 6, 0, 9, 0, "White", "Fabric") },
-	{ "ns", bx("Booth", 7, 9, 5, 0, 0, 0, "Bright blue", "WoodPlanks"), bx("BoothWindow", 4, 2.5, 0.2, 0, 4, 5, "Black", "Glass"), bx("BoothRoof", 8, 1, 6, 0, 9, 0, "White", "Fabric") },
-	{ "we", tree(0, 0, 1) },
-	{ "we", bx("Bench", 6, 2, 2, 0, 0, 0, "Brown", "Wood", { top = true }), bx("BenchBack", 6, 2, 0.4, 0, 2, 0, "Brown", "Wood") },
-}
 KITS.bigtop = {
 	{ "ns", bx("Bleacher1", 30, 2, 3, 0, 0, 6, "Bright red", "WoodPlanks"), bx("Bleacher2", 30, 4, 3, 0, 0, 3, "White", "WoodPlanks"), bx("Bleacher3", 30, 6, 3, 0, 0, 0, "Bright red", "WoodPlanks") },
 	{ "ns", bx("Bleacher1", 30, 2, 3, 0, 0, 6, "Bright blue", "WoodPlanks"), bx("Bleacher2", 30, 4, 3, 0, 0, 3, "White", "WoodPlanks"), bx("Bleacher3", 30, 6, 3, 0, 0, 0, "Bright blue", "WoodPlanks") },
 	{ "ns", bx("Bleacher1", 30, 2, 3, 0, 0, 6, "Bright red", "WoodPlanks", { top = true }), bx("Bleacher2", 30, 4, 3, 0, 0, 3, "White", "WoodPlanks"), bx("Bleacher3", 30, 6, 3, 0, 0, 0, "Bright red", "WoodPlanks") },
 	{ "ns", bx("Bleacher1", 30, 2, 3, 0, 0, 6, "Bright blue", "WoodPlanks", { top = true }), bx("Bleacher2", 30, 4, 3, 0, 0, 3, "White", "WoodPlanks"), bx("Bleacher3", 30, 6, 3, 0, 0, 0, "Bright blue", "WoodPlanks") },
 }
-local function cage(c) return bx("CageFloor", 10, 1, 7, 0, 0, 0, "Brown", "Wood"), bx("CageRoof", 10, 1, 7, 0, 8, 0, c, "Metal"),
-	bx("Bars", 10, 7, 0.4, 0, 1, 6.6, "Dark stone grey", "DiamondPlate", { tr = 0.55 }), bx("Hay", 4, 1.4, 3, -2, 1, 1, "Bright yellow", "Grass", { top = true }) end
-KITS.cages = { { "ns", cage("Bright red") }, { "ns", cage("Bright blue") }, { "ns", cage("Bright yellow") }, { "we", tree(0, 0, 1) } }
-local function cart(c) return bx("CartBody", 6, 3, 4, 0, 1.2, 0.5, c, "SmoothPlastic", { top = true }), bx("Wheel", 2.4, 2.4, 0.6, -1.6, 0, 4.4, "Black", "SmoothPlastic"),
-	bx("Post", 0.4, 4, 0.4, -2.6, 4.2, 0.6, c, "Metal"), bx("Post", 0.4, 4, 0.4, 2.6, 4.2, 0.6, c, "Metal"), bx("Canopy", 7, 0.6, 5, 0, 8.2, 0, "Institutional white", "Fabric") end
-KITS.food = {
-	{ "ns", cart("Bright blue") },
-	{ "ns", cart("Bright red") },
-	{ "we", bx("PicnicTable", 6, 3, 4, 0, 0, 2, "Brown", "WoodPlanks", { top = true }), bx("Bench", 6, 1.8, 1.2, 0, 0, 0.4, "Brown", "WoodPlanks") },
-	{ "we", bx("Popcorn", 4, 7, 4, 0, 0, 0, "Bright red", "SmoothPlastic"), bx("PopcornTop", 4.4, 1.6, 4.4, 0, 7, 0, "New Yeller", "SmoothPlastic", { top = true }) },
+KITS.storage = {
+	{ "ns", bx("Crate", 5, 5, 5, -3, 0, 0, "Dark orange", "WoodPlanks", { top = true }), bx("Crate", 4, 4, 4, 3, 0, 0.5, "Dark orange", "WoodPlanks") },
+	{ "we", bx("Barrel", 3, 4, 3, 0, 0, 0, "Reddish brown", "Wood", { top = true }), bx("Barrel", 3, 4, 3, 0, 0, 3.4, "Reddish brown", "Wood") },
+	{ "ns", bx("Shelf", 10, 8, 2.5, 0, 0, 0, "Medium stone grey", "Metal"), bx("Paint", 9, 1.4, 1.4, 0, 3, 0.6, "Bright blue", "Metal") },
+	{ "we", bx("ClownCar", 7, 3, 4, 0, 0.6, 0.5, "Bright yellow", "SmoothPlastic", { top = true }), bx("Wheel", 1.6, 1.6, 4.6, -2.2, 0, 0.2, "Black", "SmoothPlastic") },
 }
-KITS.funhouse = {
-	{ "ns", bx("Mirror", 6, 10, 0.4, 0, 0, 0, "Pastel light blue", "Glass", { tr = 0.1 }) },
-	{ "we", bx("BigBlock", 4, 4, 4, 0, 0, 0, "Lime green", "SmoothPlastic", { top = true }), bx("Block", 3, 3, 3, 0, 4, 0.5, "Bright orange", "SmoothPlastic") },
-	{ "ns", bx("Mirror", 6, 10, 0.4, 0, 0, 0, "Pastel light blue", "Glass", { tr = 0.1 }) },
-	{ "we", bx("ClownFace", 6, 6, 0.4, 0, 2, 0, "Institutional white", "SmoothPlastic"), bx("Nose", 1.4, 1.4, 1, 0, 4.3, 0.4, "Really red", "Neon") },
-}
-KITS.clown = {
-	{ "ns", bx("PropChest", 6, 3.5, 3, 0, 0, 0, "Bright violet", "Wood", { top = true }), bx("Lid", 6.2, 0.6, 3.2, 0, 3.5, 0, "Gold", "Metal") },
-	{ "we", bx("Rack", 7, 7, 2, 0, 0, 0, "Medium stone grey", "Metal"), bx("Costumes", 6, 4, 1.4, 0, 2.5, 0.3, "Bright green", "Fabric") },
-	{ "ns", bx("MakeupTable", 6, 3.5, 3, 0, 0, 0, "Institutional white", "Wood", { top = true }), bx("Mirror", 4, 3, 0.2, 0, 4, 0, "Pastel light blue", "Glass") },
-	{ "we", bx("Unicycle", 0.4, 4, 2.2, 0, 0, 1, "Bright red", "Metal"), bx("Pins", 2, 1.4, 1, 0, 0, 3, "Institutional white", "SmoothPlastic") },
-}
-KITS.prize = {
-	{ "ns", bx("PrizeShelf", 10, 8, 2.5, 0, 0, 0, "Reddish brown", "Wood"), bx("Teddies", 9, 2, 1.6, 0, 2.5, 0.6, "Hot pink", "Fabric"), bx("Teddies", 9, 2, 1.6, 0, 5.5, 0.6, "Bright blue", "Fabric") },
-	{ "ns", bx("Counter", 10, 3.5, 3, 0, 0, 2, "Bright red", "WoodPlanks", { top = true }) },
-	{ "we", bx("BigTeddy", 4, 6, 4, 0, 0, 0, "Brown", "Fabric") },
-	{ "we", bx("Balloons", 3, 3, 3, 0, 6, 0, "Really red", "SmoothPlastic"), bx("String", 0.2, 6, 0.2, 0, 0, 1.4, "White", "SmoothPlastic") },
-}
-KITS.park = {
-	{ "we", tree(0, 0, 1) },
-	{ "ns", bx("Bench", 6, 2, 2, 0, 0, 0, "Brown", "Wood", { top = true }), bx("BenchBack", 6, 2, 0.4, 0, 2, 0, "Brown", "Wood") },
-	{ "we", tree(0, 0, 1) },
-	{ "ns", bx("TicketBooth", 5, 7, 4, 0, 0, 0, "Bright yellow", "WoodPlanks", { top = true }) },
+KITS.arcade = {
+	{ "ns", bx("Machine", 3.4, 7, 3, -2, 0, 0, "Bright blue", "SmoothPlastic"), bx("Screen", 2.6, 2, 0.2, -2, 4, 3, "Lime green", "Neon"),
+		bx("Machine", 3.4, 7, 3, 2, 0, 0, "Bright red", "SmoothPlastic"), bx("Screen", 2.6, 2, 0.2, 2, 4, 3, "Toothpaste", "Neon") },
+	{ "ns", bx("ClawMachine", 5, 8, 5, 0, 0, 0, "Hot pink", "SmoothPlastic"), bx("Glass", 4.4, 3.5, 4.4, 0, 4, 0.3, "Pastel light blue", "Glass", { tr = 0.5 }) },
+	{ "we", bx("PrizeCounter", 8, 3.5, 3, 0, 0, 1, "Bright yellow", "WoodPlanks", { top = true }), bx("Prizes", 7, 2, 1.4, 0, 3.5, 1.5, "Bright violet", "Fabric") },
+	{ "we", bx("Machine", 3.4, 7, 3, 0, 0, 0, "New Yeller", "SmoothPlastic", { top = true }), bx("Screen", 2.6, 2, 0.2, 0, 4, 3, "Hot pink", "Neon") },
 }
 
 ------------------------------------------------------------------ build a map
@@ -333,7 +318,7 @@ local function buildMap(name)
 		local A, B = M.byId[d[1]], M.byId[d[2]]
 		local at = d[3]
 		local x, z, sideA, sideB
-		if d[2] == "out" then
+		if d[2] == "out" or (B and B.kind == "open") then
 			sideA = d.side
 			if sideA == "S" then x, z = at, A.z2 elseif sideA == "N" then x, z = at, A.z1 elseif sideA == "E" then x, z = A.x2, at else x, z = A.x1, at end
 		elseif A.x2 == B.x1 then x, z, sideA, sideB = A.x2, at, "E", "W"
@@ -342,7 +327,7 @@ local function buildMap(name)
 		else x, z, sideA, sideB = at, A.z1, "N", "S" end
 		local w = d.exit and 9 or d.w or DW
 		table.insert(A.open, { side = sideA, c = (sideA == "N" or sideA == "S") and x or z, w = w })
-		if B then table.insert(B.open, { side = sideB, c = (sideB == "N" or sideB == "S") and x or z, w = w }) end
+		if B and sideB then table.insert(B.open, { side = sideB, c = (sideB == "N" or sideB == "S") and x or z, w = w }) end
 		local node = addNode(x, z, nil)
 		node.door, node.A, node.B, node.vertical = d, A, B, (sideA == "E" or sideA == "W")
 		table.insert(M.doorNodes, node)
@@ -353,7 +338,7 @@ local function buildMap(name)
 		local r = R.def
 		local RH = r.h or H
 		R.h = RH
-		wpart("Floor", R.w, 1, R.d, R.cx, -1, R.cz, r.floor, r.fmat or "WoodPlanks")
+		wpart("Floor", R.w, 1, R.d, R.cx, r.inside and -0.95 or -1, R.cz, r.floor, r.fmat or "WoodPlanks")
 		if not r.outdoor then wpart("Ceiling", R.w, 1, R.d, R.cx, RH, R.cz, r.tent and r.tent[2] or "Dark stone grey", r.tent and "Fabric" or "SmoothPlastic") end
 		if r.tent then
 			-- a striped tent roof going up to a point, with a flag on top
@@ -402,7 +387,9 @@ local function buildMap(name)
 			seg(cur, hi, 0, RH)
 		end
 		-- a skirting strip and a ceiling lamp
-		if r.outdoor then
+		if r.kind == "open" then
+			-- (lamp posts: put up with the rides below)
+		elseif r.outdoor then
 			-- strings of coloured bulbs across the open-air plazas
 			local long = R.w >= R.d
 			local n = math.floor((long and R.w or R.d) / 10)
@@ -444,6 +431,61 @@ local function buildMap(name)
 				if pt.door then link(n, pt.door) end
 				if prev then link(prev, n) end
 				prev = n
+			end
+		elseif R.kind == "open" then
+			local rects = {}
+			for _, Q in ipairs(M.rooms) do
+				if Q ~= R then table.insert(rects, { Q.x1 - 2.5, Q.z1 - 2.5, Q.x2 + 2.5, Q.z2 + 2.5 }) end
+			end
+			for _, pr in ipairs(def.props or {}) do
+				local f = PROP_SIZE[pr[1]]
+				if f then table.insert(rects, { pr[2] - f[1] / 2 - 2, pr[3] - f[2] / 2 - 2, pr[2] + f[1] / 2 + 2, pr[3] + f[2] / 2 + 2 }) end
+			end
+			R.rects = rects
+			local function free(x, z)
+				if x < R.x1 + 3 or x > R.x2 - 3 or z < R.z1 + 3 or z > R.z2 - 3 then return false end
+				for _, b in ipairs(rects) do if x > b[1] and x < b[3] and z > b[2] and z < b[4] then return false end end
+				return true
+			end
+			local function clear(a, b, skip)
+				local d = b - a
+				local n = math.ceil(d.magnitude / 2)
+				for k = 0, n do
+					local q = a + d * (k / math.max(1, n))
+					if (q - a).magnitude >= (skip or 0) and not free(q.X, q.Z) then return false end
+				end
+				return true
+			end
+			R.free, R.clear = free, clear
+			local G = 15
+			local grid = {}
+			R.nodes = {}
+			for gx = R.x1 + 8, R.x2 - 8, G do
+				for gz = R.z1 + 8, R.z2 - 8, G do
+					if free(gx, gz) then
+						local n = addNode(gx, gz, R)
+						grid[gx .. "," .. gz] = n
+						table.insert(R.nodes, n)
+					end
+				end
+			end
+			for _, n in ipairs(R.nodes) do
+				for _, o in ipairs({ { G, 0 }, { 0, G }, { G, G }, { G, -G } }) do
+					local m2 = grid[(n.p.X + o[1]) .. "," .. (n.p.Z + o[2])]
+					if m2 and clear(n.p, m2.p) then link(n, m2) end
+				end
+			end
+			-- each doorway joins the nearest grid points it can walk straight to
+			for _, dn in ipairs(M.doorNodes) do
+				if dn.A == R or dn.B == R then
+					local list = {}
+					for _, n in ipairs(R.nodes) do table.insert(list, { n, (n.p - dn.p).magnitude }) end
+					table.sort(list, function(a, b) return a[2] < b[2] end)
+					local got = 0
+					for _, e in ipairs(list) do
+						if got < 2 and e[2] < 40 and clear(dn.p, e[1].p, 4) then link(dn, e[1]) got = got + 1 end
+					end
+				end
 			end
 		else
 			local n = addNode(R.cx, R.cz, R)
@@ -550,32 +592,165 @@ local function buildMap(name)
 				wpart("Trapeze", 0.4, 0.4, 6, R.cx + sx * 30, R.h - 12, R.cz, "Bright yellow", "Metal", { nc = true })
 				local spot = wpart("Spotlight", 2, 2, 2, R.cx + sx * 20, R.h - 3, R.cz, "New Yeller", "Neon", { nc = true })
 				light(spot, Color3.new(1, 0.9, 0.6), 50, 1.2)
-			end
-		elseif R.kind == "park" then
-			local c = V(R.cx, 23, R.z2 - 5)
-			for i = 0, 15 do
-				local a = i / 16 * math.pi * 2
-				local rim = V(math.cos(a) * 17, math.sin(a) * 17, 0)
-				P(m, "WheelRim", V(7, 0.8, 0.8), CFrame.new(c + rim) * CFrame.Angles(0, 0, a + math.pi / 2), "White", "Metal")
-				if i % 2 == 0 then
-					P(m, "Spoke", V(17, 0.4, 0.4), CFrame.new(c + rim * 0.5) * CFrame.Angles(0, 0, a), "Medium stone grey", "Metal", { nc = true })
-					P(m, "Cabin", V(3.4, 3, 3), CFrame.new(c + rim - V(0, 2.4, 0)), pick({ "Really red", "Bright blue", "New Yeller", "Lime green" }), "SmoothPlastic")
-				else
-					local bulb = P(m, "WheelBulb", V(0.9, 0.9, 0.9), CFrame.new(c + rim * 1.05), pick({ "Really red", "New Yeller", "Toothpaste" }), "Neon", { nc = true })
-					if i % 4 == 1 then light(bulb, bulb.BrickColor.Color, 20, 1) end
+				-- a metal platform up high, with a ladder (items can be up there; the Hog can't climb)
+				for _, sz in ipairs({ -1, 1 }) do
+					local px, pz = R.cx + sx * 40, R.cz + sz * 17
+					wpart("Platform", 8, 1, 8, px, 10, pz, "Medium stone grey", "DiamondPlate")
+					for _, lx in ipairs({ -3.5, 3.5 }) do wpart("PlatformLeg", 0.6, 10, 0.6, px + lx, 0, pz + lx, "Dark stone grey", "Metal") end
+					P(m, "Ladder", V(2, 10, 2), CFrame.new(px - sx * 5, 5, pz), "Dark stone grey", "Metal", { class = "TrussPart" })
+					table.insert(R.spots, V(px, 11, pz))
 				end
 			end
-			P(m, "Hub", V(2, 3, 3), CFrame.new(c) * CFrame.Angles(0, math.pi / 2, 0), "Dark stone grey", "Metal", { shape = "cyl" })
-			for _, sx in ipairs({ -1, 1 }) do
-				local foot = V(R.cx + sx * 9, 0, c.Z)
-				local mid = (foot + c) / 2
-				P(m, "Leg", V(1.2, (c - foot).magnitude, 1.2), CFrame.new(mid, c) * CFrame.Angles(math.pi / 2, 0, 0), "Medium stone grey", "Metal")
+		elseif R.kind == "coaster" then
+			-- a track loop up on posts round the yard, a lift hill and a train of cars at the station
+			local inset, y = 8, 7
+			local x1, x2, z1, z2 = R.x1 + inset, R.x2 - inset, R.z1 + inset, R.z2 - inset
+			local door = R.open[1]
+			local function rail(ax, az, bx2, bz, hy)
+				local a, b = V(ax, hy, az), V(bx2, hy, bz)
+				P(m, "Track", V(2.4, 0.5, (b - a).magnitude + 2.4), CFrame.new((a + b) / 2, b), "Dark stone grey", "Metal")
+				P(m, "Rail", V(0.3, 0.4, (b - a).magnitude + 2.4), CFrame.new((a + b) / 2 + V(0, 0.4, 0), b + V(0, 0.4, 0)), "Really red", "Metal")
+			end
+			rail(x1, z1, x2, z1, y) rail(x2, z1, x2, z2, y + 6) rail(x2, z2, x1, z2, y) rail(x1, z2, x1, z1, y)
+			for x = x1, x2, 12 do
+				for _, z in ipairs({ z1, z2 }) do
+					if not (door and math.abs(x - door.c) < 6 and z == z1) then wpart("Support", 0.8, y, 0.8, x, 0, z, "Bright red", "Metal") end
+				end
+			end
+			for z = z1, z2, 12 do
+				wpart("Support", 0.8, y, 0.8, x1, 0, z, "Bright red", "Metal")
+				wpart("Support", 0.8, y + 6, 0.8, x2, 0, z, "Bright red", "Metal")
+			end
+			for k = 0, 2 do
+				local car = wpart("CoasterCar", 3, 2, 4, x1 + 12 + k * 5, y + 0.8, z2, k == 1 and "New Yeller" or "Really red", "SmoothPlastic")
+				car.CFrame = CFrame.new(car.Position) * CFrame.Angles(0, math.pi / 2, 0)
+			end
+			wpart("Station", 20, 1, 6, x1 + 16, 0, z2 - 6, "Brown", "WoodPlanks")
+			local sg = wpart("StationSign", 12, 3, 0.4, x1 + 16, 9, z2 - 9, "Really black", "SmoothPlastic")
+			sign(sg, "THE PIG DIPPER", "Front", Color3.new(1, 0.85, 0.2))
+		elseif R.kind == "open" then
+			local function block(x, z, w, d) table.insert(R.blocked, { x - w / 2, z - d / 2, x + w / 2, z + d / 2 }) end
+			for _, pr in ipairs(def.props or {}) do
+				local k, x, z = pr[1], pr[2], pr[3]
+				local f = PROP_SIZE[k] or { 4, 4 }
+				block(x, z, f[1], f[2])
+				if k == "ferris" then
+					local c = V(x, 24, z)
+					for i = 0, 15 do
+						local a = i / 16 * math.pi * 2
+						local rim = V(math.cos(a) * 18, math.sin(a) * 18, 0)
+						P(m, "WheelRim", V(7.4, 0.8, 0.8), CFrame.new(c + rim) * CFrame.Angles(0, 0, a + math.pi / 2), "White", "Metal")
+						if i % 2 == 0 then
+							P(m, "Spoke", V(18, 0.4, 0.4), CFrame.new(c + rim * 0.5) * CFrame.Angles(0, 0, a), "Medium stone grey", "Metal", { nc = true })
+							P(m, "Cabin", V(3.6, 3, 3.2), CFrame.new(c + rim - V(0, 2.4, 0)), pick({ "Really red", "Bright blue", "New Yeller", "Lime green", "Hot pink" }), "SmoothPlastic")
+						else
+							local bulb = P(m, "WheelBulb", V(1, 1, 1), CFrame.new(c + rim * 1.06), pick({ "Really red", "New Yeller", "Toothpaste" }), "Neon", { nc = true })
+							if i % 4 == 1 then light(bulb, bulb.BrickColor.Color, 26, 1) end
+						end
+					end
+					P(m, "Hub", V(2, 3, 3), CFrame.new(c) * CFrame.Angles(0, math.pi / 2, 0), "Dark stone grey", "Metal", { shape = "cyl" })
+					for _, sx in ipairs({ -1, 1 }) do
+						local foot = V(x + sx * 11, 0, z)
+						P(m, "Leg", V(1.4, (c - foot).magnitude, 1.4), CFrame.new((foot + c) / 2, c) * CFrame.Angles(math.pi / 2, 0, 0), "Medium stone grey", "Metal")
+					end
+					wpart("WheelBase", 26, 1, 8, x, 0, z, "Dark stone grey", "Concrete")
+				elseif k == "carousel" then
+					P(m, "CarouselBase", V(1, 24, 24), CFrame.new(x, 0.5, z) * CFrame.Angles(0, 0, math.pi / 2), "Institutional white", "WoodPlanks", { shape = "cyl" })
+					wpart("CenterPole", 3, 12, 3, x, 1, z, "Gold", "Metal")
+					P(m, "CarouselRoof", V(1.5, 27, 27), CFrame.new(x, 13.5, z) * CFrame.Angles(0, 0, math.pi / 2), "Really red", "Fabric", { shape = "cyl" })
+					P(m, "CarouselRoof", V(2, 16, 16), CFrame.new(x, 15, z) * CFrame.Angles(0, 0, math.pi / 2), "White", "Fabric", { shape = "cyl" })
+					for i = 0, 7 do
+						local a = i / 8 * math.pi * 2
+						local hx, hz = x + math.cos(a) * 9, z + math.sin(a) * 9
+						wpart("HorsePole", 0.4, 12, 0.4, hx, 1, hz, "Gold", "Metal")
+						local horse = P(m, "Horse", V(1.2, 2, 4), CFrame.new(hx, 4, hz) * CFrame.Angles(0, -a, 0), pick({ "Institutional white", "Pastel brown", "Black" }), "SmoothPlastic")
+						P(m, "HorseHead", V(1, 2, 1.4), horse.CFrame * CFrame.new(0, 1.2, -2), horse.BrickColor.Name, "SmoothPlastic")
+					end
+					light(wpart("CarouselLight", 2, 1, 2, x, 12, z, "New Yeller", "Neon"), Color3.new(1, 0.85, 0.5), 30, 1.2)
+				elseif k == "arch" then
+					-- the big entrance arch over the exit gate
+					for _, sx in ipairs({ -1, 1 }) do
+						for i = 0, 5 do wpart("ArchPillar", 3, 3, 3, x + sx * 13, i * 3, z, i % 2 == 0 and "Really red" or "White", "SmoothPlastic") end
+						local ball = wpart("ArchBall", 3, 3, 3, x + sx * 13, 18, z, "Gold", "Neon")
+						light(ball, Color3.new(1, 0.8, 0.3), 26, 1)
+					end
+					local top = wpart("ArchSign", 29, 4, 1.2, x, 18, z, "Bright violet", "SmoothPlastic")
+					sign(top, "HOG'S CARNIVAL", "Back", Color3.new(1, 0.9, 0.3))
+					sign(top, "HOG'S CARNIVAL", "Front", Color3.new(1, 0.9, 0.3))
+				elseif k == "booth" then
+					wpart("Booth", 7, 9, 5, x, 0, z, "Bright red", "WoodPlanks")
+					wpart("BoothWindow", 4, 2.5, 0.2, x, 4, z + 2.6, "Black", "Glass")
+					wpart("BoothRoof", 8, 1, 6, x, 9, z, "White", "Fabric")
+					local t = wpart("BoothSign", 6, 1.4, 0.2, x, 7, z + 2.6, "New Yeller", "SmoothPlastic")
+					sign(t, "TICKETS", "Back", Color3.new(0.6, 0, 0))
+				elseif k == "cart" then
+					local c = pr[4] or "Bright blue"
+					wpart("CartBody", 6, 3, 4, x, 1.2, z, c, "SmoothPlastic")
+					table.insert(R.spots, V(x, 4.2, z))
+					for _, sx in ipairs({ -1, 1 }) do
+						P(m, "Wheel", V(0.6, 2.6, 2.6), CFrame.new(x + sx * 1.8, 1.3, z + 2.2) * CFrame.Angles(0, math.pi / 2, 0), "Black", "SmoothPlastic", { shape = "cyl" })
+						wpart("Post", 0.4, 4, 0.4, x + sx * 2.6, 4.2, z - 1.6, c, "Metal")
+						wpart("Post", 0.4, 4, 0.4, x + sx * 2.6, 4.2, z + 1.6, c, "Metal")
+					end
+					wpart("Canopy", 7, 0.6, 5, x, 8.2, z, "Institutional white", "Fabric")
+				elseif k == "popcorn" then
+					wpart("Popcorn", 4, 7, 4, x, 0, z, "Bright red", "SmoothPlastic")
+					wpart("PopcornTop", 4.4, 1.6, 4.4, x, 7, z, "New Yeller", "SmoothPlastic")
+					table.insert(R.spots, V(x, 8.6, z))
+				elseif k == "balloons" then
+					wpart("String", 0.2, 8, 0.2, x, 0, z, "White", "SmoothPlastic", { nc = true })
+					for i = 0, 4 do
+						P(m, "Balloon", V(2, 2.4, 2), CFrame.new(x + math.cos(i * 1.3) * 1.5, 9 + (i % 2) * 1.5, z + math.sin(i * 1.3) * 1.5),
+							pick({ "Really red", "Bright blue", "New Yeller", "Lime green", "Hot pink" }), "SmoothPlastic", { shape = "ball", nc = true })
+					end
+				elseif k == "bench" then
+					wpart("Bench", 6, 2, 2, x, 0, z, "Brown", "Wood")
+					wpart("BenchBack", 6, 2, 0.4, x, 2, z - 0.8, "Brown", "Wood")
+					table.insert(R.spots, V(x, 2, z))
+				elseif k == "games" then
+					-- a game stall against the fence: counter, striped awning, prizes
+					local face = x < R.cx and 1 or -1
+					wpart("Stall", 4, 7, 14, x - face * 1, 0, z, "Bright yellow", "WoodPlanks")
+					wpart("Counter", 2, 3.5, 14, x + face * 2.5, 0, z, "Bright red", "WoodPlanks")
+					table.insert(R.spots, V(x + face * 2.5, 3.5, z))
+					for i = -3, 3 do wpart("Awning", 6, 0.5, 2, x + face * 1.5, 8, z + i * 2, i % 2 == 0 and "Really red" or "White", "Fabric") end
+					for i = -2, 2 do P(m, "Prize", V(1.2, 1.6, 1.2), CFrame.new(x - face * 0.5, 5, z + i * 2.4), pick({ "Hot pink", "Bright blue", "Lime green" }), "Fabric") end
+				elseif k == "tree" then
+					wpart("Trunk", 1.8, 10, 1.8, x, 0, z, "Brown", "Wood")
+					wpart("Leaves", 8, 7, 8, x, 9, z, "Bright green", "Grass")
+					wpart("Leaves2", 5, 3, 5, x, 15.5, z, "Bright green", "Grass")
+					wpart("GrassPatch", 10, 0.1, 10, x, 0, z, "Bright green", "Grass", { nc = true })
+				end
+			end
+			-- lamp posts between the paths (glowing lanterns light up the fair)
+			local n = 0
+			for lx = R.x1 + 30, R.x2 - 20, 45 do
+				for lz = R.z1 + 30, R.z2 - 20, 45 do
+					if R.free(lx, lz) then
+						n = n + 1
+						wpart("LampPost", 0.6, 12, 0.6, lx, 0, lz, "Black", "Metal")
+						local lan = wpart("Lantern", 1.6, 1.6, 1.6, lx, 12, lz, "New Yeller", "Neon")
+						light(lan, Color3.new(1, 0.85, 0.55), 40, 1.1)
+					end
+				end
+			end
+			-- a white picket fence along the inside of the purple wall
+			for _, side in ipairs({ { R.x1 + 2, R.cz, 0.4, R.d - 4 }, { R.x2 - 2, R.cz, 0.4, R.d - 4 }, { R.cx, R.z2 - 2, R.w - 4, 0.4 } }) do
+				wpart("FenceRail", side[3], 0.4, side[4], side[1], 1.2, side[2], "Institutional white", "Wood")
+				wpart("FenceRail", side[3], 0.4, side[4], side[1], 2.6, side[2], "Institutional white", "Wood")
+			end
+			-- items lie about the fair too
+			for idx, nd in ipairs(R.nodes) do
+				if idx % 3 == 0 then
+					local q = nd.p + V(4, 0, 4)
+					if R.free(q.X, q.Z) and not blocked(R, q.X, q.Z, 1) then table.insert(R.spots, q) end
+				end
 			end
 		end
 	end
 	-- places items can be: on furniture, and on the floor next to the walls (away from doorways)
 	for _, R in ipairs(M.rooms) do
-		local cand = { V(R.cx - R.w / 2 + 4, 0, R.cz), V(R.cx + R.w / 2 - 4, 0, R.cz), V(R.cx, 0, R.cz - R.d / 2 + 4), V(R.cx, 0, R.cz + R.d / 2 - 4),
+		local cand = R.kind == "open" and {} or { V(R.cx - R.w / 2 + 4, 0, R.cz), V(R.cx + R.w / 2 - 4, 0, R.cz), V(R.cx, 0, R.cz - R.d / 2 + 4), V(R.cx, 0, R.cz + R.d / 2 - 4),
 			V(R.cx - R.w / 4, 0, R.cz - R.d / 4), V(R.cx + R.w / 4, 0, R.cz + R.d / 4), V(R.cx + R.w / 4, 0, R.cz - R.d / 4), V(R.cx - R.w / 4, 0, R.cz + R.d / 4) }
 		for _, q in ipairs(cand) do
 			local nearDoor = false

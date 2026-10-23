@@ -102,10 +102,43 @@ for _, name in ipairs({ "Hog Manor", "School", "Circus" }) do
 		table.insert(where, it.name .. "@" .. (R and R.id or "?"))
 		local want
 		for _, d in ipairs(M.def.items) do if d[1] == it.name then want = d[2] end end
-		local lockedRoom = ({ bedroom = 1, cellar = 1, lab = 1, office = 1, clown = 1, prize = 1, pen = 1 })[R and R.id or ""]
+		local lockedRoom = ({ bedroom = 1, cellar = 1, lab = 1, office = 1, storage = 1, coaster = 1, pen = 1 })[R and R.id or ""]
 		if R and (want == "open" and not lockedRoom or want == R.id) then itemsOk = itemsOk + 1 end
 	end
 	table.sort(where)
+	-- open fair: the Hog's paths never go through a building's wall (only through its doorways)
+	local fair, badPath, lonelyDoors = nil, 0, 0
+	for _, R in ipairs(M.rooms) do if R.kind == "open" then fair = R end end
+	if fair then
+		for _, dn in ipairs(M.doorNodes) do
+			if dn.B == fair or dn.A == fair then
+				local g = 0
+				for _, l in ipairs(dn.links) do if l.room == fair then g = g + 1 end end
+				if g == 0 then lonelyDoors = lonelyDoors + 1 end
+			end
+		end
+		for k = 1, 40 do
+			local nd = fair.nodes[(k * 7) % #fair.nodes + 1]
+			local path = D.route(pen, nd.p) or {}
+			if #path == 0 then badPath = badPath + 1 end
+			for i = 2, #path do
+				local a, b = path[i - 1], path[i]
+				for t = 0, 1, 0.05 do
+					local q = a + (b - a) * t
+					for _, Q in ipairs(M.rooms) do
+						if Q ~= fair and q.X > Q.x1 + 0.6 and q.X < Q.x2 - 0.6 and q.Z > Q.z1 + 0.6 and q.Z < Q.z2 - 0.6 then
+							-- inside a building: fine if it's that building's own path (between its door and its centre)
+						elseif Q ~= fair and (math.abs(q.X - Q.x1) < 0.5 or math.abs(q.X - Q.x2) < 0.5) and q.Z > Q.z1 and q.Z < Q.z2 or Q ~= fair and (math.abs(q.Z - Q.z1) < 0.5 or math.abs(q.Z - Q.z2) < 0.5) and q.X > Q.x1 and q.X < Q.x2 then
+							local nearDoor = false
+							for _, dn in ipairs(M.doorNodes) do if (dn.p - q).magnitude < 6 then nearDoor = true end end
+							if not nearDoor then badPath = badPath + 1 end
+						end
+					end
+				end
+			end
+		end
+		say(string.format("  %s open fair: %d grid points, doorways with no path out %d, Hog paths through a wall %d", name, #fair.nodes, lonelyDoors, badPath))
+	end
 	local ventsOk = 0
 	for _, v in ipairs(M.vents) do if D.roomAt(v.at) and D.roomAt(v.to) and D.roomAt(v.at) ~= D.roomAt(v.to) then ventsOk = ventsOk + 1 end end
 	local w, d = M.maxX - M.minX, M.maxZ - M.minZ

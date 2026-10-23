@@ -17,10 +17,15 @@ An original Piggy-style escape game for 2016 Roblox. Open/upload `EscapeTheHog.r
     pantry, garage, living room, dining room, cellar, the hallway and the Hog's pen.
   - **School** (178 x 128, 14 rooms): two classrooms, the science lab, library, cafeteria, gym, principal's office,
     entrance, art room, music room, locker room, nurse's office, the hallway and the janitor's closet.
-  - **Circus** (308 x 170 - the biggest): open-air plazas under the night sky with strings of coloured lights (the
-    Ticket Plaza, the Midway, the Food Court with food carts, Animal Cages, the Ferris Wheel Park with a giant ferris
-    wheel), the huge red-and-white striped **Big Top** with its ring, bleachers and trapezes, the blue Clown Tent, the
-    Funhouse, the Prize Booth, and the Lion Cage where the Hog waits.
+  - **Circus** (300 x 250 - the biggest, made like Piggy's Carnival): no rooms - one big OPEN fair at night inside a
+    purple fence with a white picket fence, cobblestone paths, lamp posts with glowing lanterns and trees. Standing
+    around in it: the giant red-and-white striped **Big Top** (ring, bleachers, trapezes, spotlights, and two metal
+    platforms up high with ladders - the Hog can't climb them), the **cafeteria**, a red **storage shed** (Red Door),
+    the **arcade** (game machines, claw machine), the **roller coaster** "The Pig Dipper" behind a blue gate (Blue
+    Door), a big **ferris wheel**, a **carousel** with horses, ticket booths, food carts, a popcorn stand, game
+    stalls, balloons and benches. The Hog waits in the clowns' trailer; the way out is the gate under the big
+    **HOG'S CARNIVAL** arch (boards, padlock, bolt). The bot walks a grid of paths all over the fair, round the
+    buildings and rides.
 - **Vents**: every map has 3 vents (grates in the floor) joined in pairs. **Crouch and click a grate** to crawl
   through to the other end (1.5 s in the dark). The Hog can't follow you and can't see you while you crawl.
 - **Stun Gun**: one is hidden on every map. Hold it and **click at the Hog**: it's frozen for **20 seconds** (bot

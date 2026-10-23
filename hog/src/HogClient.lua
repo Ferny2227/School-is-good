@@ -244,8 +244,8 @@ mapsB.MouseButton1Click:connect(function()
 		"the living room, the dining room and a dark cellar. The Hog sleeps in its pen.\n\n" ..
 		"SCHOOL - classrooms, the science lab, the library, the cafeteria, the gym and the principal's office. " ..
 		"The Hog hides in the janitor's closet.\n\n" ..
-		"CIRCUS - a HUGE carnival at night: the Big Top, the Midway, a food court, a funhouse, a clown tent, " ..
-		"a prize booth, animal cages and a ferris wheel. The Hog waits in the lion cage.", 460, rgb(55, 95, 235))
+		"CIRCUS - a HUGE open carnival at night: the Big Top, the cafeteria, the arcade, a roller coaster, " ..
+		"a ferris wheel, a carousel, food carts and game stalls. The Hog waits in the clowns' trailer.", 460, rgb(55, 95, 235))
 end)
 statsB.MouseButton1Click:connect(function()
 	local ls = player:FindFirstChild("leaderstats")

@@ -78,7 +78,7 @@ function spawnItem(name, at)
 		for _, R in ipairs(MAP.rooms) do
 			local locked = false
 			for _, dn in ipairs(MAP.doorNodes) do
-				if dn.lock and not dn.lock.gate and (dn.A == R or dn.B == R) and R.kind ~= "hall" then locked = true end
+				if dn.lock and not dn.lock.gate and (dn.A == R or dn.B == R) and R.kind ~= "hall" and R.kind ~= "open" then locked = true end
 			end
 			if (def and def[2] == R.id) or (not def or def[2] == "open") and not locked and R ~= MAP.pen and #R.spots > 0 then
 				table.insert(rooms, R)

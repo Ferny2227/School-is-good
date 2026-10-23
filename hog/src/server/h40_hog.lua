@@ -136,7 +136,9 @@ local function botStep(H, dt)
 			local rooms = {}
 			for _, R in ipairs(MAP.rooms) do if R ~= MAP.pen then table.insert(rooms, R) end end
 			local R = pick(rooms)
-			H.path = route(H.pos, V(R.cx + math.random(-4, 4), 0, R.cz + math.random(-4, 4))) or {}
+			local to = V(R.cx + math.random(-4, 4), 0, R.cz + math.random(-4, 4))
+			if R.kind == "open" then to = pick(R.nodes).p end       -- (somewhere out in the open fair)
+			H.path = route(H.pos, to) or {}
 			if #H.path == 0 then H.pause = 1 return end
 		end
 		H.speed = (H.mode == "look" and BOT_SPEED.look or H.mode == "chase" and BOT_SPEED.chase or BOT_SPEED.patrol) * H.k
