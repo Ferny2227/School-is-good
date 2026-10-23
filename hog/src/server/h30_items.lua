@@ -8,6 +8,8 @@ local HOGS = {}             -- the bot Hogs
 local crouching = {}        -- player -> true while crouching
 local stuck = {}            -- player -> true while caught in a trap
 local onHeard               -- (the Hog hears doors being unlocked; set in h40_hog.lua)
+local gunShots = {}         -- player -> shots left in the Stun Gun
+local crawling = {}         -- player -> true while crawling through a vent (the Hog can't see them)
 local function itemLook(m, name, at)
 	local c = ITEM_LOOK[name] or { "Bright yellow" }
 	local main
@@ -17,6 +19,10 @@ local function itemLook(m, name, at)
 	elseif name == "Wrench" then
 		main = P(m, "Handle", V(0.4, 2.4, 0.3), CFrame.new(at + V(0, 0.2, 0)) * CFrame.Angles(0, 0, math.pi / 2), c[1], "Metal")
 		P(m, "Jaw", V(0.9, 0.3, 0.9), CFrame.new(at + V(1.3, 0.2, 0)), c[1], "Metal")
+	elseif name == "Stun Gun" then
+		main = P(m, "Handle", V(0.5, 0.9, 2.2), CFrame.new(at + V(0, 0.45, 0)), c[1], "SmoothPlastic")
+		P(m, "Grip", V(0.45, 1.2, 0.6), CFrame.new(at + V(0, 0.6, 0.9)) * CFrame.Angles(0.3, 0, 0), c[1], "SmoothPlastic")
+		P(m, "Tip", V(0.6, 0.6, 0.4), CFrame.new(at + V(0, 0.45, -1.2)), c[2], "Neon")
 	elseif name == "Fuse" then
 		main = P(m, "Handle", V(1.4, 0.7, 0.7), CFrame.new(at + V(0, 0.4, 0)) * CFrame.Angles(0, 0, 0), c[1], "Neon", { shape = "cyl" })
 	else
@@ -37,7 +43,7 @@ local function giveTool(p, name)
 	pcall(function() tool.CanBeDropped = false end)
 	pcall(function() tool.ToolTip = "Click a lock to use it" end)
 	local col = (ITEM_LOOK[name] or { "Bright yellow" })[1]
-	local h = P(tool, "Handle", name == "Fuse" and V(0.7, 1.4, 0.7) or V(0.4, 1.8, 0.4), CFrame.new(), col, name == "Fuse" and "Neon" or "Metal", { anchored = false })
+	local h = P(tool, "Handle", name == "Fuse" and V(0.7, 1.4, 0.7) or name == "Stun Gun" and V(0.4, 1, 2) or V(0.4, 1.8, 0.4), CFrame.new(), col, name == "Fuse" and "Neon" or "Metal", { anchored = false })
 	h.CanCollide = false
 	tool.Parent = c          -- straight into the hand
 	return tool
@@ -110,8 +116,9 @@ function spawnItem(name, at)
 			spawnItem(old, at)
 		end
 		holding[p] = name
+		if name == "Stun Gun" then gunShots[p] = 2 end
 		giveTool(p, name)
-		toClient(p, "hold", name)
+		toClient(p, "hold", name, gunShots[p])
 		say(p, "You picked up the " .. name .. "!", "gold")
 	end
 	for _, part in ipairs(m:GetChildren()) do
@@ -179,6 +186,26 @@ local function hookLocks()
 			end
 		end
 	end
+	for part in pairs(MAP.partVent) do MAP.clickable(part) end
+end
+-- crawl through a vent: 1.5 seconds in the dark, then you come out of the other grate
+local function crawl(p, vent)
+	if crawling[p] then return end
+	if not crouching[p] then say(p, "Crouch (press C) to crawl into the vent!", "gold") return end
+	local t = torsoOf(p.Character)
+	local h = p.Character and p.Character:FindFirstChild("Humanoid")
+	if not t then return end
+	crawling[p] = true
+	if h then h.WalkSpeed = 0 end
+	toClient(p, "vent")
+	t.CFrame = CFrame.new(vent.at + V(0, 3, 0))
+	delay(1.5, function()
+		crawling[p] = nil
+		if not survivors[p] or not MAP then return end
+		local t2 = torsoOf(p.Character)
+		if t2 then t2.CFrame = CFrame.new(vent.to + V(3, 3, 0)) end
+		if h and not stuck[p] then h.WalkSpeed = crouching[p] and 8 or 16 end
+	end)
 end
 -- a player clicked something in the map (their computer sends what the mouse was on)
 local lastClick = {}
@@ -190,6 +217,11 @@ local function clickPart(p, part)
 	local t = torsoOf(p.Character)
 	local ok, pos = pcall(function() return part.Position end)
 	if not t or not ok or (t.Position - pos).magnitude > 16 then return end
+	local vent = MAP.partVent[part]
+	if vent then
+		crawl(p, vent)
+		return
+	end
 	local it = MAP.partItem[part]
 	if it then
 		if MAP.items[it.model] then it.take(p) end

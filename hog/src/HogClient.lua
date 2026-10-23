@@ -104,7 +104,7 @@ local slotIcon = frame(slot, UDim2.new(0.5, -22, 0.5, -22), UDim2.new(0, 44, 0, 
 slotIcon.Visible = false
 local slotName = label(hud, UDim2.new(0.5, -150, 1, -60), UDim2.new(0, 300, 0, 28), "EMPTY HANDS", 24, C.grey, "Cartoon")
 local ITEM_COLOR = { ["Red Key"] = rgb(220, 30, 30), ["Blue Key"] = rgb(30, 70, 230), ["Gold Key"] = rgb(240, 200, 60),
-	["Hammer"] = rgb(140, 90, 50), ["Wrench"] = rgb(170, 170, 175), ["Fuse"] = rgb(255, 245, 90) }
+	["Hammer"] = rgb(140, 90, 50), ["Wrench"] = rgb(170, 170, 175), ["Fuse"] = rgb(255, 245, 90), ["Stun Gun"] = rgb(30, 30, 30) }
 -- buttons (bottom right)
 local crouchB = button(hud, UDim2.new(1, -190, 1, -140), UDim2.new(0, 170, 0, 56), "CROUCH  [C]", rgb(60, 30, 80), C.purple, 24)
 local trapB = button(hud, UDim2.new(1, -190, 1, -204), UDim2.new(0, 170, 0, 56), "SET TRAP", rgb(80, 20, 25), C.red, 24)
@@ -149,15 +149,16 @@ for i, d in ipairs({ { UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0, 70) }, { UDim2.
 end
 local function showHowTo()
 	if gui:FindFirstChild("Info") then gui.Info:Destroy() end
-	local f = frame(gui, UDim2.new(0.5, -380, 0.5, -240), UDim2.new(0, 760, 0, 480), C.dark, 0.04, C.purple)
+	local f = frame(gui, UDim2.new(0.5, -380, 0.5, -270), UDim2.new(0, 760, 0, 540), C.dark, 0.04, C.purple)
 	f.Name = "Info"
 	label(f, UDim2.new(0, 0, 0, 10), UDim2.new(1, 0, 0, 44), "HOW TO PLAY", 42, C.purple, "Cartoon")
-	local body = label(f, UDim2.new(0, 28, 0, 66), UDim2.new(1, -56, 0, 330),
+	local body = label(f, UDim2.new(0, 28, 0, 62), UDim2.new(1, -56, 0, 400),
 		"1.  Press PLAY and vote for the HOG mode and the MAP.\n\n" ..
 		"2.  You're locked inside. After 15 seconds the Hog gets out and hunts you.\n\n" ..
 		"3.  Find the items hidden around the map. CLICK an item to pick it up - you can only hold ONE.\n\n" ..
 		"4.  Figure out where each item goes and CLICK it there. Open the way out and ESCAPE!\n\n" ..
-		"5.  Press C (or CROUCH) to sneak: slower, but the Hog has a harder time seeing and hearing you.", 24, C.white)
+		"5.  Press C (or CROUCH) to sneak. Crouch and click a VENT grate in the floor to crawl to another room.\n\n" ..
+		"6.  Found the STUN GUN? Click at the Hog to freeze it for 20 seconds (2 shots).", 24, C.white)
 	body.TextWrapped = true
 	pcall(function() body.TextXAlignment = Enum.TextXAlignment.Left body.TextYAlignment = Enum.TextYAlignment.Top end)
 	local go = button(f, UDim2.new(0.5, -110, 1, -64), UDim2.new(0, 220, 0, 48), "GOT IT", rgb(20, 60, 30), C.green, 28)
@@ -231,8 +232,8 @@ local function infoPanel(title, text, h, color)
 end
 itemsB.MouseButton1Click:connect(function()
 	local f = infoPanel("ITEMS", "These are hidden somewhere in the maps. Where do they go? That's for you to find out...", 330, rgb(225, 50, 60))
-	for i, n in ipairs({ "Red Key", "Blue Key", "Gold Key", "Hammer", "Wrench", "Fuse" }) do
-		local x = 40 + (i - 1) * 116
+	for i, n in ipairs({ "Red Key", "Blue Key", "Gold Key", "Hammer", "Wrench", "Fuse", "Stun Gun" }) do
+		local x = 30 + (i - 1) * 100
 		frame(f, UDim2.new(0, x + 22, 0, 150), UDim2.new(0, 56, 0, 56), ITEM_COLOR[n], 0, C.white, 2)
 		label(f, UDim2.new(0, x, 0, 212), UDim2.new(0, 100, 0, 26), n, 18, C.white, "Cartoon")
 	end
@@ -242,7 +243,9 @@ mapsB.MouseButton1Click:connect(function()
 	infoPanel("MAPS", "HOG MANOR - a creepy old house in the woods: a bedroom, a bathroom, the kitchen and pantry, a garage, " ..
 		"the living room, the dining room and a dark cellar. The Hog sleeps in its pen.\n\n" ..
 		"SCHOOL - classrooms, the science lab, the library, the cafeteria, the gym and the principal's office. " ..
-		"The Hog hides in the janitor's closet.", 380, rgb(55, 95, 235))
+		"The Hog hides in the janitor's closet.\n\n" ..
+		"CIRCUS - a HUGE carnival at night: the Big Top, the Midway, a food court, a funhouse, a clown tent, " ..
+		"a prize booth, animal cages and a ferris wheel. The Hog waits in the lion cage.", 460, rgb(55, 95, 235))
 end)
 statsB.MouseButton1Click:connect(function()
 	local ls = player:FindFirstChild("leaderstats")
@@ -258,7 +261,7 @@ local voteF = frame(gui, UDim2.new(0.5, -380, 0.5, -255), UDim2.new(0, 760, 0, 5
 local voteTitle = label(voteF, UDim2.new(0, 0, 0, 6), UDim2.new(1, 0, 0, 44), "HOG VOTING", 42, C.white, "Antique")
 local voteSub = label(voteF, UDim2.new(0, 0, 0, 48), UDim2.new(1, 0, 0, 22), "", 18, C.grey)
 local MODES = { "Bot", "Player", "Player + Bot", "Infection", "Swarm", "Traitor" }
-local MAPS_ = { "Hog Manor", "School" }
+local MAPS_ = { "Hog Manor", "School", "Circus" }
 local cards = { mode = {}, map = {} }
 local function card(kind, i, x, y, w, h, name, bg)
 	local b = button(voteF, UDim2.new(0, x, 0, y), UDim2.new(0, w, 0, h), "", bg, C.black)
@@ -297,8 +300,12 @@ end
 local mapHead = label(voteF, UDim2.new(0, 20, 0, 380), UDim2.new(0, 200, 0, 24), "MAP", 24, C.pink, "Cartoon")
 pcall(function() mapHead.TextXAlignment = Enum.TextXAlignment.Left end)
 for i, name in ipairs(MAPS_) do
-	local b = card("map", i, 20 + (i - 1) * 366, 406, 354, 70, name, i == 1 and rgb(80, 45, 25) or rgb(30, 45, 85))
-	if i == 1 then
+	local b = card("map", i, 20 + (i - 1) * 244, 406, 232, 70, name, i == 1 and rgb(80, 45, 25) or i == 2 and rgb(30, 45, 85) or rgb(90, 20, 30))
+	if i == 3 then
+		for k = 0, 3 do frame(b, UDim2.new(0, 10 + k * 12, 0, 26), UDim2.new(0, 12, 0, 36), k % 2 == 0 and C.red or C.white, 0) end
+		local top = frame(b, UDim2.new(0, 16, 0, 10), UDim2.new(0, 26, 0, 26), C.red, 0)
+		pcall(function() top.Rotation = 45 end)
+	elseif i == 1 then
 		frame(b, UDim2.new(0, 14, 0, 30), UDim2.new(0, 40, 0, 30), rgb(210, 180, 120), 0)
 		local roof = frame(b, UDim2.new(0, 18, 0, 14), UDim2.new(0, 32, 0, 32), rgb(150, 40, 40), 0)
 		pcall(function() roof.Rotation = 45 end)
@@ -364,10 +371,16 @@ local function itemNameOf(part)
 	local v = m and m:FindFirstChild("ItemName")
 	return v and v.Value
 end
+local holdingName = nil
 mouse.Button1Down:connect(function()
 	if screen ~= "game" or role ~= "survivor" then return end
 	local part = clickable(mouse.Target)
-	if part then remote:FireServer("click", part) end
+	if part then
+		remote:FireServer("click", part)
+	elseif holdingName == "Stun Gun" then
+		-- shoot where you clicked
+		remote:FireServer("shoot", mouse.Hit.p)
+	end
 end)
 
 ------------------------------------------------------------------ messages from the server
@@ -409,9 +422,10 @@ remote.OnClientEvent:connect(function(what, a, b, c, d, e, f, g)
 		slot.Visible = role == "survivor"
 		slotName.Visible = role == "survivor"
 	elseif what == "hold" then
+		holdingName = a
 		slotIcon.Visible = a ~= nil
 		slotIcon.BackgroundColor3 = ITEM_COLOR[a or ""] or C.gold
-		slotName.Text = a and string.upper(a) or "EMPTY HANDS"
+		slotName.Text = a and (string.upper(a) .. (b and ("  (" .. b .. " SHOTS)") or "")) or "EMPTY HANDS"
 		slotName.TextColor3 = a and C.gold or C.grey
 	elseif what == "big" then
 		announce(a, b)
@@ -419,6 +433,12 @@ remote.OnClientEvent:connect(function(what, a, b, c, d, e, f, g)
 		toast(a, b)
 	elseif what == "caught" then
 		jumpscare()
+	elseif what == "vent" then
+		-- crawling through a vent: dark for a moment
+		local f = frame(gui, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), C.black, 0)
+		label(f, UDim2.new(0.5, -300, 0.5, -30), UDim2.new(0, 600, 0, 60), "crawling through the vent...", 36, C.grey, "Cartoon")
+		z(f, 8)
+		delay(1.5, function() f:Destroy() end)
 	elseif what == "howto" then
 		showHowTo()
 	elseif what == "votes" then
@@ -456,6 +476,7 @@ local function track(m)
 		-- way off from where the server has it (just spawned, or this computer fell behind): jump there
 		if what == "s" or (S.pos - at).magnitude > 12 then S.pos = at end
 		if what == "e" then S.smash = 1.2 end
+		if what == "z" then S.stun = tick() + 20 end
 	end
 	read()
 	mv.Changed:connect(read)
@@ -550,6 +571,7 @@ RunService.RenderStepped:connect(function()
 			S.smash = math.max(0, S.smash - dt)
 			local p = S.pos + Vector3.new(0, HOG_UP, 0)
 			local rootCF = CFrame.new(p, p + S.look)
+			if S.stun and now < S.stun then rootCF = rootCF * CFrame.Angles(0, 0, math.sin(now * 5) * 0.25) end
 			local pose = HogPose(rootCF, swing, S.smash > 0 and math.sin(math.min(1, S.smash) * math.pi) or 0)
 			for name, part in pairs(S.parts) do
 				local cf = pose[name]

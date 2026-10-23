@@ -117,6 +117,7 @@ local function startRound()
 	for _, it in ipairs(MAP.def.items) do spawnItem(it[1]) end
 	hookLocks()
 	escaped, caughtList, survivors, holding, stuck, crouching, inRound = {}, {}, {}, {}, {}, {}, {}
+	gunShots, crawling = {}, {}
 	hogPlayers, traitor = {}, nil
 	hogName = "The Hog"
 	shuffle(plist)
@@ -226,6 +227,7 @@ Players.PlayerRemoving:connect(function(p)
 end)
 remote.OnServerEvent:connect(function(p, what, a, b)
 	if what == "click" then clickPart(p, a)
+	elseif what == "shoot" then shoot(p, a)
 	elseif what == "crouch" then setCrouch(p, a == true)
 	elseif what == "trap" then hogTrap(p)
 	elseif what == "play" then ready[p] = true status()
@@ -239,7 +241,7 @@ _G.HogDebug = { STATE = STATE, MAPS = MAPS, buildMap = buildMap, getMap = functi
 	hogs = function() return HOGS end, survivors = function() return survivors end, holding = function() return holding end, spawnItem = spawnItem,
 	solve = solve, votes = votes, route = route, roomAt = roomAt, catchPlayer = catchPlayer, hogPlayer = function() return next(hogPlayers) end,
 	hogPlayers = function() return hogPlayers end, traitor = function() return traitor end, crouching = function() return crouching end,
-	traps = function() return traps end, placeTrap = placeTrap, LOBBY = LOBBY, ready = ready, clickPart = clickPart, mode = function() return modeName end }
+	traps = function() return traps end, placeTrap = placeTrap, shoot = shoot, crawling = function() return crawling end, LOBBY = LOBBY, ready = ready, clickPart = clickPart, mode = function() return modeName end }
 spawn(function()
 	-- fast systems: the bots, Hog players' and the Traitor's tags, traps, the exit
 	local last = tick()

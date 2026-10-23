@@ -100,7 +100,7 @@ local function botStep(H, dt)
 	-- who can it see (or hear right next to it)?
 	local seen, sd, visible = nil, 1e9, false
 	for p in pairs(survivors) do
-		local t = torsoOf(p.Character)
+		local t = not crawling[p] and torsoOf(p.Character)
 		if t then
 			local d = (flat(t.Position) - flat(H.pos)).magnitude
 			local low = crouching[p]
@@ -169,7 +169,7 @@ local function botStep(H, dt)
 	end
 	-- caught anyone?
 	for p in pairs(survivors) do
-		local t = torsoOf(p.Character)
+		local t = not crawling[p] and torsoOf(p.Character)
 		if t and (flat(t.Position) - flat(H.pos)).magnitude < CATCH and math.abs(t.Position.Y - HOG_UP) < 7 then
 			catchPlayer(p)
 			H.pause = 2.5
@@ -241,7 +241,7 @@ local function hogPlayerStep()
 		local ht = torsoOf(hp.Character)
 		if ht and tick() > (hogCool[hp] or 0) then
 			for p in pairs(survivors) do
-				local t = torsoOf(p.Character)
+				local t = not crawling[p] and torsoOf(p.Character)
 				if p ~= hp and t and (t.Position - ht.Position).magnitude < 5 then
 					catchPlayer(p, hp)
 					hogCool[hp] = tick() + hh[2]
@@ -307,5 +307,93 @@ local function trapStep()
 				break
 			end
 		end
+	end
+end
+
+------------------------------------------------------------------ the STUN GUN: shoot a Hog and it's frozen for 20 seconds
+local STUN = 20
+local lastShot = {}
+local stunnedUntil = {}
+local function stunMark(part, secs)
+	if not part then return end
+	local old = part:FindFirstChild("Stunned")
+	if old then old:Destroy() end
+	local b = bill(part, "STUNNED!", 8, 2, 5, Color3.new(1, 0.95, 0.3))
+	b.Parent.Name = "Stunned"
+	delay(secs, function() pcall(function() b.Parent:Destroy() end) end)
+end
+local function stunBot(H)
+	H.pause = STUN
+	H.path, H.mode, H.sent = {}, "look", nil
+	sendMove(H, "z")
+	stunMark(H.model:FindFirstChild("Root"), STUN)
+end
+local function stunPlayer(hp)
+	stunnedUntil[hp] = tick() + STUN
+	hogCool[hp] = tick() + STUN
+	local h = hp.Character and hp.Character:FindFirstChild("Humanoid")
+	if h then h.WalkSpeed = 0 pcall(function() h.JumpPower = 0 end) end
+	stunMark(hp.Character and hp.Character:FindFirstChild("Head"), STUN)
+	toClient(hp, "big", "STUNNED!", "You can't move for 20 seconds...")
+	delay(STUN, function()
+		if hogPlayers[hp] and h then h.WalkSpeed = 17 pcall(function() h.JumpPower = 50 end) end
+	end)
+end
+local function rayHit(o, dir, ignore)
+	local ok, part, pos = pcall(function() return workspace:FindPartOnRayWithIgnoreList(Ray.new(o, dir), ignore) end)
+	if not ok then ok, part, pos = pcall(function() return workspace:FindPartOnRay(Ray.new(o, dir), ignore[1]) end) end
+	if not ok then return nil, o + dir end
+	if part and not pos then pos = o + dir.unit * math.max(0, (part.Position - o):Dot(dir.unit)) end
+	return part, pos or (o + dir)
+end
+local function shoot(p, at)
+	if not MAP or not survivors[p] or holding[p] ~= "Stun Gun" or STATE.phase ~= "hunt" then return end
+	if not pcall(function() return at.X + at.Y + at.Z end) then return end
+	if tick() - (lastShot[p] or 0) < 0.8 then return end
+	local head = p.Character and p.Character:FindFirstChild("Head")
+	if not head then return end
+	local o = head.Position
+	local dir = at - o
+	if dir.magnitude < 0.1 then return end
+	dir = dir.unit * 90
+	lastShot[p] = tick()
+	local ignore = { p.Character }
+	for _, H in ipairs(HOGS) do table.insert(ignore, H.model) end
+	local hitPart, hitPos = rayHit(o, dir, ignore)
+	local endPos = hitPos
+	local target, hogP = nil, nil
+	if hitPart then
+		for hp in pairs(hogPlayers) do if hp.Character and hitPart:IsDescendantOf(hp.Character) then hogP = hp end end
+	end
+	-- a bot Hog: the shot passes close enough to it before hitting anything else
+	local wallDist = (hitPos - o).magnitude
+	for _, H in ipairs(HOGS) do
+		local c = H.pos + V(0, 3, 0)
+		local t = (c - o):Dot(dir.unit)
+		if t > 0 and t < wallDist + 2 and (o + dir.unit * t - c).magnitude < 3.5 and (not target or t < target.t) then target = { H = H, t = t } end
+	end
+	if target then endPos = o + dir.unit * target.t hogP = nil end
+	local len = (endPos - o).magnitude
+	local beam = P(MAP.model, "StunBeam", V(0.3, 0.3, math.max(0.5, len)), CFrame.new((o + endPos) / 2, endPos), "New Yeller", "Neon", { nc = true })
+	Debris:AddItem(beam, 0.25)
+	gunShots[p] = (gunShots[p] or 1) - 1
+	if target then
+		stunBot(target.H)
+		sayAll(p.Name .. " STUNNED the Hog!", "gold")
+		addCoins(p, 10)
+	elseif hogP then
+		stunPlayer(hogP)
+		sayAll(p.Name .. " STUNNED " .. hogP.Name .. "!", "gold")
+		addCoins(p, 10)
+	end
+	if gunShots[p] <= 0 then
+		holding[p] = nil
+		takeTool(p)
+		toClient(p, "hold", nil)
+		say(p, "The Stun Gun is empty! Another one will turn up somewhere...", "gold")
+		local mapNow = MAP
+		delay(40, function() if MAP == mapNow and STATE.phase == "hunt" then spawnItem("Stun Gun") end end)
+	else
+		toClient(p, "hold", "Stun Gun", gunShots[p])
 	end
 end

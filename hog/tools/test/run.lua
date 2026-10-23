@@ -68,7 +68,7 @@ say("old map removed: " .. tostring(workspace:FindFirstChild("AirportMap") == ni
 
 -- every map on its own: rooms, paths, furniture out of the doorways, items not inside furniture
 local function count(m, pred) local n = 0 for _, o in ipairs(m:GetDescendants()) do if pred(o) then n = n + 1 end end return n end
-for _, name in ipairs({ "Hog Manor", "School" }) do
+for _, name in ipairs({ "Hog Manor", "School", "Circus" }) do
 	local before = #MOCK.errors
 	local M = D.buildMap(name)
 	for _, it in ipairs(M.def.items) do D.spawnItem(it[1]) end
@@ -77,7 +77,7 @@ for _, name in ipairs({ "Hog Manor", "School" }) do
 	local inDoor = 0
 	for _, o in ipairs(M.model:GetChildren()) do
 		if o:IsA("BasePart") and o.Name ~= "Wall" and o.Name ~= "Floor" and o.Name ~= "Ceiling" and o.Name ~= "Ground" and o.Name ~= "Roof"
-			and o.Name ~= "Runner" and o.Name ~= "Skirting" and o.Name ~= "Keyhole" and o.Name ~= "Handle" and o.Name ~= "Rug" and not o.Name:find("Window") and o.Name ~= "Boards" and o.Name ~= "Padlock" and o.Name ~= "Bolt" and not o.Name:find("Fuse") and not o.Name:find("Door") and not o.Name:find("Gate") and o.Name ~= "Lamp" then
+			and o.Name ~= "Runner" and o.Name ~= "Skirting" and o.Name ~= "Keyhole" and o.Name ~= "Handle" and o.Name ~= "Rug" and not o.Name:find("Window") and not o.Name:find("Vent") and o.Name ~= "Bulb" and o.Name ~= "Stripe" and o.Name ~= "TentRoof" and o.Name ~= "Boards" and o.Name ~= "Padlock" and o.Name ~= "Bolt" and not o.Name:find("Fuse") and not o.Name:find("Door") and not o.Name:find("Gate") and o.Name ~= "Lamp" then
 			for _, dn in ipairs(M.doorNodes) do
 				local p = o.Position
 				if math.abs(p.X - dn.p.X) < 4 and math.abs(p.Z - dn.p.Z) < 4 and p.Y < 9 then inDoor = inDoor + 1 if #MOCK.log < 30 then table.insert(MOCK.log, name .. " door " .. o.Name .. " " .. tostring(p.X) .. "," .. tostring(p.Z)) end end
@@ -102,11 +102,15 @@ for _, name in ipairs({ "Hog Manor", "School" }) do
 		table.insert(where, it.name .. "@" .. (R and R.id or "?"))
 		local want
 		for _, d in ipairs(M.def.items) do if d[1] == it.name then want = d[2] end end
-		if R and (want == "open" and R.id ~= "bedroom" and R.id ~= "cellar" and R.id ~= "lab" and R.id ~= "office" and R.id ~= "pen" or want == R.id) then itemsOk = itemsOk + 1 end
+		local lockedRoom = ({ bedroom = 1, cellar = 1, lab = 1, office = 1, clown = 1, prize = 1, pen = 1 })[R and R.id or ""]
+		if R and (want == "open" and not lockedRoom or want == R.id) then itemsOk = itemsOk + 1 end
 	end
 	table.sort(where)
-	say(string.format("%s: %d parts, %d rooms, %d path points, furniture in doorways %d, Hog reaches %d/%d rooms (%d before the locks open), %d item spots, items in allowed rooms %d/%d [%s], new errors %d",
-		name, parts, #M.rooms, #M.nodes, inDoor, reach, #M.rooms, reach0, spots, itemsOk, #M.def.items, table.concat(where, " "), #MOCK.errors - before))
+	local ventsOk = 0
+	for _, v in ipairs(M.vents) do if D.roomAt(v.at) and D.roomAt(v.to) and D.roomAt(v.at) ~= D.roomAt(v.to) then ventsOk = ventsOk + 1 end end
+	local w, d = M.maxX - M.minX, M.maxZ - M.minZ
+	say(string.format("%s: %dx%d studs, %d parts, %d rooms, %d path points, furniture in doorways %d, Hog reaches %d/%d rooms (%d before the locks open), %d item spots, items in allowed rooms %d/%d [%s], vent ends %d/%d ok, new errors %d",
+		name, w, d, parts, #M.rooms, #M.nodes, inDoor, reach, #M.rooms, reach0, spots, itemsOk, #M.def.items, table.concat(where, " "), ventsOk, #M.vents, #MOCK.errors - before))
 	M.model:Destroy()
 end
 
@@ -134,7 +138,7 @@ local inLobby = 0
 for _, p in ipairs(ps) do if (p.Character.Torso.Position - D.LOBBY).magnitude < 60 then inLobby = inLobby + 1 end end
 local remoteS = MOCK.services.ReplicatedStorage.HogEvent
 local function touchPad(p, name)
-	local kind = (name == "Hog Manor" or name == "School") and "map" or "mode"
+	local kind = (name == "Hog Manor" or name == "School" or name == "Circus") and "map" or "mode"
 	remoteS.OnServerEvent:fireNow(p, "vote", kind, name)
 	return true
 end
@@ -171,7 +175,10 @@ local p1 = ps[1]
 local function itemPart(name)
 	for m, it in pairs(M.items) do if it.name == name then return m.Handle, it end end
 end
-local function goTo(p, pos) p.Character.Torso.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0)) end
+local function goTo(p, pos)
+	p.Character.Torso.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+	p.Character.Head.CFrame = CFrame.new(pos + Vector3.new(0, 4.5, 0))
+end
 local function click(p, part)
 	goTo(p, part.Position + Vector3.new(2, 0, 0))
 	MOCK.run(0.3)
@@ -209,6 +216,41 @@ local signs = 0
 for _, o in ipairs(M.model:GetDescendants()) do if o.ClassName == "SurfaceGui" and o.Parent and (o.Parent.Name == "LockedDoor" or o.Parent.Name == "Fuse Box") then signs = signs + 1 end end
 say(string.format("walking over the Blue Key picks it up: %s, clicking it from 40 studs away: %s; the locked door is %d parts (handle + keyhole in the key's colour), hint signs on locks %d",
 	tostring(walked), tostring(far), doorParts, signs))
+-- VENTS: crouch, click the grate, come out in the other room
+local vent = M.vents[1]
+local vp
+for part, e in pairs(M.partVent) do if e == vent then vp = part end end
+goTo(p3w, vent.at + Vector3.new(2, 0, 0))
+MOCK.run(0.3)
+remoteS.OnServerEvent:fireNow(p3w, "click", vp)
+local standingIn = D.crawling()[p3w] == true
+remoteS.OnServerEvent:fireNow(p3w, "crouch", true)
+MOCK.run(0.3)
+remoteS.OnServerEvent:fireNow(p3w, "click", vp)
+MOCK.run(2)
+local outAt = D.roomAt(p3w.Character.Torso.Position)
+say(string.format("vent: standing up it won't let you in %s; crouched you crawled from the %s to the %s (vent goes to the %s)",
+	tostring(not standingIn), vent.room.name, outAt and outAt.name or "?", D.roomAt(vent.to).name))
+remoteS.OnServerEvent:fireNow(p3w, "crouch", false)
+-- the STUN GUN: pick it up, shoot the Hog, it's frozen for 20 s
+local gun = itemPart("Stun Gun")
+click(p3w, gun)
+local hasGun = D.holding()[p3w] == "Stun Gun"
+local H0 = D.getHog()
+local R0 = D.roomAt(p3w.Character.Torso.Position)
+goTo(p3w, Vector3.new(R0.cx - 4, 0, R0.cz))
+H0.pos = Vector3.new(R0.cx + 6, 0, R0.cz)
+H0.pause = 0
+D.STATE.hold = true
+D.shoot(p3w, H0.pos + Vector3.new(0, 3, 0))
+local pauseAfter = H0.pause
+MOCK.run(1)
+D.shoot(p3w, H0.pos + Vector3.new(0, 3, 0) + Vector3.new(0, 40, 0))
+MOCK.run(0.5)
+say(string.format("stun gun: picked up %s, shot the Hog -> frozen for %.0f s, 2nd shot (missed) -> gun used up %s",
+	tostring(hasGun), pauseAfter, tostring(D.holding()[p3w] == nil)))
+H0.pause = 0
+H0.pos = Vector3.new(M.pen.cx, 0, M.pen.cz)
 -- the rest of the puzzle
 local order = { { "Blue Key", "Blue Door" }, { "Hammer", "Boards" }, { "Gold Key", "Padlock" }, { "Wrench", "Bolt" } }
 for _, s in ipairs(order) do
@@ -339,6 +381,14 @@ local rj = cp.Character.HumanoidRootPart.RootJoint
 say(string.format("crouch: walk speed %s, body lowered %s, Hog 50 studs down the hall sees you standing %s / crouching %s",
 	tostring(cp.Character.Humanoid.WalkSpeed), tostring(rj.C0.p.Y < -1), tostring(seenStanding), tostring(seenCrouching)))
 remoteS.OnServerEvent:fireNow(cp, "crouch", false)
+-- THE CIRCUS
+local CM = playMode("Bot", "Circus")
+local inStart = 0
+for p in pairs(D.survivors()) do if D.roomAt(p.Character.Torso.Position) == CM.start then inStart = inStart + 1 end end
+MOCK.run(15)
+say(string.format("Circus round: map %s, survivors in the Food Court %d, items %d, Hog walked out of the lion cage %s",
+	CM.name, inStart, (function() local n = 0 for _ in pairs(CM.items) do n = n + 1 end return n end)(),
+	tostring((D.getHog().pos - Vector3.new(CM.pen.cx, 0, CM.pen.cz)).magnitude > 10)))
 -- INFECTION: whoever the Hog catches becomes a Hog
 playMode("Infection", "School")
 local first = D.hogPlayer()

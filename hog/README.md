@@ -12,11 +12,21 @@ An original Piggy-style escape game for 2016 Roblox. Open/upload `EscapeTheHog.r
   - **Infection** - a player Hog; everyone it catches turns into a Hog too.
   - **Traitor** - a bot Hog, and one of the survivors is secretly the Traitor (they can tag someone every 25 s).
   - Player modes need 2+ players (alone you get Bot). If a Hog player leaves, a bot takes over.
-- **Maps**: **Hog Manor** (bedroom, bathroom, kitchen, pantry, garage, living room, dining room, cellar) and the
-  **School** (classrooms, science lab, library, cafeteria, gym, principal's office, entrance). Door frames, skirting
-  boards, moonlit windows, rugs, furniture in every room and flickering lights.
+- **Maps** (all have door frames, skirting boards, rugs, furniture in every room and flickering lights):
+  - **Hog Manor** (150 x 118 studs, 14 rooms): nursery, laundry room, study, library, bedroom, bathroom, kitchen,
+    pantry, garage, living room, dining room, cellar, the hallway and the Hog's pen.
+  - **School** (178 x 128, 14 rooms): two classrooms, the science lab, library, cafeteria, gym, principal's office,
+    entrance, art room, music room, locker room, nurse's office, the hallway and the janitor's closet.
+  - **Circus** (308 x 170 - the biggest): open-air plazas under the night sky with strings of coloured lights (the
+    Ticket Plaza, the Midway, the Food Court with food carts, Animal Cages, the Ferris Wheel Park with a giant ferris
+    wheel), the huge red-and-white striped **Big Top** with its ring, bleachers and trapezes, the blue Clown Tent, the
+    Funhouse, the Prize Booth, and the Lion Cage where the Hog waits.
+- **Vents**: every map has 3 vents (grates in the floor) joined in pairs. **Crouch and click a grate** to crawl
+  through to the other end (1.5 s in the dark). The Hog can't follow you and can't see you while you crawl.
+- **Stun Gun**: one is hidden on every map. Hold it and **click at the Hog**: it's frozen for **20 seconds** (bot
+  Hogs and player Hogs). 2 shots, then it's used up and another one turns up somewhere 40 seconds later.
 - **The round**: everyone is locked inside. The Hog waits in its pen and gets out after 15 seconds. You have 8 minutes.
-- **Items**: keys, a hammer, a wrench and a fuse are hidden in random places each round (they glow a little).
+- **Items**: keys, a hammer, a wrench, a fuse and the stun gun are hidden in random places each round (they glow a little).
   **Click** one to pick it up (it lights up and shows its name when you point at it). You can only carry **one**;
   clicking another swaps them. **No hints**: locked doors are plain wooden doors with a handle and keyhole the colour
   of their key, and nothing tells you what goes where - work it out and **click** the lock with the right item.
@@ -29,7 +39,7 @@ An original Piggy-style escape game for 2016 Roblox. Open/upload `EscapeTheHog.r
   traps in doorways (stuck for 5 seconds).
 - **Saved**: Coins and Escapes are saved between visits (DataStore, if the server allows it).
 - **Admin**: the admin panel works only for asdasda (checked on the server, FilteringEnabled on).
-- Built for Chromebooks: about 400 parts per map, only the map being played exists, and the Hogs' walking is drawn
+- Built for Chromebooks: 550-620 parts per map, only the map being played exists, and the Hogs' walking is drawn
   on each player's computer (no physics).
 
 Build: `python3 tools/build.py`. Test (mock Roblox): `python3 tools/test/runner.py`.

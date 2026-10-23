@@ -79,7 +79,7 @@ local function lobbySpot() return LOBBY + V(math.random(-12, 12), 3.5, math.rand
 local boardText = { Text = "" }       -- (the last round's result; shown on the menu)
 
 ------------------------------------------------------------------ voting (on the menu screen): the map and the Hog
-local MAP_NAMES = { "Hog Manor", "School" }
+local MAP_NAMES = { "Hog Manor", "School", "Circus" }
 local MODE_NAMES = { "Bot", "Player", "Player + Bot", "Infection", "Swarm", "Traitor" }
 local votes = { map = {}, mode = {} }
 local ready = {}            -- players who pressed PLAY (they're in the next round)
