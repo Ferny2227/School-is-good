@@ -6,7 +6,7 @@
 -- items = { item name, "open" (any room that isn't locked) or the id of the room it's always in }
 local MAPS = {}
 MAPS["Hog Manor"] = {
-	H = 14, start = "living", pen = "pen", outside = "Earth green", trim = "Dark orange",
+	H = 18, scale = 1.25, start = "living", pen = "pen", outside = "Earth green", trim = "Dark orange",
 	rooms = {
 		{ id = "nursery", name = "Nursery", x1 = 0, z1 = -34, x2 = 36, z2 = 0, floor = "Pastel light blue", fmat = "Fabric", wall = "Pink", kind = "nursery" },
 		{ id = "laundry", name = "Laundry Room", x1 = 36, z1 = -34, x2 = 64, z2 = 0, floor = "Institutional white", fmat = "Marble", wall = "Light stone grey", kind = "laundry" },
@@ -39,7 +39,7 @@ MAPS["Hog Manor"] = {
 	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Generator", "Wrench" }, { "Keypad" } },
 }
 MAPS["School"] = {
-	H = 15, start = "cafeteria", pen = "pen", outside = "Dark stone grey", trim = "Medium stone grey",
+	H = 19, scale = 1.25, start = "cafeteria", pen = "pen", outside = "Dark stone grey", trim = "Medium stone grey",
 	rooms = {
 		{ id = "classA", name = "Classroom A", x1 = 0, z1 = 0, x2 = 40, z2 = 34, floor = "Light stone grey", fmat = "Marble", wall = "Pastel light blue", kind = "class" },
 		{ id = "classB", name = "Classroom B", x1 = 40, z1 = 0, x2 = 80, z2 = 34, floor = "Light stone grey", fmat = "Marble", wall = "Pastel yellow", kind = "class" },
@@ -109,7 +109,7 @@ MAPS["Circus"] = {
 		{ "tree", 10, 15 }, { "tree", 290, 12 }, { "tree", 12, 240 }, { "tree", 215, 240 }, { "tree", 294, 184 }, { "tree", 88, 100 },
 		{ "tree", 215, 100 }, { "tree", 130, 60 },
 	},
-	vents = { { "cafeteria", "bigtop" }, { "arcade", "fair" }, { "haunted", "cafeteria" } },
+	vents = { { "cafeteria", "bigtop" }, { "arcade", { "fair", 270, 66 } }, { "haunted", { "fair", 60, 168 } } },
 	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Keycard", "storage" }, { "Gold Key", "security" }, { "Wrench", "coaster" }, { "Stun Gun", "open" } },
 	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Generator", "Wrench" }, { "Keypad" } },
 }
@@ -339,15 +339,21 @@ local function buildMap(name)
 	end
 	local minX, minZ, maxX, maxZ = 1e9, 1e9, -1e9, -1e9
 	for _, r in ipairs(def.rooms) do
-		local R = { def = r, id = r.id, name = r.name, x1 = r.x1, z1 = r.z1, x2 = r.x2, z2 = r.z2, kind = r.kind, open = {}, blocked = {}, spots = {} }
-		R.cx, R.cz, R.w, R.d = (r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2, r.x2 - r.x1, r.z2 - r.z1
+		local k = def.scale or 1
+		local R = { def = r, id = r.id, name = r.name, x1 = r.x1 * k, z1 = r.z1 * k, x2 = r.x2 * k, z2 = r.z2 * k, kind = r.kind, open = {}, blocked = {}, spots = {} }
+		R.cx, R.cz, R.w, R.d = (R.x1 + R.x2) / 2, (R.z1 + R.z2) / 2, R.x2 - R.x1, R.z2 - R.z1
 		table.insert(M.rooms, R)
 		M.byId[r.id] = R
-		minX, minZ, maxX, maxZ = math.min(minX, r.x1), math.min(minZ, r.z1), math.max(maxX, r.x2), math.max(maxZ, r.z2)
+		minX, minZ, maxX, maxZ = math.min(minX, R.x1), math.min(minZ, R.z1), math.max(maxX, R.x2), math.max(maxZ, R.z2)
 	end
 	M.minX, M.minZ, M.maxX, M.maxZ = minX, minZ, maxX, maxZ
 	-- the ground around the building
-	wpart("Ground", maxX - minX + 200, 2, maxZ - minZ + 200, (minX + maxX) / 2, -2.2, (minZ + maxZ) / 2, def.outside, def.outside == "Dark stone grey" and "Concrete" or "Grass")
+	local gm = def.outside == "Dark stone grey" and "Concrete" or "Grass"
+	local cxm, czm, wm, dm = (minX + maxX) / 2, (minZ + maxZ) / 2, maxX - minX, maxZ - minZ
+	wpart("Ground", wm + 200, 2, 100, cxm, -2.2, minZ - 50, def.outside, gm)
+	wpart("Ground", wm + 200, 2, 100, cxm, -2.2, maxZ + 50, def.outside, gm)
+	wpart("Ground", 100, 2, dm, minX - 50, -2.2, czm, def.outside, gm)
+	wpart("Ground", 100, 2, dm, maxX + 50, -2.2, czm, def.outside, gm)
 	if not def.noRoof then wpart("Roof", maxX - minX + 4, 1, maxZ - minZ + 4, (minX + maxX) / 2, H + 1, (minZ + maxZ) / 2, "Black", "Slate") end
 	-- doorways: where each one cuts the walls, and a path point in the middle of it
 	local function addNode(x, z, room) local n = { p = V(x, 0, z), links = {}, room = room } table.insert(M.nodes, n) return n end
@@ -355,7 +361,7 @@ local function buildMap(name)
 	M.doorNodes = {}
 	for _, d in ipairs(def.doors) do
 		local A, B = M.byId[d[1]], M.byId[d[2]]
-		local at = d[3]
+		local at = d[3] * (def.scale or 1)
 		local x, z, sideA, sideB
 		if d[2] == "out" or (B and B.kind == "open") then
 			sideA = d.side
@@ -372,12 +378,59 @@ local function buildMap(name)
 		table.insert(M.doorNodes, node)
 		d.node = node
 	end
+	-- VENTS (like Piggy): a square hole in the floor of one room, a tunnel under the floor, and a hole in another room.
+	-- The tunnel is only 4.6 studs high: you must CROUCH to crawl through it. Ladders get you back out. The Hog can't
+	-- follow you down there (and can't see you).
+	M.vents = {}
+	local holes = {}
+	for vi, v in ipairs(def.vents or {}) do
+		local ends = {}
+		for k = 1, 2 do
+			local e = v[k]
+			local R, q
+			if type(e) == "table" then
+				R, q = M.byId[e[1]], V(e[2], 0, e[3])
+			else
+				-- the middle of a wall with no doorway near it, 4 studs out from the wall
+				R = M.byId[e]
+				local cands = { V(R.cx, 0, R.z1 + 4.5), V(R.cx, 0, R.z2 - 4.5), V(R.x1 + 4.5, 0, R.cz), V(R.x2 - 4.5, 0, R.cz) }
+				for _, c in ipairs(cands) do
+					local ok = true
+					for _, dn in ipairs(M.doorNodes) do if (flat(dn.p) - c).magnitude < 9 then ok = false end end
+					for _, h in ipairs(holes) do if (h - c).magnitude < 8 then ok = false end end
+					if ok and not q then q = c end
+				end
+				q = q or V(R.cx + R.w / 4, 0, R.cz + R.d / 4)
+			end
+			table.insert(holes, q)
+			ends[k] = { at = q, room = R }
+		end
+		table.insert(M.vents, { a = ends[1], b = ends[2], level = vi - 1 })
+	end
 	-- floors, ceilings, walls with gaps, a lamp in every room
 	for _, R in ipairs(M.rooms) do
 		local r = R.def
 		local RH = r.h or H
 		R.h = RH
-		wpart("Floor", R.w, 1, R.d, R.cx, r.inside and -0.95 or -1, R.cz, r.floor, r.fmat or "WoodPlanks")
+		-- the floor, in pieces round any vent holes
+		local fy = r.inside and -0.95 or -1
+		local function floorPiece(x1, z1, x2, z2, list)
+			if x2 - x1 < 0.05 or z2 - z1 < 0.05 then return end
+			for i2, h in ipairs(list) do
+				if h.X + 2 > x1 and h.X - 2 < x2 and h.Z + 2 > z1 and h.Z - 2 < z2 then
+					local rest = {}
+					for j2, h2 in ipairs(list) do if j2 ~= i2 then table.insert(rest, h2) end end
+					local hx1, hx2, hz1, hz2 = math.max(x1, h.X - 2), math.min(x2, h.X + 2), math.max(z1, h.Z - 2), math.min(z2, h.Z + 2)
+					floorPiece(x1, z1, hx1, z2, rest)
+					floorPiece(hx2, z1, x2, z2, rest)
+					floorPiece(hx1, z1, hx2, hz1, rest)
+					floorPiece(hx1, hz2, hx2, z2, rest)
+					return
+				end
+			end
+			wpart("Floor", x2 - x1, 1, z2 - z1, (x1 + x2) / 2, fy, (z1 + z2) / 2, r.floor, r.fmat or "WoodPlanks")
+		end
+		floorPiece(R.x1, R.z1, R.x2, R.z2, holes)
 		if not r.outdoor then wpart("Ceiling", R.w, 1, R.d, R.cx, RH, R.cz, r.tent and r.tent[2] or "Dark stone grey", r.tent and "Fabric" or "SmoothPlastic") end
 		if r.tent then
 			-- a striped tent roof going up to a point, with a flag on top
@@ -811,29 +864,69 @@ local function buildMap(name)
 		for _, q in ipairs(cand) do
 			local nearDoor = false
 			for _, dn in ipairs(M.doorNodes) do if (flat(dn.p) - flat(q)).magnitude < 7 then nearDoor = true end end
+			for _, h in ipairs(holes) do if (h - flat(q)).magnitude < 5 then nearDoor = true end end
 			if not nearDoor and not blocked(R, q.X, q.Z, 1.5) then table.insert(R.spots, q) end
 		end
 	end
-	-- VENTS: a grate in the floor of one room joined to a grate in another. Crouch, click it, and you crawl through -
-	-- the Hog can't follow (it doesn't know the vents)
-	M.vents, M.partVent = {}, {}
-	for _, v in ipairs(def.vents or {}) do
-		local ends = {}
-		for k = 1, 2 do
-			local R = M.byId[v[k]]
-			local idx = nil
-			for i2, q in ipairs(R.spots) do if q.Y == 0 and not idx then idx = i2 end end
-			local q = idx and table.remove(R.spots, idx) or V(R.cx + R.w / 4, 0, R.cz + R.d / 4)
-			local parts = {}
-			table.insert(parts, P(m, "Vent", V(4, 0.3, 4), CFrame.new(q + V(0, 0.15, 0)), "Dark stone grey", "DiamondPlate", { nc = true }))
-			for i2 = -1, 1 do table.insert(parts, P(m, "VentSlat", V(3.4, 0.35, 0.4), CFrame.new(q + V(0, 0.2, i2 * 1.1)), "Black", "Metal", { nc = true })) end
-			ends[k] = { at = q, parts = parts, room = R }
+	-- the vent tunnels: an L under the floors from one hole to the other (each vent at its own depth so they never cross)
+	local DUCT, DH2 = "Medium stone grey", 4.6
+	for _, v in ipairs(M.vents) do
+		local top = -1.6 - v.level * 6.5          -- the bottom of the tunnel's ceiling
+		local bot = top - DH2                     -- the tunnel's floor
+		local A, B = v.a.at, v.b.at
+		local function slab(x1, z1, x2, z2, y0, h, name)
+			local lx, lz = math.abs(x2 - x1), math.abs(z2 - z1)
+			if lx < 0.05 or lz < 0.05 then return end
+			wpart(name or "Duct", lx, h, lz, (x1 + x2) / 2, y0, (z1 + z2) / 2, DUCT, "DiamondPlate")
 		end
-		for k = 1, 2 do
-			local e = { at = ends[k].at, to = ends[3 - k].at, room = ends[k].room }
-			for _, part in ipairs(ends[k].parts) do M.partVent[part] = e end
-			table.insert(M.vents, e)
+		local sx = (B.X >= A.X) and 1 or -1
+		local sz = (B.Z >= A.Z) and 1 or -1
+		local C = V(B.X, 0, A.Z)
+		-- along X from A to the corner, then along Z to B
+		slab(A.X - sx * 2.5, A.Z - 2.5, C.X + sx * 2.5, A.Z + 2.5, bot - 0.6, 0.6, "DuctFloor")
+		slab(C.X - 2.5, A.Z, C.X + 2.5, B.Z + sz * 2.5, bot - 0.6, 0.6, "DuctFloor")
+		-- the ceiling, with a gap under each hole
+		local function topPiece(x1, z1, x2, z2)
+			local lo, hi = math.min(x1, x2), math.max(x1, x2)
+			local lz, hz = math.min(z1, z2), math.max(z1, z2)
+			local cut = {}
+			for _, q in ipairs({ A, B }) do if q.X > lo - 2 and q.X < hi + 2 and q.Z > lz - 2 and q.Z < hz + 2 then table.insert(cut, q) end end
+			-- split along the tunnel round the holes (holes are 4 x 4, tunnels 5 wide)
+			local alongX = (hi - lo) >= (hz - lz)
+			local a0, a1 = alongX and lo or lz, alongX and hi or hz
+			table.sort(cut, function(p1, p2) if alongX then return p1.X < p2.X end return p1.Z < p2.Z end)
+			local cur = a0
+			for _, q in ipairs(cut) do
+				local c = alongX and q.X or q.Z
+				if alongX then slab(cur, lz, c - 2, hz, top, 0.6, "DuctTop") else slab(lo, cur, hi, c - 2, top, 0.6, "DuctTop") end
+				cur = c + 2
+			end
+			if alongX then slab(cur, lz, a1, hz, top, 0.6, "DuctTop") else slab(lo, cur, hi, a1, top, 0.6, "DuctTop") end
 		end
+		topPiece(A.X - sx * 2.5, A.Z - 2.5, C.X + sx * 2.5, A.Z + 2.5)
+		if math.abs(B.Z - A.Z) > 2.5 then topPiece(C.X - 2.5, A.Z + sz * 2.5, C.X + 2.5, B.Z + sz * 2.5) end
+		slab(A.X - sx * 2.5, A.Z + sz * 2.5, C.X - sx * 2.5, A.Z + sz * 3.1, bot, DH2)          -- the inside wall
+		slab(A.X - sx * 2.5, A.Z - sz * 3.1, C.X + sx * 3.1, A.Z - sz * 2.5, bot, DH2)          -- the outside wall
+		slab(C.X - sx * 3.1, A.Z + sz * 2.5, C.X - sx * 2.5, B.Z + sz * 2.5, bot, DH2)
+		slab(C.X + sx * 2.5, A.Z - sz * 2.5, C.X + sx * 3.1, B.Z + sz * 3.1, bot, DH2)
+		slab(A.X - sx * 3.1, A.Z - 2.5, A.X - sx * 2.5, A.Z + 2.5, bot, DH2)                    -- the ends
+		slab(C.X - 2.5, B.Z + sz * 2.5, C.X + 2.5, B.Z + sz * 3.1, bot, DH2)
+		-- at each end: a shaft up to the room (deeper vents), a metal frame round the hole, a ladder
+		for _, e in ipairs({ v.a, v.b }) do
+			local q = e.at
+			if top + 0.6 < -1 then
+				slab(q.X - 2.6, q.Z - 2.6, q.X + 2.6, q.Z - 2, top + 0.6, -1 - top - 0.6, "Shaft")
+				slab(q.X - 2.6, q.Z + 2, q.X + 2.6, q.Z + 2.6, top + 0.6, -1 - top - 0.6, "Shaft")
+				slab(q.X - 2.6, q.Z - 2, q.X - 2, q.Z + 2, top + 0.6, -1 - top - 0.6, "Shaft")
+				slab(q.X + 2, q.Z - 2, q.X + 2.6, q.Z + 2, top + 0.6, -1 - top - 0.6, "Shaft")
+			end
+			for _, o in ipairs({ { 0, -2.2, 4.8, 0.4 }, { 0, 2.2, 4.8, 0.4 }, { -2.2, 0, 0.4, 4 }, { 2.2, 0, 0.4, 4 } }) do
+				wpart("VentFrame", o[3], 0.3, o[4], q.X + o[1], 0, q.Z + o[2], "Dark stone grey", "Metal")
+			end
+			P(m, "VentLadder", V(2, math.floor((-bot + 1) / 2) * 2, 2), CFrame.new(q.X + 1, bot + (-bot + 1) / 2, q.Z + 1), "Dark stone grey", "Metal", { class = "TrussPart" })
+			light(wpart("DuctLight", 0.6, 0.3, 0.6, q.X - 1.5, top - 0.3, q.Z - 1.5, "Pastel yellow", "Neon", { nc = true }), Color3.new(1, 0.9, 0.6), 10, 0.4)
+		end
+		v.top, v.bot = top, bot
 	end
 	-- locked doors (a coloured door in the doorway; use the key on it), the Hog's gate, the exit
 	M.partItem, M.partLock = {}, {}

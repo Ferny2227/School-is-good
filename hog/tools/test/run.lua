@@ -140,7 +140,10 @@ for _, name in ipairs({ "Hog Manor", "School", "Circus" }) do
 		say(string.format("  %s open fair: %d grid points, doorways with no path out %d, Hog paths through a wall %d", name, #fair.nodes, lonelyDoors, badPath))
 	end
 	local ventsOk = 0
-	for _, v in ipairs(M.vents) do if D.roomAt(v.at) and D.roomAt(v.to) and D.roomAt(v.at) ~= D.roomAt(v.to) then ventsOk = ventsOk + 1 end end
+	for _, v in ipairs(M.vents) do
+		local ra, rb = D.roomAt(v.a.at), D.roomAt(v.b.at)
+		if ra and rb and ra ~= rb then ventsOk = ventsOk + 1 end
+	end
 	local w, d = M.maxX - M.minX, M.maxZ - M.minZ
 	say(string.format("%s: %dx%d studs, %d parts, %d rooms, %d path points, furniture in doorways %d, Hog reaches %d/%d rooms (%d before the locks open), %d item spots, items in allowed rooms %d/%d [%s], vent ends %d/%d ok, new errors %d",
 		name, w, d, parts, #M.rooms, #M.nodes, inDoor, reach, #M.rooms, reach0, spots, itemsOk, #M.def.items, table.concat(where, " "), ventsOk, #M.vents, #MOCK.errors - before))
@@ -252,21 +255,50 @@ local signs = 0
 for _, o in ipairs(M.model:GetDescendants()) do if o.ClassName == "SurfaceGui" and o.Parent and (o.Parent.Name == "LockedDoor" or o.Parent.Name == "Fuse Box") then signs = signs + 1 end end
 say(string.format("walking over the Blue Key picks it up: %s, clicking it from 40 studs away: %s; the locked door is %d parts (handle + keyhole in the key's colour), hint signs on locks %d",
 	tostring(walked), tostring(far), doorParts, signs))
--- VENTS: crouch, click the grate, come out in the other room
+-- VENTS: a hole in the floor, a tunnel too low to stand in, a ladder out at the other end
 local vent = M.vents[1]
-local vp
-for part, e in pairs(M.partVent) do if e == vent then vp = part end end
-goTo(p3w, vent.at + Vector3.new(2, 0, 0))
-MOCK.run(0.3)
-remoteS.OnServerEvent:fireNow(p3w, "click", vp)
-local standingIn = D.crawling()[p3w] == true
+local A, B = vent.a.at, vent.b.at
+local hitA = workspace:FindPartOnRay(Ray.new(A + Vector3.new(0, 2, 0), Vector3.new(0, -30, 0)))
+local hitB = workspace:FindPartOnRay(Ray.new(B + Vector3.new(0, 2, 0), Vector3.new(0, -30, 0)))
+local height = vent.top - vent.bot
+-- walk the tunnel: nothing in the way at crouching height (0.5 .. 3.9 above its floor), but a standing player's
+-- head (5 studs up) hits the ceiling
+local function blockedAt(q, y)
+	return workspace:FindPartOnRay(Ray.new(Vector3.new(q.X, vent.bot + y, q.Z), Vector3.new(0, 0.01, 0))) ~= nil
+end
+local C = Vector3.new(B.X, 0, A.Z)
+local clearRun, n = true, 0
+for t = 0.15, 0.85, 0.05 do
+	for _, seg in ipairs({ { A, C }, { C, B } }) do
+		local q = seg[1] + (seg[2] - seg[1]) * t
+		n = n + 1
+		for _, y in ipairs({ 1, 2, 3, 3.9 }) do
+			local r = workspace:FindPartOnRay(Ray.new(Vector3.new(q.X, vent.bot + y, q.Z), Vector3.new(0.01, 0, 0.01)))
+			if r then clearRun = false end
+		end
+	end
+end
+say(string.format("vent: hole goes down to the tunnel %s/%s (%s / %s), tunnel %.1f studs high (standing needs 5, crouching 3.9), tunnel clear to crawl %s",
+	tostring(hitA and (hitA.Name == "DuctFloor" or hitA.Name == "VentLadder")), tostring(hitB and (hitB.Name == "DuctFloor" or hitB.Name == "VentLadder")), hitA and hitA.Name or "-", hitB and hitB.Name or "-", height, tostring(clearRun)))
+-- down in the tunnel the Hog can't see or catch you, and you can't stand up
 remoteS.OnServerEvent:fireNow(p3w, "crouch", true)
+goTo(p3w, Vector3.new(A.X, vent.bot + 0.05, A.Z))
+local Hv = D.getHog()
+local backTo = {}
+for _, p in ipairs(ps) do if p ~= p3w then backTo[p] = p.Character.Torso.Position goTo(p, Vector3.new(-320, 0, 0)) end end
+Hv.pos, Hv.mode, Hv.path, Hv.pause = Vector3.new(A.X + 2, 0, A.Z), "patrol", {}, 0
+D.STATE.hold = false
+MOCK.run(1)
+D.STATE.hold = true
+local safe = D.survivors()[p3w] == true and Hv.mode ~= "chase"
+for p, at in pairs(backTo) do goTo(p, at - Vector3.new(0, 3, 0)) end
+remoteS.OnServerEvent:fireNow(p3w, "crouch", false)
+say(string.format("in the vent: marked as crawling %s, Hog right above didn't catch or chase %s (survivor %s, hog %s), standing up refused %s",
+	tostring(D.crawling()[p3w] == true), tostring(safe), tostring(D.survivors()[p3w]), Hv.mode, tostring(D.crouching()[p3w] == true)))
+goTo(p3w, Vector3.new(M.start.cx, 0, M.start.cz))
+D.STATE.hold = false
 MOCK.run(0.3)
-remoteS.OnServerEvent:fireNow(p3w, "click", vp)
-MOCK.run(2)
-local outAt = D.roomAt(p3w.Character.Torso.Position)
-say(string.format("vent: standing up it won't let you in %s; crouched you crawled from the %s to the %s (vent goes to the %s)",
-	tostring(not standingIn), vent.room.name, outAt and outAt.name or "?", D.roomAt(vent.to).name))
+D.STATE.hold = true
 remoteS.OnServerEvent:fireNow(p3w, "crouch", false)
 -- the STUN GUN: pick it up, shoot the Hog, it's frozen for 20 s
 local gun = itemPart("Stun Gun")

@@ -80,6 +80,13 @@ local function escapeStep()
 		if t and t.Position.X > z[1] and t.Position.X < z[3] and t.Position.Z > z[2] and t.Position.Z < z[4] then escape(p) end
 	end
 end
+-- who's down in a vent tunnel (below the floor)?
+local function ventStep()
+	for p in pairs(survivors) do
+		local t = torsoOf(p.Character)
+		crawling[p] = (t and t.Position.Y < -1) or nil
+	end
+end
 local function survivorCount() local n = 0 for _ in pairs(survivors) do n = n + 1 end return n end
 local function clearMap()
 	for _, tr in ipairs(traps) do pcall(function() tr.model:Destroy() end) end
@@ -255,7 +262,8 @@ spawn(function()
 		local dt = math.min(0.3, now - last)
 		last = now
 		if STATE.phase == "hunt" and MAP and not STATE.hold then
-			for name, f in pairs({ bot = function() botsStep(dt) end, hog = hogPlayerStep, traps = trapStep, exit = escapeStep }) do
+			for _, sys in ipairs({ { "vents", ventStep }, { "bot", function() botsStep(dt) end }, { "hog", hogPlayerStep }, { "traps", trapStep }, { "exit", escapeStep } }) do
+				local name, f = sys[1], sys[2]
 				local ok, err = pcall(f)
 				if not ok and not reported[name] then
 					reported[name] = true

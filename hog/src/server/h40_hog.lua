@@ -174,7 +174,7 @@ local function botStep(H, dt)
 	-- caught anyone?
 	for p in pairs(survivors) do
 		local t = not crawling[p] and torsoOf(p.Character)
-		if t and (flat(t.Position) - flat(H.pos)).magnitude < CATCH and math.abs(t.Position.Y - HOG_UP) < 7 then
+		if t and (flat(t.Position) - flat(H.pos)).magnitude < CATCH and math.abs(t.Position.Y - HOG_UP) < 4.5 then
 			catchPlayer(p)
 			H.pause = 2.5
 			H.path = {}
@@ -263,6 +263,12 @@ local JOINTS = { "RootJoint", "Right Hip", "Left Hip" }
 local function setCrouch(p, on)
 	on = on and true or nil
 	if not survivors[p] and on then return end
+	if not on and crawling[p] and survivors[p] then
+		-- no room to stand up in a vent tunnel
+		say(p, "No room to stand up in here!", "gold")
+		toClient(p, "crouchforce", true)
+		return
+	end
 	if crouching[p] == on then return end
 	crouching[p] = on
 	local c = p.Character

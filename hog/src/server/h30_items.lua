@@ -9,7 +9,7 @@ local crouching = {}        -- player -> true while crouching
 local stuck = {}            -- player -> true while caught in a trap
 local onHeard               -- (the Hog hears doors being unlocked; set in h40_hog.lua)
 local gunShots = {}         -- player -> shots left in the Stun Gun
-local crawling = {}         -- player -> true while crawling through a vent (the Hog can't see them)
+local crawling = {}         -- player -> true while down in a vent tunnel (the Hog can't see or catch them)
 -- what each item looks like (made of small parts, lying flat, long side along Z). `base` is where it sits; the same
 -- shape is used in your hand (the part called "Handle" is where you hold it)
 local function itemLook(m, name, base)
@@ -226,26 +226,6 @@ local function hookLocks()
 			end
 		end
 	end
-	for part in pairs(MAP.partVent) do MAP.clickable(part) end
-end
--- crawl through a vent: 1.5 seconds in the dark, then you come out of the other grate
-local function crawl(p, vent)
-	if crawling[p] then return end
-	if not crouching[p] then say(p, "Crouch (press C) to crawl into the vent!", "gold") return end
-	local t = torsoOf(p.Character)
-	local h = p.Character and p.Character:FindFirstChild("Humanoid")
-	if not t then return end
-	crawling[p] = true
-	if h then h.WalkSpeed = 0 end
-	toClient(p, "vent")
-	t.CFrame = CFrame.new(vent.at + V(0, 3, 0))
-	delay(1.5, function()
-		crawling[p] = nil
-		if not survivors[p] or not MAP then return end
-		local t2 = torsoOf(p.Character)
-		if t2 then t2.CFrame = CFrame.new(vent.to + V(3, 3, 0)) end
-		if h and not stuck[p] then h.WalkSpeed = crouching[p] and 8 or 16 end
-	end)
 end
 -- a player clicked something in the map (their computer sends what the mouse was on)
 local lastClick = {}
@@ -259,11 +239,6 @@ local function clickPart(p, part)
 	if not t or not ok or (t.Position - pos).magnitude > 16 then return end
 	if MAP.partNote and MAP.partNote[part] then
 		toClient(p, "note", MAP.code)
-		return
-	end
-	local vent = MAP.partVent[part]
-	if vent then
-		crawl(p, vent)
 		return
 	end
 	local it = MAP.partItem[part]

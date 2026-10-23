@@ -157,7 +157,7 @@ local function showHowTo()
 		"2.  You're locked inside. After 15 seconds the Hog gets out and hunts you.\n\n" ..
 		"3.  Find the items hidden around the map. CLICK an item to pick it up - you can only hold ONE.\n\n" ..
 		"4.  Figure out where each item goes and CLICK it there. Find the CODE NOTE for the keypad. Then ESCAPE!\n\n" ..
-		"5.  Press C (or CROUCH) to sneak. Crouch and click a VENT grate in the floor to crawl to another room.\n\n" ..
+		"5.  Press C or CTRL (or CROUCH) to sneak. Drop into a VENT hole in the floor and CROUCH to crawl through the tunnel - the Hog can't follow!\n\n" ..
 		"6.  Found the STUN GUN? Click at the Hog to freeze it for 20 seconds (2 shots).", 24, C.white)
 	body.TextWrapped = true
 	pcall(function() body.TextXAlignment = Enum.TextXAlignment.Left body.TextYAlignment = Enum.TextYAlignment.Top end)
@@ -366,7 +366,7 @@ local mouse = player:GetMouse()
 local function keyC() if screen == "game" and role == "survivor" then setCrouched(not crouched) end end
 local okUIS = pcall(function()
 	game:GetService("UserInputService").InputBegan:connect(function(input, busy)
-		if not busy and input.KeyCode == Enum.KeyCode.C then keyC() end
+		if not busy and (input.KeyCode == Enum.KeyCode.C or input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl) then keyC() end
 	end)
 end)
 if not okUIS then mouse.KeyDown:connect(function(k) if k == "c" then keyC() end end) end
@@ -486,17 +486,13 @@ remote.OnClientEvent:connect(function(what, a, b, c, d, e, f, g)
 		local close = button(f, UDim2.new(0.5, -50, 1, -42), UDim2.new(0, 100, 0, 32), "CLOSE", rgb(50, 50, 55), nil, 18)
 		close.MouseButton1Click:connect(function() f:Destroy() end)
 		z(f, 7)
+	elseif what == "crouchforce" then
+		if not crouched then setCrouched(true) end
 	elseif what == "keypadok" then
 		if gui:FindFirstChild("KeypadView") then gui.KeypadView:Destroy() end
 		sound("rbxasset://sounds/electronicpingshort.wav", 0.8, 2)
 	elseif what == "keypadbad" then
 		sound("rbxasset://sounds/electronicpingshort.wav", 1, 0.5)
-	elseif what == "vent" then
-		-- crawling through a vent: dark for a moment
-		local f = frame(gui, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), C.black, 0)
-		label(f, UDim2.new(0.5, -300, 0.5, -30), UDim2.new(0, 600, 0, 60), "crawling through the vent...", 36, C.grey, "Cartoon")
-		z(f, 8)
-		delay(1.5, function() f:Destroy() end)
 	elseif what == "howto" then
 		showHowTo()
 	elseif what == "votes" then
