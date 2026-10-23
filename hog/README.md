@@ -13,19 +13,31 @@ An original Piggy-style escape game for 2016 Roblox. Open/upload `EscapeTheHog.r
   - **Traitor** - a bot Hog, and one of the survivors is secretly the Traitor (they can tag someone every 25 s).
   - Player modes need 2+ players (alone you get Bot). If a Hog player leaves, a bot takes over.
 - **Maps** (all have door frames, skirting boards, rugs, furniture in every room and flickering lights):
-  - **Hog Manor** (150 x 118 studs, 14 rooms): nursery, laundry room, study, library, bedroom, bathroom, kitchen,
-    pantry, garage, living room, dining room, cellar, the hallway and the Hog's pen.
-  - **School** (178 x 128, 14 rooms): two classrooms, the science lab, library, cafeteria, gym, principal's office,
-    entrance, art room, music room, locker room, nurse's office, the hallway and the janitor's closet.
+  - **Hog Manor** (166 x 118 studs, 16 rooms): nursery, laundry room, study, library, greenhouse, bedroom, bathroom,
+    kitchen, pantry, garage, living room, dining room, cellar, the security room (keycard door), the hallway and the
+    Hog's pen.
+  - **School** (178 x 162, 16 rooms): two classrooms, the science lab, library, computer lab (keycard door),
+    cafeteria, gym, principal's office, entrance, art room, music room, locker room, nurse's office, auditorium, the
+    hallway and the janitor's closet.
   - **Circus** (300 x 250 - the biggest, made like Piggy's Carnival): no rooms - one big OPEN fair at night inside a
     purple fence with a white picket fence, cobblestone paths, lamp posts with glowing lanterns and trees. Standing
     around in it: the giant red-and-white striped **Big Top** (ring, bleachers, trapezes, spotlights, and two metal
     platforms up high with ladders - the Hog can't climb them), the **cafeteria**, a red **storage shed** (Red Door),
-    the **arcade** (game machines, claw machine), the **roller coaster** "The Pig Dipper" behind a blue gate (Blue
+    the **arcade** (game machines, claw machine), the **security office** (keycard door), the **haunted house**
+    (coffins, tombstones, a bubbling cauldron), the **roller coaster** "The Pig Dipper" behind a blue gate (Blue
     Door), a big **ferris wheel**, a **carousel** with horses, ticket booths, food carts, a popcorn stand, game
     stalls, balloons and benches. The Hog waits in the clowns' trailer; the way out is the gate under the big
     **HOG'S CARNIVAL** arch (boards, padlock, bolt). The bot walks a grid of paths all over the fair, round the
     buildings and rides.
+- **Puzzles like Piggy** (nothing tells you what goes where):
+  - Items look like the real thing: keys with a round bow and teeth (red, blue, gold), a claw hammer, a wrench, a
+    glass fuse, a keycard with a chip, and the stun gun - and you hold the same model in your hand.
+  - **Keycard doors**: grey metal doors with a card reader (green light). The keycard is behind another locked door.
+  - **The exit** needs everything: boards (hammer), a padlock (gold key), a **generator** (wrench - Manor and Circus)
+    or the **fuse box** (fuse - School), and a **keypad**: find the **code note** lying somewhere (a new 4-digit code
+    every round), click the keypad and type it in. A wrong code beeps loudly and the Hog comes running.
+- **Harder**: picking items up makes a noise the Hog can hear nearby, it hears every lock you open, it gets a bit
+  faster with every lock (up to +6%), and it lays 4 traps.
 - **Vents**: every map has 3 vents (grates in the floor) joined in pairs. **Crouch and click a grate** to crawl
   through to the other end (1.5 s in the dark). The Hog can't follow you and can't see you while you crawl.
 - **Stun Gun**: one is hidden on every map. Hold it and **click at the Hog**: it's frozen for **20 seconds** (bot

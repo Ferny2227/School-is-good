@@ -77,7 +77,7 @@ for _, name in ipairs({ "Hog Manor", "School", "Circus" }) do
 	local inDoor = 0
 	for _, o in ipairs(M.model:GetChildren()) do
 		if o:IsA("BasePart") and o.Name ~= "Wall" and o.Name ~= "Floor" and o.Name ~= "Ceiling" and o.Name ~= "Ground" and o.Name ~= "Roof"
-			and o.Name ~= "Runner" and o.Name ~= "Skirting" and o.Name ~= "Keyhole" and o.Name ~= "Handle" and o.Name ~= "Rug" and not o.Name:find("Window") and not o.Name:find("Vent") and o.Name ~= "Bulb" and o.Name ~= "Stripe" and o.Name ~= "TentRoof" and o.Name ~= "Boards" and o.Name ~= "Padlock" and o.Name ~= "Bolt" and not o.Name:find("Fuse") and not o.Name:find("Door") and not o.Name:find("Gate") and o.Name ~= "Lamp" then
+			and o.Name ~= "Runner" and o.Name ~= "Skirting" and o.Name ~= "Keyhole" and o.Name ~= "Handle" and o.Name ~= "Rug" and not o.Name:find("Window") and not o.Name:find("Vent") and o.Name ~= "CardReader" and o.Name ~= "ReaderLight" and o.Name ~= "DoorStripe" and o.Name ~= "Bulb" and o.Name ~= "Stripe" and o.Name ~= "TentRoof" and o.Name ~= "Boards" and o.Name ~= "Padlock" and o.Name ~= "Bolt" and not o.Name:find("Fuse") and not o.Name:find("Door") and not o.Name:find("Gate") and o.Name ~= "Lamp" then
 			for _, dn in ipairs(M.doorNodes) do
 				local p = o.Position
 				if math.abs(p.X - dn.p.X) < 4 and math.abs(p.Z - dn.p.Z) < 4 and p.Y < 9 then inDoor = inDoor + 1 if #MOCK.log < 30 then table.insert(MOCK.log, name .. " door " .. o.Name .. " " .. tostring(p.X) .. "," .. tostring(p.Z)) end end
@@ -102,7 +102,7 @@ for _, name in ipairs({ "Hog Manor", "School", "Circus" }) do
 		table.insert(where, it.name .. "@" .. (R and R.id or "?"))
 		local want
 		for _, d in ipairs(M.def.items) do if d[1] == it.name then want = d[2] end end
-		local lockedRoom = ({ bedroom = 1, cellar = 1, lab = 1, office = 1, storage = 1, coaster = 1, pen = 1 })[R and R.id or ""]
+		local lockedRoom = ({ bedroom = 1, cellar = 1, lab = 1, office = 1, storage = 1, coaster = 1, pen = 1, security = 1, computers = 1 })[R and R.id or ""]
 		if R and (want == "open" and not lockedRoom or want == R.id) then itemsOk = itemsOk + 1 end
 	end
 	table.sort(where)
@@ -221,7 +221,7 @@ local function lockPart(name) for _, L in ipairs(M.locks) do if L.name == name t
 local hammer = itemPart("Hammer")
 click(p1, hammer)
 local h1 = D.holding()[p1]
-local hasTool = p1.Character:FindFirstChild("Hammer") ~= nil
+local hasTool = p1.Character:FindFirstChild("Hammer") ~= nil and (#p1.Character.Hammer:GetChildren() .. " parts welded")
 local redKey = itemPart("Red Key")
 click(p1, redKey)
 local h2 = D.holding()[p1]
@@ -233,6 +233,9 @@ local redDoor, RL = lockPart("Red Door")
 click(p1, redDoor)
 say(string.format("picked up: %s (in hand %s); then the Red Key: holding %s, hammer dropped back on the floor %s; wrong lock says '%s'; Red Door open %s, door walkable %s",
 	tostring(h1), tostring(hasTool), tostring(h2), tostring(hammerBack), wrongMsg, tostring(RL.done), tostring(not redDoor.CanCollide)))
+local looks = {}
+for _, it in pairs(M.items) do local n = 0 for _, o in ipairs(it.model:GetChildren()) do if o:IsA("BasePart") then n = n + 1 end end table.insert(looks, it.name .. "=" .. n) end
+say("items are made of parts: " .. table.concat(looks, " "))
 -- walking over an item doesn't pick it up (you click it); clicking from far away doesn't work either
 local p3w = ps[3]
 local bk = itemPart("Blue Key")
@@ -285,13 +288,30 @@ say(string.format("stun gun: picked up %s, shot the Hog -> frozen for %.0f s, 2n
 H0.pause = 0
 H0.pos = Vector3.new(M.pen.cx, 0, M.pen.cz)
 -- the rest of the puzzle
-local order = { { "Blue Key", "Blue Door" }, { "Hammer", "Boards" }, { "Gold Key", "Padlock" }, { "Wrench", "Bolt" } }
+local order = { { "Blue Key", "Blue Door" }, { "Keycard", "Green Door" }, { "Hammer", "Boards" }, { "Gold Key", "Padlock" }, { "Wrench", "Generator" } }
 for _, s in ipairs(order) do
 	local part = itemPart(s[1])
 	if part then click(p1, part) end
 	local lp = lockPart(s[2])
 	click(p1, lp)
 end
+-- the keypad: read the note, try a wrong code (the Hog hears it), then the right one
+local notePart
+for part in pairs(M.partNote or {}) do notePart = part end
+click(p1, notePart)
+local noteSaid = lastMsg["kid1:note"] and lastMsg["kid1:note"][1]
+local kp, KL = lockPart("Keypad")
+click(p1, kp)
+local padOpened = lastMsg["kid1:keypad"] ~= nil
+local Hk = D.getHog()
+Hk.pos, Hk.mode, Hk.path, Hk.pause = Vector3.new(M.byId.dining.cx, 0, M.byId.dining.cz), "patrol", {}, 0
+local wrong = M.code == "0000" and "1111" or "0000"
+D.enterCode(p1, wrong)
+local wentToLook = Hk.mode == "look" and #Hk.path > 0
+MOCK.run(1.2)
+D.enterCode(p1, noteSaid)
+say(string.format("code note says %s (map code %s), keypad opened %s, wrong code -> Hog comes to look %s, right code -> keypad done %s",
+	tostring(noteSaid), M.code, tostring(padOpened), tostring(wentToLook), tostring(KL.done)))
 MOCK.run(1)
 local c0 = p1.leaderstats.Coins.Value
 local z = M.exitZone

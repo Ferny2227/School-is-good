@@ -103,7 +103,7 @@ local slot = frame(hud, UDim2.new(0.5, -45, 1, -154), UDim2.new(0, 90, 0, 90), C
 local slotIcon = frame(slot, UDim2.new(0.5, -22, 0.5, -22), UDim2.new(0, 44, 0, 44), C.gold, 0, C.white, 2)
 slotIcon.Visible = false
 local slotName = label(hud, UDim2.new(0.5, -150, 1, -60), UDim2.new(0, 300, 0, 28), "EMPTY HANDS", 24, C.grey, "Cartoon")
-local ITEM_COLOR = { ["Red Key"] = rgb(220, 30, 30), ["Blue Key"] = rgb(30, 70, 230), ["Gold Key"] = rgb(240, 200, 60),
+local ITEM_COLOR = { ["Keycard"] = rgb(120, 230, 90), ["Red Key"] = rgb(220, 30, 30), ["Blue Key"] = rgb(30, 70, 230), ["Gold Key"] = rgb(240, 200, 60),
 	["Hammer"] = rgb(140, 90, 50), ["Wrench"] = rgb(170, 170, 175), ["Fuse"] = rgb(255, 245, 90), ["Stun Gun"] = rgb(30, 30, 30) }
 -- buttons (bottom right)
 local crouchB = button(hud, UDim2.new(1, -190, 1, -140), UDim2.new(0, 170, 0, 56), "CROUCH  [C]", rgb(60, 30, 80), C.purple, 24)
@@ -156,7 +156,7 @@ local function showHowTo()
 		"1.  Press PLAY and vote for the HOG mode and the MAP.\n\n" ..
 		"2.  You're locked inside. After 15 seconds the Hog gets out and hunts you.\n\n" ..
 		"3.  Find the items hidden around the map. CLICK an item to pick it up - you can only hold ONE.\n\n" ..
-		"4.  Figure out where each item goes and CLICK it there. Open the way out and ESCAPE!\n\n" ..
+		"4.  Figure out where each item goes and CLICK it there. Find the CODE NOTE for the keypad. Then ESCAPE!\n\n" ..
 		"5.  Press C (or CROUCH) to sneak. Crouch and click a VENT grate in the floor to crawl to another room.\n\n" ..
 		"6.  Found the STUN GUN? Click at the Hog to freeze it for 20 seconds (2 shots).", 24, C.white)
 	body.TextWrapped = true
@@ -168,7 +168,20 @@ end
 helpB.MouseButton1Click:connect(showHowTo)
 
 ------------------------------------------------------------------ the jumpscare
+local function sound(id, vol, pitch)
+	pcall(function()
+		local snd = Instance.new("Sound")
+		snd.SoundId = id
+		snd.Volume = vol or 0.7
+		pcall(function() snd.Pitch = pitch or 1 end)
+		snd.Parent = gui
+		snd:Play()
+		game:GetService("Debris"):AddItem(snd, 4)
+	end)
+end
 local function jumpscare()
+	sound("rbxasset://sounds/uuhhh.mp3", 1, 0.6)
+	sound("rbxasset://sounds/electronicpingshort.wav", 1, 0.4)
 	local f = frame(gui, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), C.black, 0)
 	local fc = face(f, 0, 0, 460, C.skin, C.red, nil)
 	local t = label(f, UDim2.new(0.5, -400, 1, -110), UDim2.new(0, 800, 0, 60), "CAUGHT!", 48, C.red, "Cartoon")
@@ -232,8 +245,8 @@ local function infoPanel(title, text, h, color)
 end
 itemsB.MouseButton1Click:connect(function()
 	local f = infoPanel("ITEMS", "These are hidden somewhere in the maps. Where do they go? That's for you to find out...", 330, rgb(225, 50, 60))
-	for i, n in ipairs({ "Red Key", "Blue Key", "Gold Key", "Hammer", "Wrench", "Fuse", "Stun Gun" }) do
-		local x = 30 + (i - 1) * 100
+	for i, n in ipairs({ "Red Key", "Blue Key", "Gold Key", "Keycard", "Hammer", "Wrench", "Fuse", "Stun Gun" }) do
+		local x = 20 + (i - 1) * 90
 		frame(f, UDim2.new(0, x + 22, 0, 150), UDim2.new(0, 56, 0, 56), ITEM_COLOR[n], 0, C.white, 2)
 		label(f, UDim2.new(0, x, 0, 212), UDim2.new(0, 100, 0, 26), n, 18, C.white, "Cartoon")
 	end
@@ -433,6 +446,51 @@ remote.OnClientEvent:connect(function(what, a, b, c, d, e, f, g)
 		toast(a, b)
 	elseif what == "caught" then
 		jumpscare()
+	elseif what == "note" then
+		-- the code note, big on your screen
+		if gui:FindFirstChild("NoteView") then gui.NoteView:Destroy() end
+		local f = frame(gui, UDim2.new(0.5, -170, 0.5, -130), UDim2.new(0, 340, 0, 260), rgb(245, 240, 220), 0, rgb(120, 90, 60))
+		f.Name = "NoteView"
+		local nt = label(f, UDim2.new(0, 0, 0, 20), UDim2.new(1, 0, 0, 40), "the code is...", 28, rgb(90, 60, 40), "Antique")
+		nt.TextStrokeTransparency = 1
+		local code = label(f, UDim2.new(0, 0, 0, 80), UDim2.new(1, 0, 0, 100), tostring(a), 48, rgb(120, 0, 0), "Antique")
+		code.TextScaled = true
+		code.TextStrokeTransparency = 1
+		frame(f, UDim2.new(0, 230, 0, 190), UDim2.new(0, 50, 0, 40), rgb(150, 110, 70), 0.4)
+		z(f, 7)
+		sound("rbxasset://sounds/swoosh.wav", 0.5)
+		delay(3.5, function() pcall(function() f:Destroy() end) end)
+	elseif what == "keypad" then
+		if gui:FindFirstChild("KeypadView") then return end
+		local f = frame(gui, UDim2.new(0.5, -130, 0.5, -200), UDim2.new(0, 260, 0, 400), rgb(30, 30, 34), 0, rgb(90, 90, 100))
+		f.Name = "KeypadView"
+		local disp = frame(f, UDim2.new(0, 20, 0, 20), UDim2.new(1, -40, 0, 56), rgb(10, 30, 10), 0, rgb(60, 60, 60), 2)
+		local dt = label(disp, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), "----", 42, rgb(90, 255, 120), "Code")
+		local typed = ""
+		local function show() dt.Text = typed .. string.rep("-", 4 - #typed) end
+		local keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "OK" }
+		for i, k in ipairs(keys) do
+			local col, row = (i - 1) % 3, math.floor((i - 1) / 3)
+			local b = button(f, UDim2.new(0, 20 + col * 76, 0, 92 + row * 66), UDim2.new(0, 68, 0, 58), k,
+				k == "OK" and rgb(30, 110, 50) or k == "C" and rgb(120, 30, 30) or rgb(60, 60, 68), rgb(20, 20, 20), 36)
+			b.MouseButton1Click:connect(function()
+				sound("rbxasset://sounds/electronicpingshort.wav", 0.3, 1.5)
+				if k == "C" then typed = ""
+				elseif k == "OK" then
+					if #typed == 4 then remote:FireServer("code", typed) end
+					typed = ""
+				elseif #typed < 4 then typed = typed .. k end
+				show()
+			end)
+		end
+		local close = button(f, UDim2.new(0.5, -50, 1, -42), UDim2.new(0, 100, 0, 32), "CLOSE", rgb(50, 50, 55), nil, 18)
+		close.MouseButton1Click:connect(function() f:Destroy() end)
+		z(f, 7)
+	elseif what == "keypadok" then
+		if gui:FindFirstChild("KeypadView") then gui.KeypadView:Destroy() end
+		sound("rbxasset://sounds/electronicpingshort.wav", 0.8, 2)
+	elseif what == "keypadbad" then
+		sound("rbxasset://sounds/electronicpingshort.wav", 1, 0.5)
 	elseif what == "vent" then
 		-- crawling through a vent: dark for a moment
 		local f = frame(gui, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), C.black, 0)

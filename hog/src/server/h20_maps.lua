@@ -22,6 +22,8 @@ MAPS["Hog Manor"] = {
 		{ id = "living", name = "Living Room", x1 = 36, z1 = 48, x2 = 80, z2 = 84, floor = "Reddish brown", wall = "Sand red", kind = "living" },
 		{ id = "dining", name = "Dining Room", x1 = 80, z1 = 48, x2 = 108, z2 = 84, floor = "Brown", wall = "Olive", kind = "dining" },
 		{ id = "cellar", name = "Cellar", x1 = 108, z1 = 48, x2 = 132, z2 = 84, floor = "Dark stone grey", fmat = "Cobblestone", wall = "Black", kind = "cellar" },
+		{ id = "greenhouse", name = "Greenhouse", x1 = 132, z1 = -34, x2 = 166, z2 = 0, floor = "Brown", fmat = "Slate", wall = "Pastel blue-green", wmat = "Glass", kind = "greenhouse" },
+		{ id = "security", name = "Security Room", x1 = 132, z1 = 48, x2 = 160, z2 = 84, floor = "Dark stone grey", fmat = "DiamondPlate", wall = "Medium stone grey", kind = "security" },
 	},
 	doors = {
 		{ "hall", "bedroom", 18, lock = "Red Door" }, { "hall", "bath", 50 }, { "hall", "kitchen", 84 }, { "hall", "pantry", 118 },
@@ -29,11 +31,12 @@ MAPS["Hog Manor"] = {
 		{ "bath", "kitchen", 15 }, { "kitchen", "pantry", 15 }, { "garage", "living", 66 }, { "living", "dining", 66 },
 		{ "laundry", "bath", 50 }, { "study", "kitchen", 84 }, { "books", "pantry", 118 },
 		{ "nursery", "laundry", -17 }, { "laundry", "study", -17 }, { "study", "books", -17 },
+		{ "books", "greenhouse", -17 }, { "cellar", "security", 66, lock = "Green Door" },
 		{ "pantry", "pen", 15, gate = true }, { "living", "out", 58, side = "S", exit = true },
 	},
 	vents = { { "garage", "study" }, { "laundry", "dining" }, { "nursery", "living" } },
-	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Gold Key", "cellar" }, { "Wrench", "bedroom" }, { "Stun Gun", "open" } },
-	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Bolt", "Wrench" } },
+	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Keycard", "cellar" }, { "Gold Key", "security" }, { "Wrench", "bedroom" }, { "Stun Gun", "open" } },
+	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Generator", "Wrench" }, { "Keypad" } },
 }
 MAPS["School"] = {
 	H = 15, start = "cafeteria", pen = "pen", outside = "Dark stone grey", trim = "Medium stone grey",
@@ -52,6 +55,8 @@ MAPS["School"] = {
 		{ id = "music", name = "Music Room", x1 = 30, z1 = 94, x2 = 60, z2 = 128, floor = "Reddish brown", wall = "Dark orange", kind = "music" },
 		{ id = "lockers", name = "Locker Room", x1 = 60, z1 = 94, x2 = 86, z2 = 128, floor = "Medium stone grey", fmat = "Concrete", wall = "Bright blue", kind = "lockers" },
 		{ id = "nurse", name = "Nurse's Office", x1 = 86, z1 = 94, x2 = 112, z2 = 128, floor = "Institutional white", fmat = "Marble", wall = "Pastel light blue", kind = "nurse" },
+		{ id = "computers", name = "Computer Lab", x1 = 120, z1 = -34, x2 = 160, z2 = 0, floor = "Dark stone grey", fmat = "Fabric", wall = "Pastel Blue", kind = "computers" },
+		{ id = "stage", name = "Auditorium", x1 = 112, z1 = 94, x2 = 140, z2 = 128, floor = "Reddish brown", wall = "Crimson", wmat = "Fabric", kind = "stage" },
 	},
 	doors = {
 		{ "hall", "classA", 20 }, { "hall", "classB", 60 }, { "hall", "lab", 100, lock = "Red Door" }, { "hall", "library", 140 },
@@ -59,11 +64,12 @@ MAPS["School"] = {
 		{ "classA", "classB", 17 }, { "cafeteria", "gym", 74 }, { "hall", "pen", 44, gate = true },
 		{ "cafeteria", "art", 15 }, { "cafeteria", "music", 45 }, { "gym", "lockers", 73 }, { "gym", "nurse", 99 },
 		{ "art", "music", 111 }, { "music", "lockers", 111 }, { "lockers", "nurse", 111 },
+		{ "library", "computers", 140, lock = "Green Door" }, { "nurse", "stage", 111 },
 		{ "entrance", "out", 150, side = "S", exit = true },
 	},
 	vents = { { "classA", "nurse" }, { "library", "art" }, { "classB", "lockers" } },
-	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Gold Key", "lab" }, { "Fuse", "office" }, { "Stun Gun", "open" } },
-	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Fuse Box", "Fuse" } },
+	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Fuse", "lab" }, { "Keycard", "office" }, { "Gold Key", "computers" }, { "Stun Gun", "open" } },
+	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Fuse Box", "Fuse" }, { "Keypad" } },
 }
 -- THE CIRCUS (like Piggy's Carnival): one big OPEN fair at night inside a purple fence, with buildings and rides
 -- standing around in it - the Big Top (a giant striped tent with metal platforms you can climb), the cafeteria, a red
@@ -78,6 +84,8 @@ MAPS["Circus"] = {
 		{ id = "arcade", name = "Arcade", x1 = 232, z1 = 82, x2 = 285, z2 = 122, floor = "Black", fmat = "SmoothPlastic", wall = "Bright violet", kind = "arcade", h = 14, inside = true },
 		{ id = "coaster", name = "Roller Coaster", x1 = 18, z1 = 180, x2 = 122, z2 = 236, floor = "Brick yellow", fmat = "Cobblestone", wall = "Bright blue", wmat = "WoodPlanks", kind = "coaster", h = 14, outdoor = true, inside = true },
 		{ id = "pen", name = "Clown Trailer", x1 = 255, z1 = 195, x2 = 290, z2 = 232, floor = "Brown", fmat = "WoodPlanks", wall = "Bright green", kind = "pen", h = 13, inside = true },
+		{ id = "security", name = "Security Office", x1 = 248, z1 = 130, x2 = 280, z2 = 166, floor = "Dark stone grey", fmat = "DiamondPlate", wall = "Medium stone grey", kind = "security", h = 13, inside = true },
+		{ id = "haunted", name = "Haunted House", x1 = 140, z1 = 178, x2 = 200, z2 = 232, floor = "Black", fmat = "WoodPlanks", wall = "Dark indigo", wmat = "WoodPlanks", kind = "haunted", h = 16, inside = true },
 		{ id = "fair", name = "The Fair", x1 = 0, z1 = 0, x2 = 300, z2 = 250, floor = "Brick yellow", fmat = "Cobblestone", wall = "Bright violet", kind = "open", outdoor = true },
 	},
 	doors = {
@@ -87,32 +95,33 @@ MAPS["Circus"] = {
 		{ "arcade", "fair", 102, side = "W" },
 		{ "coaster", "fair", 70, side = "N", lock = "Blue Door" },
 		{ "pen", "fair", 213, side = "W", gate = true },
+		{ "security", "fair", 148, side = "W", lock = "Green Door" }, { "haunted", "fair", 170, side = "N" },
 		{ "fair", "out", 150, side = "N", exit = true },
 	},
 	-- the rides and stalls standing out in the open: { kind, x, z }
 	props = {
 		{ "ferris", 225, 178 }, { "carousel", 60, 128 }, { "arch", 150, 6 },
 		{ "booth", 122, 14 }, { "booth", 178, 14 },
-		{ "cart", 105, 45, "Bright blue" }, { "cart", 195, 50, "Bright red" }, { "cart", 160, 200, "Lime green" },
-		{ "popcorn", 215, 70 }, { "balloons", 92, 172 }, { "balloons", 290, 150 },
-		{ "bench", 205, 205 }, { "bench", 245, 205 }, { "bench", 140, 175 }, { "bench", 30, 100 }, { "bench", 275, 70 },
-		{ "games", 8, 160 }, { "games", 8, 200 }, { "games", 150, 238 },
-		{ "tree", 10, 15 }, { "tree", 290, 12 }, { "tree", 12, 240 }, { "tree", 210, 240 }, { "tree", 290, 175 }, { "tree", 88, 100 },
+		{ "cart", 105, 45, "Bright blue" }, { "cart", 195, 50, "Bright red" }, { "cart", 110, 168, "Lime green" },
+		{ "popcorn", 215, 70 }, { "balloons", 92, 172 }, { "balloons", 215, 86 },
+		{ "bench", 205, 205 }, { "bench", 245, 205 }, { "bench", 30, 100 }, { "bench", 275, 70 },
+		{ "games", 8, 160 }, { "games", 8, 200 }, { "games", 8, 120 },
+		{ "tree", 10, 15 }, { "tree", 290, 12 }, { "tree", 12, 240 }, { "tree", 215, 240 }, { "tree", 294, 184 }, { "tree", 88, 100 },
 		{ "tree", 215, 100 }, { "tree", 130, 60 },
 	},
-	vents = { { "cafeteria", "bigtop" }, { "arcade", "fair" } },
-	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Gold Key", "storage" }, { "Wrench", "coaster" }, { "Stun Gun", "open" } },
-	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Bolt", "Wrench" } },
+	vents = { { "cafeteria", "bigtop" }, { "arcade", "fair" }, { "haunted", "cafeteria" } },
+	items = { { "Hammer", "open" }, { "Blue Key", "open" }, { "Red Key", "open" }, { "Keycard", "storage" }, { "Gold Key", "security" }, { "Wrench", "coaster" }, { "Stun Gun", "open" } },
+	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Generator", "Wrench" }, { "Keypad" } },
 }
 -- how much ground each ride or stall takes up (the bot walks around these)
 local PROP_SIZE = { ferris = { 44, 10 }, carousel = { 26, 26 }, booth = { 8, 6 }, cart = { 7, 6 }, popcorn = { 5, 5 },
 	balloons = { 3, 3 }, bench = { 7, 3 }, games = { 10, 14 }, tree = { 3, 3 } }
 local ITEM_LOOK = {
 	["Hammer"] = { "Reddish brown", "Dark stone grey" }, ["Blue Key"] = { "Really blue" }, ["Red Key"] = { "Really red" },
-	["Gold Key"] = { "Gold" }, ["Wrench"] = { "Medium stone grey" }, ["Fuse"] = { "New Yeller" }, ["Stun Gun"] = { "Black", "New Yeller" },
+	["Gold Key"] = { "Gold" }, ["Wrench"] = { "Medium stone grey" }, ["Fuse"] = { "New Yeller" }, ["Stun Gun"] = { "Black", "New Yeller" }, ["Keycard"] = { "Lime green" },
 }
-local DOOR_COLOR = { ["Red Door"] = "Really red", ["Blue Door"] = "Really blue" }
-local DOOR_KEY = { ["Red Door"] = "Red Key", ["Blue Door"] = "Blue Key" }
+local DOOR_COLOR = { ["Red Door"] = "Really red", ["Blue Door"] = "Really blue", ["Green Door"] = "Lime green" }
+local DOOR_KEY = { ["Red Door"] = "Red Key", ["Blue Door"] = "Blue Key", ["Green Door"] = "Keycard" }
 local DW, DH = 7, 9                -- doorway width and height
 
 ------------------------------------------------------------------ furniture: objects stand in the corners of a room
@@ -272,6 +281,36 @@ KITS.bigtop = {
 	{ "ns", bx("Bleacher1", 30, 2, 3, 0, 0, 6, "Bright blue", "WoodPlanks"), bx("Bleacher2", 30, 4, 3, 0, 0, 3, "White", "WoodPlanks"), bx("Bleacher3", 30, 6, 3, 0, 0, 0, "Bright blue", "WoodPlanks") },
 	{ "ns", bx("Bleacher1", 30, 2, 3, 0, 0, 6, "Bright red", "WoodPlanks", { top = true }), bx("Bleacher2", 30, 4, 3, 0, 0, 3, "White", "WoodPlanks"), bx("Bleacher3", 30, 6, 3, 0, 0, 0, "Bright red", "WoodPlanks") },
 	{ "ns", bx("Bleacher1", 30, 2, 3, 0, 0, 6, "Bright blue", "WoodPlanks", { top = true }), bx("Bleacher2", 30, 4, 3, 0, 0, 3, "White", "WoodPlanks"), bx("Bleacher3", 30, 6, 3, 0, 0, 0, "Bright blue", "WoodPlanks") },
+}
+KITS.greenhouse = {
+	{ "ns", bx("PlantBed", 12, 2, 4, 0, 0, 0.5, "Brown", "WoodPlanks", { top = true }), bx("Plants", 11, 2.5, 3, 0, 2, 1, "Bright green", "Grass") },
+	{ "we", bx("Pots", 6, 2, 2, 0, 0, 0.5, "Bright orange", "SmoothPlastic"), bx("Flowers", 6, 1.5, 2, 0, 2, 0.5, "Hot pink", "Grass") },
+	{ "ns", bx("PlantBed", 12, 2, 4, 0, 0, 0.5, "Brown", "WoodPlanks", { top = true }), bx("Plants", 11, 3, 3, 0, 2, 1, "Lime green", "Grass") },
+	{ "we", bx("WaterTank", 4, 6, 4, 0, 0, 0, "Bright blue", "Metal"), bx("Hose", 0.5, 0.5, 4, 0, 1, 4, "Bright green", "SmoothPlastic") },
+}
+KITS.security = {
+	{ "ns", bx("Monitors", 10, 3.5, 3, 0, 0, 0.5, "Black", "Metal", { top = true }), bx("Screens", 9, 3, 0.2, 0, 4.5, 0.4, "Toothpaste", "Neon") },
+	{ "we", bx("Lockers", 6, 8, 2, 0, 0, 0, "Dark stone grey", "Metal") },
+	{ "ns", bx("Desk", 6, 3, 3, 0, 0, 0, "Medium stone grey", "Metal", { top = true }), bx("Chair", 2, 3, 2, 0, 0, 3.4, "Black", "Fabric") },
+	{ "we", bx("Safe", 3.5, 4, 3, 0, 0, 0, "Dark stone grey", "DiamondPlate", { top = true }), bx("Dial", 1, 1, 0.3, 0, 2, 3, "Gold", "Metal") },
+}
+KITS.computers = {
+	{ "ns", bx("ComputerDesk", 12, 3, 3, 0, 0, 0, "Institutional white", "SmoothPlastic", { top = true }), bx("Screen", 2, 1.6, 0.3, -3, 3, 0.6, "Toothpaste", "Neon"), bx("Screen", 2, 1.6, 0.3, 3, 3, 0.6, "Toothpaste", "Neon") },
+	{ "ns", bx("ComputerDesk", 12, 3, 3, 0, 0, 0, "Institutional white", "SmoothPlastic", { top = true }), bx("Screen", 2, 1.6, 0.3, -3, 3, 0.6, "Lime green", "Neon"), bx("Screen", 2, 1.6, 0.3, 3, 3, 0.6, "Toothpaste", "Neon") },
+	{ "we", bx("Server", 4, 9, 3, 0, 0, 0, "Black", "Metal"), bx("Lights", 0.3, 6, 0.2, 1, 1.5, 3, "Lime green", "Neon") },
+	{ "we", bx("Printer", 4, 3, 3, 0, 0, 0, "Medium stone grey", "SmoothPlastic", { top = true }) },
+}
+KITS.stage = {
+	{ "ns", bx("Stage", 14, 3, 8, 0, 0, 0, "Brown", "WoodPlanks", { top = true }), bx("Curtain", 14, 10, 0.4, 0, 3, 0, "Crimson", "Fabric") },
+	{ "ns", bx("Piano", 6, 4, 3, 0, 0, 0, "Really black", "SmoothPlastic", { top = true }) },
+	{ "ns", bx("Seats", 12, 2.4, 3, 0, 0, 1, "Bright red", "Fabric", { top = true }), bx("SeatBacks", 12, 2, 0.6, 0, 2.4, 0.8, "Bright red", "Fabric") },
+	{ "ns", bx("Seats", 12, 2.4, 3, 0, 0, 1, "Bright red", "Fabric"), bx("SeatBacks", 12, 2, 0.6, 0, 2.4, 0.8, "Bright red", "Fabric") },
+}
+KITS.haunted = {
+	{ "ns", bx("Coffin", 3, 2, 7, 0, 0, 0.5, "Reddish brown", "Wood", { top = true }), bx("Lid", 3.2, 0.4, 7.2, 0, 2, 0.4, "Black", "Wood") },
+	{ "we", bx("Tombstone", 3, 4, 1, 0, 0, 1, "Dark stone grey", "Slate"), bx("Tombstone", 3, 3, 1, 0, 0, 4, "Dark stone grey", "Slate") },
+	{ "ns", bx("Cauldron", 4, 3, 4, 0, 0, 0.5, "Black", "Metal"), bx("Brew", 3.4, 0.2, 3.4, 0, 3, 0.8, "Lime green", "Neon") },
+	{ "we", bx("Skeleton", 2, 6, 1, 0, 0, 1, "Institutional white", "SmoothPlastic"), bx("Cobweb", 5, 5, 0.1, 0, 7, 0, "White", "Fabric", { tr = 0.5 }) },
 }
 KITS.storage = {
 	{ "ns", bx("Crate", 5, 5, 5, -3, 0, 0, "Dark orange", "WoodPlanks", { top = true }), bx("Crate", 4, 4, 4, 3, 0, 0.5, "Dark orange", "WoodPlanks") },
@@ -457,7 +496,7 @@ local function buildMap(name)
 				return true
 			end
 			R.free, R.clear = free, clear
-			local G = 15
+			local G = 10
 			local grid = {}
 			R.nodes = {}
 			for gx = R.x1 + 8, R.x2 - 8, G do
@@ -475,6 +514,23 @@ local function buildMap(name)
 					if m2 and clear(n.p, m2.p) then link(n, m2) end
 				end
 			end
+			-- keep only the biggest connected set of points (a point boxed in by rides would be a dead end)
+			local best, bestN = nil, 0
+			local done = {}
+			for _, n in ipairs(R.nodes) do
+				if not done[n] then
+					local comp, q, k = {}, { n }, 1
+					done[n] = true
+					while q[k] do
+						local x = q[k]
+						k = k + 1
+						table.insert(comp, x)
+						for _, l in ipairs(x.links) do if not done[l] and l.room == R then done[l] = true table.insert(q, l) end end
+					end
+					if #comp > bestN then best, bestN = comp, #comp end
+				end
+			end
+			R.nodes = best or {}
 			-- each doorway joins the nearest grid points it can walk straight to
 			for _, dn in ipairs(M.doorNodes) do
 				if dn.A == R or dn.B == R then
@@ -805,7 +861,8 @@ local function buildMap(name)
 		local x, z = dn.p.X, dn.p.Z
 		local sx, sz = dn.vertical and 2 or DW, dn.vertical and DW or 2
 		if d.lock then
-			local door = wpart("LockedDoor", sx, DH, sz, x, 0, z, "Reddish brown", "Wood")
+			local card = d.lock == "Green Door"
+			local door = wpart("LockedDoor", sx, DH, sz, x, 0, z, card and "Medium stone grey" or "Reddish brown", card and "DiamondPlate" or "Wood")
 			local L = { name = d.lock, need = DOOR_KEY[d.lock], part = door, node = dn, parts = { door } }
 			local col = DOOR_COLOR[d.lock]
 			for _, f in ipairs({ -1, 1 }) do
@@ -817,12 +874,18 @@ local function buildMap(name)
 					table.insert(L.parts, part)
 					return part
 				end
-				onDoor("DoorPanel", -1.6, 1, 2.4, 3, 0.12, "Dark orange", "Wood")
-				onDoor("DoorPanel", 1.6, 1, 2.4, 3, 0.12, "Dark orange", "Wood")
-				onDoor("DoorPanel", -1.6, 5, 2.4, 3, 0.12, "Dark orange", "Wood")
-				onDoor("DoorPanel", 1.6, 5, 2.4, 3, 0.12, "Dark orange", "Wood")
-				onDoor("Keyhole", DW / 2 - 1.1, 3.4, 0.6, 1.3, 0.1, col, "Metal")
-				onDoor("Handle", DW / 2 - 1.1, 4.3, 0.9, 0.35, 0.45, col, "Metal")
+				if card then
+					onDoor("DoorStripe", 0, 4, DW - 0.6, 0.6, 0.1, "New Yeller", "SmoothPlastic")
+					onDoor("CardReader", DW / 2 - 1.1, 3.8, 0.8, 1.4, 0.3, "Black", "SmoothPlastic")
+					onDoor("ReaderLight", DW / 2 - 1.1, 5, 0.5, 0.3, 0.35, col, "Neon")
+				else
+					onDoor("DoorPanel", -1.6, 1, 2.4, 3, 0.12, "Dark orange", "Wood")
+					onDoor("DoorPanel", 1.6, 1, 2.4, 3, 0.12, "Dark orange", "Wood")
+					onDoor("DoorPanel", -1.6, 5, 2.4, 3, 0.12, "Dark orange", "Wood")
+					onDoor("DoorPanel", 1.6, 5, 2.4, 3, 0.12, "Dark orange", "Wood")
+					onDoor("Keyhole", DW / 2 - 1.1, 3.4, 0.6, 1.3, 0.1, col, "Metal")
+					onDoor("Handle", DW / 2 - 1.1, 4.3, 0.9, 0.35, 0.45, col, "Metal")
+				end
 			end
 			table.insert(M.locks, L)
 			dn.lock = L
@@ -860,8 +923,23 @@ local function buildMap(name)
 				elseif el[1] == "Padlock" then
 					table.insert(L.parts, P(m, "Padlock", V(1.2, 1.4, 0.6), CFrame.new(x + 1.4, 3.2, zi - out * 0.4), "Gold", "Metal"))
 					table.insert(L.parts, P(m, "Padlock", V(0.8, 0.8, 0.2), CFrame.new(x + 1.4, 4.2, zi - out * 0.4), "Medium stone grey", "Metal"))
-				elseif el[1] == "Bolt" then
-					table.insert(L.parts, P(m, "Bolt", V(3, 0.6, 0.6), CFrame.new(x - 1.2, 6.4, zi - out * 0.4), "Dark stone grey", "Metal"))
+				elseif el[1] == "Generator" then
+					-- a broken generator by the door (fix it with the wrench)
+					local gx = x - math.min(9, A.w / 2 - 4)
+					local gz = zi - out * 1.6
+					table.insert(L.parts, P(m, "Generator", V(4, 3.6, 2.6), CFrame.new(gx, 1.8, gz), "Olive", "Metal"))
+					for i = -1, 1 do table.insert(L.parts, P(m, "GenGrille", V(0.3, 2.2, 2.7), CFrame.new(gx + i * 1.1, 1.9, gz), "Black", "Metal")) end
+					table.insert(L.parts, P(m, "GenBolt", V(0.8, 0.8, 0.8), CFrame.new(gx + 1.4, 3.8, gz), "Medium stone grey", "Metal"))
+					table.insert(L.parts, P(m, "GenCable", V(0.4, 0.4, math.abs(x - gx)), CFrame.new((x + gx) / 2, 0.3, zi - out * 0.3) * CFrame.Angles(0, math.pi / 2, 0), "Black", "SmoothPlastic", { nc = true }))
+					L.bulb = P(m, "GenLight", V(0.6, 0.6, 0.6), CFrame.new(gx - 1.3, 3.9, gz), "Really red", "Neon")
+				elseif el[1] == "Keypad" then
+					-- type in the code from the note
+					local kx = x - 5.6
+					table.insert(L.parts, P(m, "Keypad", V(1.4, 2, 0.3), CFrame.new(kx, 5, zi - out * 0.15), "Black", "SmoothPlastic"))
+					table.insert(L.parts, P(m, "KeypadKeys", V(1, 1, 0.1), CFrame.new(kx, 4.7, zi - out * 0.35), "Medium stone grey", "SmoothPlastic"))
+					L.bulb = P(m, "KeypadScreen", V(1, 0.4, 0.1), CFrame.new(kx, 5.6, zi - out * 0.35), "Really red", "Neon")
+					L.keypad = true
+					L.need = "the code"
 				elseif el[1] == "Fuse Box" then
 					local fx = x + math.min(7.5, A.w / 2 - 4.5)
 					local box = P(m, "Fuse Box", V(2.6, 3.2, 0.7), CFrame.new(fx, 4.5, zi - out * 0.1), "Medium stone grey", "Metal")

@@ -8,6 +8,8 @@ local BOT_SPEED = { patrol = 10, look = 13, chase = 15.2 }
 local SIGHT, SIGHT_CROUCH = 75, 32
 local HEAR, HEAR_CROUCH = 9, 4.5
 local CATCH = 4.2
+-- the more locks you open, the angrier (and a bit faster) the Hog gets
+local function angry() return 1 + math.min(0.06, 0.01 * ((MAP and MAP.solved) or 0)) end
 local function sendMove(H, what, goal)
 	goal = goal or H.pos
 	H.mv.Value = string.format("%.2f %.2f %.2f %.2f %.2f %s %d", H.pos.X, H.pos.Z, goal.X, goal.Z, what == "m" and H.speed or 0, what or "m", H.seq)
@@ -19,7 +21,7 @@ local function newBot(offset, speedK)
 	local mv = Instance.new("StringValue")
 	mv.Name = "Move"
 	mv.Parent = m
-	local H = { model = m, pos = at, speed = 0, mv = mv, seq = 0, path = {}, mode = "wait", pause = 0, traps = 3, nextTrap = tick() + 40 + math.random(0, 20),
+	local H = { model = m, pos = at, speed = 0, mv = mv, seq = 0, path = {}, mode = "wait", pause = 0, traps = 4, nextTrap = tick() + 35 + math.random(0, 20),
 		k = speedK or 1 }
 	table.insert(HOGS, H)
 	sendMove(H, "s")
@@ -72,9 +74,9 @@ local function route(from, to)
 	return path
 end
 local catchPlayer           -- (h50)
-local function heard(at)
+local function heard(at, radius)
 	for _, H in ipairs(HOGS) do
-		if H.mode ~= "chase" and H.mode ~= "wait" then
+		if H.mode ~= "chase" and H.mode ~= "wait" and H.pause <= 0 and (not radius or (flat(H.pos) - flat(at)).magnitude < radius) then
 			H.path = route(H.pos, at) or {}
 			H.mode = "look"
 		end
@@ -116,7 +118,7 @@ local function botStep(H, dt)
 		if H.mode ~= "chase" then H.path = {} end
 		H.mode = "chase"
 		H.last = t.Position
-		H.speed = BOT_SPEED.chase * H.k
+		H.speed = BOT_SPEED.chase * H.k * angry()
 		if visible then
 			target = V(t.Position.X, 0, t.Position.Z)
 			H.path = {}
@@ -141,7 +143,7 @@ local function botStep(H, dt)
 			H.path = route(H.pos, to) or {}
 			if #H.path == 0 then H.pause = 1 return end
 		end
-		H.speed = (H.mode == "look" and BOT_SPEED.look or H.mode == "chase" and BOT_SPEED.chase or BOT_SPEED.patrol) * H.k
+		H.speed = (H.mode == "look" and BOT_SPEED.look or H.mode == "chase" and BOT_SPEED.chase or BOT_SPEED.patrol) * H.k * angry()
 		target = H.path[1]
 	end
 	local d = target - H.pos
