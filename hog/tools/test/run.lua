@@ -16,10 +16,10 @@ local oldIndex = mt.__index
 mt.__index = function(o, k)
 	if k == "TakeDamage" then return function(self, d) self.Health = math.max(0, self.Health - d) end end
 	if k == "Clear" then return function() end end
-	if k == "Activated" then
+	if k == "Activated" or k == "Button1Down" then
 		local props = rawget(o, "_p")
-		props.Activated = props.Activated or MOCK.Event("Activated")
-		return props.Activated
+		props[k] = props[k] or MOCK.Event(k)
+		return props[k]
 	end
 	if k == "FindPartOnRay" then
 		-- ray against the parts' boxes (good enough: walls and doors aren't turned)
@@ -77,7 +77,7 @@ for _, name in ipairs({ "Hog Manor", "School" }) do
 	local inDoor = 0
 	for _, o in ipairs(M.model:GetChildren()) do
 		if o:IsA("BasePart") and o.Name ~= "Wall" and o.Name ~= "Floor" and o.Name ~= "Ceiling" and o.Name ~= "Ground" and o.Name ~= "Roof"
-			and o.Name ~= "Runner" and o.Name ~= "Boards" and o.Name ~= "Padlock" and o.Name ~= "Bolt" and not o.Name:find("Fuse") and not o.Name:find("Door") and not o.Name:find("Gate") and o.Name ~= "Lamp" then
+			and o.Name ~= "Runner" and o.Name ~= "Skirting" and o.Name ~= "Keyhole" and o.Name ~= "Handle" and o.Name ~= "Rug" and not o.Name:find("Window") and o.Name ~= "Boards" and o.Name ~= "Padlock" and o.Name ~= "Bolt" and not o.Name:find("Fuse") and not o.Name:find("Door") and not o.Name:find("Gate") and o.Name ~= "Lamp" then
 			for _, dn in ipairs(M.doorNodes) do
 				local p = o.Position
 				if math.abs(p.X - dn.p.X) < 4 and math.abs(p.Z - dn.p.Z) < 4 and p.Y < 9 then inDoor = inDoor + 1 if #MOCK.log < 30 then table.insert(MOCK.log, name .. " door " .. o.Name .. " " .. tostring(p.X) .. "," .. tostring(p.Z)) end end
@@ -111,6 +111,16 @@ for _, name in ipairs({ "Hog Manor", "School" }) do
 end
 
 -- three players in the lobby vote: Hog Manor, Bot Hog
+local realMake = MOCK.makeCharacter
+MOCK.makeCharacter = function(p)
+	local c = realMake(p)
+	local root = MOCK.part(c, "HumanoidRootPart", Vector3.new(2, 2, 1), c.Torso.CFrame)
+	local rj = MOCK.new("Motor6D", root) rj.Name = "RootJoint" rj.C0 = CFrame.new()
+	for _, n in ipairs({ "Right Hip", "Left Hip" }) do
+		local j = MOCK.new("Motor6D", c.Torso) j.Name = n j.C0 = CFrame.new(n == "Right Hip" and 1 or -1, -1, 0)
+	end
+	return c
+end
 local ps = {}
 for i = 1, 3 do
 	local p = MOCK.addPlayer("kid" .. i, i)
@@ -124,7 +134,7 @@ local inLobby = 0
 for _, p in ipairs(ps) do if (p.Character.Torso.Position - D.LOBBY).magnitude < 60 then inLobby = inLobby + 1 end end
 local remoteS = MOCK.services.ReplicatedStorage.HogEvent
 local function touchPad(p, name)
-	local kind = (name == "Bot Hog" or name == "Player Hog") and "mode" or "map"
+	local kind = (name == "Hog Manor" or name == "School") and "map" or "mode"
 	remoteS.OnServerEvent:fireNow(p, "vote", kind, name)
 	return true
 end
@@ -132,8 +142,9 @@ end
 MOCK.run(5)
 local waited = D.STATE.left
 for _, p in ipairs(ps) do remoteS.OnServerEvent:fireNow(p, "play") end
+local okv0 = true
 local okv = touchPad(ps[1], "Hog Manor") and touchPad(ps[2], "Hog Manor") and touchPad(ps[3], "School")
-	and touchPad(ps[1], "Bot Hog") and touchPad(ps[2], "Bot Hog")
+	and touchPad(ps[1], "Bot") and touchPad(ps[2], "Bot")
 for _ = 1, 100 do MOCK.run(0.5) if D.STATE.phase == "release" then break end end
 local M = D.getMap()
 local nsurv = 0
@@ -163,7 +174,8 @@ end
 local function goTo(p, pos) p.Character.Torso.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0)) end
 local function click(p, part)
 	goTo(p, part.Position + Vector3.new(2, 0, 0))
-	part.ClickDetector.MouseClick:fireNow(p)
+	MOCK.run(0.3)
+	remoteS.OnServerEvent:fireNow(p, "click", part)
 end
 local function lockPart(name) for _, L in ipairs(M.locks) do if L.name == name then return L.parts[1], L end end end
 local hammer = itemPart("Hammer")
@@ -181,18 +193,22 @@ local redDoor, RL = lockPart("Red Door")
 click(p1, redDoor)
 say(string.format("picked up: %s (in hand %s); then the Red Key: holding %s, hammer dropped back on the floor %s; wrong lock says '%s'; Red Door open %s, door walkable %s",
 	tostring(h1), tostring(hasTool), tostring(h2), tostring(hammerBack), wrongMsg, tostring(RL.done), tostring(not redDoor.CanCollide)))
--- no clicking: walk over an item with empty hands, walk up to its lock
+-- walking over an item doesn't pick it up (you click it); clicking from far away doesn't work either
 local p3w = ps[3]
 local bk = itemPart("Blue Key")
-D.STATE.hold = false
 goTo(p3w, bk.Position + Vector3.new(1, 0, 1))
 MOCK.run(0.5)
 local walked = D.holding()[p3w]
+goTo(p3w, bk.Position + Vector3.new(40, 0, 0))
+MOCK.run(0.3)
+remoteS.OnServerEvent:fireNow(p3w, "click", bk)
+local far = D.holding()[p3w]
 local bd, BL = lockPart("Blue Door")
-goTo(p3w, bd.Position + Vector3.new(0, -3, 4))
-MOCK.run(0.5)
-D.STATE.hold = true
-say(string.format("walking over the Blue Key picked it up: %s; walking up to the Blue Door opened it: %s", tostring(walked), tostring(BL.done)))
+local doorParts = #BL.parts
+local signs = 0
+for _, o in ipairs(M.model:GetDescendants()) do if o.ClassName == "SurfaceGui" and o.Parent and (o.Parent.Name == "LockedDoor" or o.Parent.Name == "Fuse Box") then signs = signs + 1 end end
+say(string.format("walking over the Blue Key picks it up: %s, clicking it from 40 studs away: %s; the locked door is %d parts (handle + keyhole in the key's colour), hint signs on locks %d",
+	tostring(walked), tostring(far), doorParts, signs))
 -- the rest of the puzzle
 local order = { { "Blue Key", "Blue Door" }, { "Hammer", "Boards" }, { "Gold Key", "Padlock" }, { "Wrench", "Bolt" } }
 for _, s in ipairs(order) do
@@ -245,13 +261,14 @@ say(string.format("trap: kid3 stuck (walk speed %s), after 6 s walk speed %s, tr
 -- the end: let the Hog get kid3
 for i = 1, 900 do MOCK.run(0.2) if D.STATE.phase ~= "hunt" then break end end
 for i = 1, 60 do MOCK.run(0.5) if D.STATE.phase == "lobby" then break end end
+MOCK.run(1)
 local back = 0
 for _, p in ipairs(ps) do if (p.Character.Torso.Position - D.LOBBY).magnitude < 60 then back = back + 1 end end
 say(string.format("round over -> '%s', everyone back in the lobby %d/3, map cleared %s, board: '%s'", D.STATE.phase, back, tostring(D.getMap() == nil),
 	((lastMsg["kid1:last"] or { "" })[1]:gsub("\n", " / "))))
 
 -- a Player Hog round in the School
-touchPad(ps[1], "School") touchPad(ps[2], "School") touchPad(ps[1], "Player Hog") touchPad(ps[2], "Player Hog")
+touchPad(ps[1], "School") touchPad(ps[2], "School") touchPad(ps[1], "Player") touchPad(ps[2], "Player")
 for _ = 1, 100 do MOCK.run(0.5) if D.STATE.phase == "release" then break end end
 M = D.getMap()
 local hp = D.hogPlayer()
@@ -275,6 +292,77 @@ hp.Character.Humanoid.Health = 0
 hp.Character.Humanoid.Died:fireNow()
 MOCK.run(1)
 say(string.format("Hog player died with %d survivors left: bot took over %s", others, tostring(D.getHog() ~= nil)))
+-- the other modes: each one a short round
+local function finishRound()
+	D.STATE.hold = false
+	for p in pairs(D.survivors()) do D.catchPlayer(p) end
+	for _ = 1, 200 do MOCK.run(0.5) if D.STATE.phase == "lobby" then break end end
+	for _, p in ipairs(ps) do if not p.Character or p.Character.Humanoid.Health <= 0 then MOCK.makeCharacter(p) end end
+	MOCK.run(1)
+end
+local function playMode(mode, map)
+	finishRound()
+	for _, p in ipairs(ps) do touchPad(p, mode) touchPad(p, map) end
+	for _ = 1, 100 do MOCK.run(0.5) if D.STATE.phase == "release" then break end end
+	for _ = 1, 40 do MOCK.run(0.5) if D.STATE.phase == "hunt" then break end end
+	return D.getMap()
+end
+-- SWARM: three bot Hogs
+playMode("Swarm", "Hog Manor")
+MOCK.run(10)
+local moving = 0
+for _, H in ipairs(D.hogs()) do if (H.pos - Vector3.new(D.getMap().pen.cx, 0, D.getMap().pen.cz)).magnitude > 5 then moving = moving + 1 end end
+say(string.format("Swarm: mode %s, bot Hogs %d, out of the pen after 10 s %d", D.mode(), #D.hogs(), moving))
+-- CROUCH: slower, lower, and the Hog can't see you from as far away
+D.STATE.hold = true
+local cp
+for p in pairs(D.survivors()) do cp = p break end
+local M2 = D.getMap()
+local H1 = D.hogs()[1]
+for i = 2, #D.hogs() do D.hogs()[i].model:Destroy() D.hogs()[i] = nil end
+H1.pos = Vector3.new(10, 0, 39)
+H1.mode, H1.path, H1.pause = "patrol", {}, 0
+for _, p in ipairs(ps) do if p ~= cp and p.Character then p.Character.Torso.CFrame = CFrame.new(-320, 3, 0) end end
+cp.Character.Torso.CFrame = CFrame.new(60, 3, 39)
+D.STATE.hold = false
+MOCK.run(0.25)
+local seenStanding = H1.mode == "chase"
+D.STATE.hold = true
+H1.pos, H1.mode, H1.path = Vector3.new(10, 0, 39), "patrol", {}
+remoteS.OnServerEvent:fireNow(cp, "crouch", true)
+cp.Character.Torso.CFrame = CFrame.new(60, 3, 39)
+D.STATE.hold = false
+MOCK.run(0.25)
+local seenCrouching = H1.mode == "chase"
+D.STATE.hold = true
+local rj = cp.Character.HumanoidRootPart.RootJoint
+say(string.format("crouch: walk speed %s, body lowered %s, Hog 50 studs down the hall sees you standing %s / crouching %s",
+	tostring(cp.Character.Humanoid.WalkSpeed), tostring(rj.C0.p.Y < -1), tostring(seenStanding), tostring(seenCrouching)))
+remoteS.OnServerEvent:fireNow(cp, "crouch", false)
+-- INFECTION: whoever the Hog catches becomes a Hog
+playMode("Infection", "School")
+local first = D.hogPlayer()
+local victim2
+for p in pairs(D.survivors()) do victim2 = p break end
+victim2.Character.Torso.CFrame = first.Character.Torso.CFrame + Vector3.new(2, 0, 0)
+MOCK.run(3)
+say(string.format("Infection: first Hog %s, caught %s is now a Hog %s (pig mask %s), Hogs %d",
+	first and first.Name or "?", victim2.Name, tostring(D.hogPlayers()[victim2] == true), tostring(victim2.Character:FindFirstChild("HogSnout") ~= nil),
+	(function() local n = 0 for _ in pairs(D.hogPlayers()) do n = n + 1 end return n end)()))
+-- TRAITOR: one survivor is secretly a traitor
+playMode("Traitor", "Hog Manor")
+local tr = D.traitor()
+local victim3
+for p in pairs(D.survivors()) do victim3 = p break end
+D.STATE.hold = true
+for _, H in ipairs(D.hogs()) do H.pos = Vector3.new(D.getMap().pen.cx, 0, D.getMap().pen.cz) H.mode = "wait" end
+D.STATE.hold = false
+victim3.Character.Torso.CFrame = tr.Character.Torso.CFrame + Vector3.new(2, 0, 0)
+MOCK.run(1)
+local tagged = D.survivors()[victim3] == nil
+say(string.format("Traitor: traitor %s (not a survivor %s, role sent %s), plus a bot Hog %s, traitor's tag caught %s",
+	tr and tr.Name or "?", tostring(tr and not D.survivors()[tr]), tostring(lastMsg[(tr and tr.Name or "") .. ":role"] and lastMsg[tr.Name .. ":role"][1] == "traitor"),
+	tostring(#D.hogs() > 0), tostring(tagged)))
 D.STATE.hold = true
 
 -- the client: HUD, locks list, the jumpscare, the Hog walking smoothly
@@ -288,17 +376,20 @@ spawn(assert(loadstring(CLIENT_SOURCE, "=HogClient")))
 MOCK.run(2)
 local remote = MOCK.services.ReplicatedStorage.HogEvent
 local ui = ps[3].PlayerGui:FindFirstChild("HogUI")
+if not ui then error(table.concat(out, "\n") .. "\nCLIENT FAILED:\n" .. table.concat(MOCK.errors, "\n"):sub(1, 3000)) end
 MOCK.services.RunService.RenderStepped:fireNow()
 local menuF
-for _, o in ipairs(ui:GetChildren()) do if o.ClassName == "Frame" and o:FindFirstChild("TextButton") then for _, b in ipairs(o:GetChildren()) do if b.Text == ">  PLAY" then menuF = o end end end end
+for _, o in ipairs(ui:GetChildren()) do if o.ClassName == "Frame" and o:FindFirstChild("TextButton") then for _, b in ipairs(o:GetChildren()) do if b.Text == ">   PLAY" then menuF = o end end end end
 local menuShown, camMenu = menuF and menuF.Visible, cam.CameraType == Enum.CameraType.Scriptable
-remote.OnClientEvent:fireNow("votes", { 2, 1 }, { 0, 3 })
-remote.OnClientEvent:fireNow("status", "hunt", 345, 2, "School", "Bot Hog", "The Hog")
+remote.OnClientEvent:fireNow("votes", { 2, 1 }, { 0, 3, 1, 0, 2, 0 })
+remote.OnClientEvent:fireNow("status", "lobby", 10, 0, "", "Bot", "The Hog", 2)
+local voteTitleOk = false
+for _, o in ipairs(ui:GetDescendants()) do if o.ClassName == "TextLabel" and o.Text == "HOG VOTING - 10" then voteTitleOk = true end end
+remote.OnClientEvent:fireNow("status", "hunt", 345, 2, "School", "Bot", "The Hog", 0)
 remote.OnClientEvent:fireNow("role", "survivor")
 MOCK.services.RunService.RenderStepped:fireNow()
 local inGame = not menuF.Visible and cam.CameraType == Enum.CameraType.Custom
 remote.OnClientEvent:fireNow("hold", "Red Key")
-remote.OnClientEvent:fireNow("locks", { { "Red Door", "Red Key", false, false }, { "Boards", "Hammer", true, true }, { "Padlock", "Gold Key", false, true } }, "School")
 remote.OnClientEvent:fireNow("big", "THE HOG IS LOOSE!", "Hide")
 remote.OnClientEvent:fireNow("toast", "hello", "green")
 remote.OnClientEvent:fireNow("caught")
@@ -307,9 +398,9 @@ local texts = {}
 for _, o in ipairs(ui:GetDescendants()) do if o.ClassName == "TextLabel" and o.Text ~= "" and #texts < 40 then table.insert(texts, o.Text) end end
 local hasTimer, hasHold, hasLock = false, false, false
 for _, t in ipairs(texts) do
-	if t == "TIME LEFT 5:45" then hasTimer = true end
-	if t == "HOLDING: Red Key" then hasHold = true end
-	if t:find("%[OPEN%] Boards") then hasLock = true end
+	if t == "5:45" then hasTimer = true end
+	if t == "RED KEY" then hasHold = true end
+	if t == "HOG VOTING - 10" then hasLock = true end
 end
 -- the Hog walks on this computer
 local H = D.getHog()
@@ -330,8 +421,8 @@ end
 local lo, hi = 1e9, -1e9
 for _, v in ipairs(legs) do lo, hi = math.min(lo, v), math.max(hi, v) end
 say(string.format("client menu: shown at start %s, camera on the Hog hallway %s, after the round starts menu gone + normal camera %s", tostring(menuShown), tostring(camMenu), tostring(inGame)))
-say(string.format("client: timer %s, holding %s, locks list %s, jumpscare+how-to shown, Hog moved %.1f studs in 1.5 s (speed 15), legs swing %.2f studs, new errors %d",
-	tostring(hasTimer), tostring(hasHold), tostring(hasLock), m.Torso.Position.X - x0, hi - lo, #MOCK.errors - before))
+say(string.format("client: timer %s, holding %s, vote title %s, jumpscare+how-to shown, Hog moved %.1f studs in 1.5 s (speed 15), legs swing %.2f studs, new errors %d",
+	tostring(hasTimer), tostring(hasHold), tostring(voteTitleOk), m.Torso.Position.X - x0, hi - lo, #MOCK.errors - before))
 
 for i = 1, math.min(14, #MOCK.log) do say("  log " .. MOCK.log[i]) end
 say("ERRORS: " .. #MOCK.errors)

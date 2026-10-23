@@ -6,7 +6,7 @@
 -- items = { item name, "open" (any room that isn't locked) or the id of the room it's always in }
 local MAPS = {}
 MAPS["Hog Manor"] = {
-	H = 14, start = "living", pen = "pen", outside = "Earth green",
+	H = 14, start = "living", pen = "pen", outside = "Earth green", trim = "Dark orange",
 	rooms = {
 		{ id = "bedroom", name = "Bedroom", x1 = 0, z1 = 0, x2 = 36, z2 = 30, floor = "Reddish brown", wall = "Lavender", kind = "bedroom" },
 		{ id = "bath", name = "Bathroom", x1 = 36, z1 = 0, x2 = 64, z2 = 30, floor = "Institutional white", fmat = "Marble", wall = "Pastel blue-green", kind = "bath" },
@@ -29,7 +29,7 @@ MAPS["Hog Manor"] = {
 	exitLocks = { { "Boards", "Hammer" }, { "Padlock", "Gold Key" }, { "Bolt", "Wrench" } },
 }
 MAPS["School"] = {
-	H = 15, start = "cafeteria", pen = "pen", outside = "Dark stone grey",
+	H = 15, start = "cafeteria", pen = "pen", outside = "Dark stone grey", trim = "Medium stone grey",
 	rooms = {
 		{ id = "classA", name = "Classroom A", x1 = 0, z1 = 0, x2 = 40, z2 = 34, floor = "Light stone grey", fmat = "Marble", wall = "Pastel light blue", kind = "class" },
 		{ id = "classB", name = "Classroom B", x1 = 40, z1 = 0, x2 = 80, z2 = 34, floor = "Light stone grey", fmat = "Marble", wall = "Pastel yellow", kind = "class" },
@@ -223,10 +223,17 @@ local function buildMap(name)
 			local gaps = {}
 			for _, o in ipairs(R.open) do if o.side == side then table.insert(gaps, o) end end
 			table.sort(gaps, function(a, b) return a.c < b.c end)
+			local inward = (side == "N" or side == "W") and 1 or -1
 			local function seg(a, b, y0, h)
 				if b - a < 0.05 then return end
 				if ns then wpart("Wall", b - a, h, 1, (a + b) / 2, y0, fixed, r.wall, "SmoothPlastic")
 				else wpart("Wall", 1, h, b - a, fixed, y0, (a + b) / 2, r.wall, "SmoothPlastic") end
+				if y0 == 0 and b - a > 1 then
+					-- a skirting board along the bottom
+					local f2 = fixed + inward * 0.65
+					if ns then wpart("Skirting", b - a, 0.9, 0.3, (a + b) / 2, 0, f2, def.trim, "Wood")
+					else wpart("Skirting", 0.3, 0.9, b - a, f2, 0, (a + b) / 2, def.trim, "Wood") end
+				end
 			end
 			local cur = lo
 			for _, g in ipairs(gaps) do
@@ -335,6 +342,29 @@ local function buildMap(name)
 			end
 		end
 	end
+	-- windows on the outside walls (moonlight coming in), rugs on the floors
+	local RUG = { bedroom = "Bright violet", living = "Crimson", dining = "Dark green", office = "Bright red", library = "Navy blue", bath = "Pastel blue-green", class = "Bright yellow", entrance = "Crimson", kitchen = "Bright orange" }
+	for _, R in ipairs(M.rooms) do
+		for _, side in ipairs({ "N", "S", "W", "E" }) do
+			local outside = (side == "N" and R.z1 == minZ) or (side == "S" and R.z2 == maxZ) or (side == "W" and R.x1 == minX) or (side == "E" and R.x2 == maxX)
+			local free = true
+			for _, o in ipairs(R.open) do if o.side == side then free = false end end
+			if outside and free and not (side == "N" and KITS[R.kind] and KITS[R.kind].board) and R.kind ~= "pen" and R.kind ~= "hall" then
+				local ns = side == "N" or side == "S"
+				local f = side == "N" and R.z1 + 1.1 or side == "S" and R.z2 - 1.1 or side == "W" and R.x1 + 1.1 or R.x2 - 1.1
+				local wx, wz = ns and R.cx or f, ns and f or R.cz
+				local glass = wpart("Window", ns and 7 or 0.2, 5, ns and 0.2 or 7, wx, 4, wz, "Navy blue", "Glass", { tr = 0.1 })
+				light(glass, Color3.new(0.55, 0.65, 1), 18, 0.6)
+				wpart("WindowFrame", ns and 7.6 or 0.4, 0.5, ns and 0.4 or 7.6, wx, 3.6, wz, def.trim, "Wood")
+				wpart("WindowFrame", ns and 7.6 or 0.4, 0.5, ns and 0.4 or 7.6, wx, 9, wz, def.trim, "Wood")
+				wpart("WindowFrame", ns and 0.4 or 0.4, 5, ns and 0.4 or 0.4, wx, 4, wz, def.trim, "Wood")
+				wpart("WindowFrame", ns and 7 or 0.4, 0.3, ns and 0.4 or 7, wx, 6.35, wz, def.trim, "Wood")
+			end
+		end
+		if RUG[R.kind] then
+			wpart("Rug", R.w * 0.4, 0.1, R.d * 0.4, R.cx, 0, R.cz, RUG[R.kind], "Fabric", { nc = true })
+		end
+	end
 	-- places items can be: on furniture, and on the floor next to the walls (away from doorways)
 	for _, R in ipairs(M.rooms) do
 		local cand = { V(R.cx - R.w / 2 + 4, 0, R.cz), V(R.cx + R.w / 2 - 4, 0, R.cz), V(R.cx, 0, R.cz - R.d / 2 + 4), V(R.cx, 0, R.cz + R.d / 2 - 4),
@@ -346,24 +376,49 @@ local function buildMap(name)
 		end
 	end
 	-- locked doors (a coloured door in the doorway; use the key on it), the Hog's gate, the exit
-	local function clicker(part, fn)
+	M.partItem, M.partLock = {}, {}
+	function M.clickable(part)
 		local cd = Instance.new("ClickDetector")
 		cd.MaxActivationDistance = 16
 		cd.Parent = part
-		cd.MouseClick:connect(fn)
 		return cd
 	end
-	M.clicker = clicker
+	for _, dn in ipairs(M.doorNodes) do
+		local d = dn.door
+		if not d.exit then
+			local x, z = dn.p.X, dn.p.Z
+			for _, s2 in ipairs({ -1, 1 }) do
+				if dn.vertical then wpart("DoorFrame", 2.6, DH + 0.6, 0.6, x, 0, z + s2 * (DW / 2 + 0.3), def.trim, "Wood")
+				else wpart("DoorFrame", 0.6, DH + 0.6, 2.6, x + s2 * (DW / 2 + 0.3), 0, z, def.trim, "Wood") end
+			end
+			if dn.vertical then wpart("DoorFrame", 2.6, 0.6, DW + 1.2, x, DH, z, def.trim, "Wood")
+			else wpart("DoorFrame", DW + 1.2, 0.6, 2.6, x, DH, z, def.trim, "Wood") end
+		end
+	end
 	for _, dn in ipairs(M.doorNodes) do
 		local d = dn.door
 		local x, z = dn.p.X, dn.p.Z
 		local sx, sz = dn.vertical and 2 or DW, dn.vertical and DW or 2
 		if d.lock then
-			local door = wpart(d.lock, sx, DH, sz, x, 0, z, DOOR_COLOR[d.lock], "SmoothPlastic")
-			for _, face in ipairs(dn.vertical and { "Left", "Right" } or { "Front", "Back" }) do
-				sign(door, string.upper(d.lock) .. "\nneeds the " .. DOOR_KEY[d.lock], face, Color3.new(1, 1, 1))
-			end
+			local door = wpart("LockedDoor", sx, DH, sz, x, 0, z, "Reddish brown", "Wood")
 			local L = { name = d.lock, need = DOOR_KEY[d.lock], part = door, node = dn, parts = { door } }
+			local col = DOOR_COLOR[d.lock]
+			for _, f in ipairs({ -1, 1 }) do
+				-- panels, a handle and a keyhole plate on both sides
+				local off = f * 1.08
+				local function onDoor(n, along, y0, w, h, depth, c, mat)
+					local px, pz = x + (dn.vertical and off + f * depth / 2 or along), z + (dn.vertical and along or off + f * depth / 2)
+					local part = P(m, n, dn.vertical and V(depth, h, w) or V(w, h, depth), CFrame.new(px, y0 + h / 2, pz), c, mat)
+					table.insert(L.parts, part)
+					return part
+				end
+				onDoor("DoorPanel", -1.6, 1, 2.4, 3, 0.12, "Dark orange", "Wood")
+				onDoor("DoorPanel", 1.6, 1, 2.4, 3, 0.12, "Dark orange", "Wood")
+				onDoor("DoorPanel", -1.6, 5, 2.4, 3, 0.12, "Dark orange", "Wood")
+				onDoor("DoorPanel", 1.6, 5, 2.4, 3, 0.12, "Dark orange", "Wood")
+				onDoor("Keyhole", DW / 2 - 1.1, 3.4, 0.6, 1.3, 0.1, col, "Metal")
+				onDoor("Handle", DW / 2 - 1.1, 4.3, 0.9, 0.35, 0.45, col, "Metal")
+			end
 			table.insert(M.locks, L)
 			dn.lock = L
 		elseif d.gate then
@@ -405,7 +460,7 @@ local function buildMap(name)
 				elseif el[1] == "Fuse Box" then
 					local fx = x + math.min(7.5, A.w / 2 - 4.5)
 					local box = P(m, "Fuse Box", V(2.6, 3.2, 0.7), CFrame.new(fx, 4.5, zi - out * 0.1), "Medium stone grey", "Metal")
-					sign(box, "FUSE BOX\n(power for the exit)", d.side == "S" and "Front" or "Back", Color3.new(1, 0.9, 0.2))
+					table.insert(L.parts, P(m, "FuseSlot", V(0.8, 1.6, 0.2), CFrame.new(fx, 4.3, zi - out * 0.5), "Black", "Metal"))
 					local bulb = P(m, "FuseLight", V(0.6, 0.6, 0.3), CFrame.new(fx, 6.5, zi - out * 0.3), "Really red", "Neon")
 					L.bulb = bulb
 					table.insert(L.parts, box)

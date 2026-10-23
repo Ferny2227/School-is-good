@@ -4,7 +4,9 @@ local ROUND_TIME = 8 * 60
 local RELEASE = 15
 local INTERMISSION = 20
 local escaped, caughtList = {}, {}
-local modeName, hogName = "Bot Hog", "The Hog"
+local modeName, hogName = "Bot", "The Hog"
+local PLAYER_MODES = { ["Player"] = true, ["Player + Bot"] = true, ["Infection"] = true, ["Traitor"] = true }
+local inRound = {}          -- everyone who started this round (they respawn in the lobby afterwards)
 local function status()
 	local n = 0
 	for _ in pairs(survivors) do n = n + 1 end
@@ -32,16 +34,30 @@ local function leaveMap(p, why)
 	if not survivors[p] then return end
 	survivors[p] = nil
 	stuck[p] = nil
+	setCrouch(p, false)
 	local t = torsoOf(p.Character)
 	if holding[p] then dropItem(p, t and t.Position) end
-	toClient(p, "role", nil)
+	if why ~= "infect" then toClient(p, "role", nil) end
 end
-function catchPlayer(p)
+function catchPlayer(p, by)
 	if not survivors[p] then return end
-	leaveMap(p)
-	table.insert(caughtList, p.Name)
+	leaveMap(p, modeName == "Infection" and "infect")
 	toClient(p, "caught")
-	sayAll(p.Name .. " was caught by the Hog!", "red")
+	if modeName == "Infection" then
+		-- infected: you turn into a Hog and hunt the others
+		sayAll(p.Name .. " got INFECTED!", "red")
+		delay(1.8, function()
+			if not p.Parent or STATE.phase ~= "hunt" then return end
+			setCrouch(p, false)
+			hogPlayers[p] = true
+			morph(p)
+			toClient(p, "role", "hog")
+			toClient(p, "big", "YOU'RE A HOG NOW!", "Catch the others!")
+		end)
+		return
+	end
+	table.insert(caughtList, p.Name)
+	sayAll(p.Name .. " was caught" .. (by == traitor and by and " by the TRAITOR!" or " by the Hog!"), "red")
 	delay(2.5, function() if p.Parent and not survivors[p] then toLobby(p) end end)
 end
 local function escape(p)
@@ -69,10 +85,21 @@ local function clearMap()
 	for _, tr in ipairs(traps) do pcall(function() tr.model:Destroy() end) end
 	traps = {}
 	if MAP then MAP.model:Destroy() end
-	MAP, HOG = nil, nil
+	MAP = nil
+	HOGS = {}
+end
+-- when a Hog player is gone and there's no Hog left, a bot takes over
+local function needHog(why)
+	if STATE.phase ~= "hunt" and STATE.phase ~= "release" or not MAP then return end
+	if next(hogPlayers) or #HOGS > 0 or modeName == "Traitor" and traitor then return end
+	local H = newBot()
+	H.mode = STATE.phase == "hunt" and "patrol" or "wait"
+	if STATE.phase == "hunt" then openGate() end
+	hogName = "The Hog"
+	sayAll(why .. " - a BOT HOG takes over!", "red")
 end
 
--- start a round with everyone who's in the lobby
+-- start a round with everyone who pressed PLAY
 local function startRound()
 	local plist = {}
 	for _, p in ipairs(Players:GetPlayers()) do
@@ -82,43 +109,53 @@ local function startRound()
 	if #plist == 0 then return false end
 	local mapName = winner("map", MAP_NAMES)
 	modeName = winner("mode", MODE_NAMES)
-	if #plist < 2 then modeName = "Bot Hog" end
+	if #plist < 2 and PLAYER_MODES[modeName] then modeName = "Bot" end
 	votes.map, votes.mode = {}, {}
 	refreshVotes()
 	clearMap()
 	buildMap(mapName)
 	for _, it in ipairs(MAP.def.items) do spawnItem(it[1]) end
 	hookLocks()
-	escaped, caughtList, survivors, holding, stuck = {}, {}, {}, {}, {}
-	hogPlayer, hogTrapLeft = nil, 3
-	if modeName == "Player Hog" then
-		hogPlayer = pick(plist)
-		hogName = hogPlayer.Name
-	else
-		hogName = "The Hog"
+	escaped, caughtList, survivors, holding, stuck, crouching, inRound = {}, {}, {}, {}, {}, {}, {}
+	hogPlayers, traitor = {}, nil
+	hogName = "The Hog"
+	shuffle(plist)
+	if modeName == "Player" or modeName == "Player + Bot" or modeName == "Infection" then
+		hogPlayers[plist[1]] = true
+		hogName = plist[1].Name
+	elseif modeName == "Traitor" then
+		traitor = plist[1]
 	end
 	local S = MAP.start
 	for i, p in ipairs(plist) do
+		inRound[p] = true
 		local t = torsoOf(p.Character)
-		if p == hogPlayer then
+		if hogPlayers[p] then
 			t.CFrame = CFrame.new(V(MAP.pen.cx, 3.5, MAP.pen.cz))
 			morph(p)
 			toClient(p, "role", "hog")
-			toClient(p, "big", "YOU ARE THE HOG!", "Catch everyone before they escape. Click with the Trap tool to set traps.")
+			toClient(p, "big", "YOU ARE THE HOG!", modeName == "Infection" and "Everyone you catch turns into a Hog too!" or "Catch everyone before they escape. Use the Trap tool to set traps.")
 		else
-			survivors[p] = true
 			local a = (i / #plist) * math.pi * 2
 			t.CFrame = CFrame.new(V(S.cx + math.cos(a) * 5, 3.5, S.cz + math.sin(a) * 5))
 			local h = p.Character:FindFirstChild("Humanoid")
 			if h then h.WalkSpeed = 16 end
 			flashlight(p)
-			toClient(p, "role", "survivor")
-			toClient(p, "hold", nil)
-			toClient(p, "big", "FIND THE ITEMS - ESCAPE!", "Click items to pick them up (one at a time) and click locks to use them.")
+			if p == traitor then
+				toClient(p, "role", "traitor")
+				toClient(p, "big", "YOU ARE THE TRAITOR!", "Shh... walk up to the others and tag them (once every 25 seconds). Don't let them escape!")
+			else
+				survivors[p] = true
+				toClient(p, "role", "survivor")
+				toClient(p, "hold", nil)
+				toClient(p, "big", "FIND THE ITEMS - ESCAPE!", modeName == "Traitor" and "One of you is a TRAITOR..." or "Click things to pick them up. Figure out where they go.")
+			end
 		end
 	end
-	if modeName == "Bot Hog" then newBot() end
-	sendLocks()
+	if modeName == "Bot" or modeName == "Player + Bot" or modeName == "Traitor" then newBot() end
+	if modeName == "Swarm" then
+		for i, off in ipairs({ V(-4, 0, -5), V(4, 0, 0), V(-3, 0, 5) }) do newBot(off, 0.92) end
+	end
 	STATE.phase, STATE.left = "release", RELEASE
 	return true
 end
@@ -127,17 +164,15 @@ local function endRound()
 	for p in pairs(escaped) do if p.Parent then table.insert(names, p.Name) end end
 	local text
 	if #names == 0 then
-		text = "THE HOG WINS!"
-		if hogPlayer and hogPlayer.Parent then addCoins(hogPlayer, 40) end
+		text = modeName == "Traitor" and traitor and ("THE TRAITOR (" .. traitor.Name .. ") WINS!") or "THE HOG WINS!"
+		for p in pairs(hogPlayers) do if p.Parent then addCoins(p, 40) end end
+		if traitor and traitor.Parent then addCoins(traitor, 60) end
 	else
 		text = (#names == 1 and names[1] or (#names .. " PLAYERS")) .. " ESCAPED!"
 	end
 	toAll("big", text, #caughtList > 0 and ("Caught: " .. table.concat(caughtList, ", ")) or "Nobody was caught.")
-	pcall(function()
-		boardText.Text = "ESCAPE THE HOG\n\nLAST ROUND (" .. (MAP and MAP.name or "?") .. "): " .. text ..
-			"\nEscaped: " .. (#names > 0 and table.concat(names, ", ") or "nobody") ..
-			"\n\nFind items, unlock the doors, open the EXIT.\nOnly ONE item at a time!"
-	end)
+	boardText.Text = "LAST ROUND (" .. (MAP and MAP.name or "?") .. ", " .. modeName .. "): " .. text ..
+		"   Escaped: " .. (#names > 0 and table.concat(names, ", ") or "nobody")
 	toAll("last", boardText.Text)
 	STATE.phase, STATE.left = "results", 6
 	status()
@@ -147,16 +182,12 @@ local function endRound()
 		toClient(p, "role", nil)
 		toClient(p, "hold", nil)
 		takeTool(p)
-		if p == hogPlayer then
-			pcall(function() p:LoadCharacter() end)
-		else
-			toLobby(p)
-		end
+		-- everyone who played starts fresh in the lobby (no pig mask, no crouch, no flashlight)
+		if inRound[p] then pcall(function() p:LoadCharacter() end) else toLobby(p) end
 		saveStats(p)
 	end
-	hogPlayer = nil
+	hogPlayers, traitor, inRound, crouching = {}, nil, {}, {}
 	clearMap()
-	toAll("locks", {}, "")
 end
 
 ------------------------------------------------------------------ players
@@ -165,22 +196,18 @@ local function setup(p)
 	loadStats(p)
 	p.CharacterAdded:connect(function(c)
 		wait(0.2)
-		if not survivors[p] and p ~= hogPlayer then toLobby(p) end
+		if not survivors[p] and not hogPlayers[p] and p ~= traitor then toLobby(p) end
 		local h = c:WaitForChild("Humanoid")
 		h.Died:connect(function()
 			if survivors[p] then
 				leaveMap(p)
 				table.insert(caughtList, p.Name)
 			end
-			if p == hogPlayer and STATE.phase == "hunt" and MAP then
-				-- the Hog player died: the bot takes over
-				hogPlayer = nil
-				modeName = "Bot Hog"
-				hogName = "The Hog"
-				newBot()
-				HOG.mode = "patrol"
-				sayAll("The Hog player is gone - the BOT HOG takes over!", "red")
+			if hogPlayers[p] then
+				hogPlayers[p] = nil
+				needHog("The Hog player is gone")
 			end
+			if p == traitor then traitor = nil end
 		end)
 	end)
 	refreshVotes()
@@ -190,17 +217,17 @@ for _, p in ipairs(Players:GetPlayers()) do spawn(function() setup(p) end) end
 Players.PlayerAdded:connect(setup)
 Players.PlayerRemoving:connect(function(p)
 	saveStats(p)
-	survivors[p], holding[p], votes.map[p], votes.mode[p], ready[p] = nil, nil, nil, nil, nil
-	if p == hogPlayer and STATE.phase == "hunt" and MAP then
-		hogPlayer = nil
-		modeName, hogName = "Bot Hog", "The Hog"
-		newBot()
-		HOG.mode = "patrol"
-		sayAll("The Hog player left - the BOT HOG takes over!", "red")
+	survivors[p], holding[p], votes.map[p], votes.mode[p], ready[p], crouching[p] = nil, nil, nil, nil, nil, nil
+	if p == traitor then traitor = nil end
+	if hogPlayers[p] then
+		hogPlayers[p] = nil
+		needHog("The Hog player left")
 	end
 end)
 remote.OnServerEvent:connect(function(p, what, a, b)
-	if what == "trap" then hogTrap(p)
+	if what == "click" then clickPart(p, a)
+	elseif what == "crouch" then setCrouch(p, a == true)
+	elseif what == "trap" then hogTrap(p)
 	elseif what == "play" then ready[p] = true status()
 	elseif what == "menu" then ready[p] = nil
 	elseif what == "vote" then vote(p, a, b) end
@@ -208,12 +235,13 @@ end)
 pcall(function() game:BindToClose(function() for _, p in ipairs(Players:GetPlayers()) do saveStats(p) end wait(2) end) end)
 
 ------------------------------------------------------------------ the main loop
-_G.HogDebug = { STATE = STATE, MAPS = MAPS, buildMap = buildMap, getMap = function() return MAP end, getHog = function() return HOG end,
-	survivors = function() return survivors end, holding = function() return holding end, spawnItem = spawnItem, solve = solve,
-	votes = votes, route = route, roomAt = roomAt, catchPlayer = catchPlayer, hogPlayer = function() return hogPlayer end,
-	traps = function() return traps end, placeTrap = placeTrap, LOBBY = LOBBY, ready = ready }
+_G.HogDebug = { STATE = STATE, MAPS = MAPS, buildMap = buildMap, getMap = function() return MAP end, getHog = function() return HOGS[1] end,
+	hogs = function() return HOGS end, survivors = function() return survivors end, holding = function() return holding end, spawnItem = spawnItem,
+	solve = solve, votes = votes, route = route, roomAt = roomAt, catchPlayer = catchPlayer, hogPlayer = function() return next(hogPlayers) end,
+	hogPlayers = function() return hogPlayers end, traitor = function() return traitor end, crouching = function() return crouching end,
+	traps = function() return traps end, placeTrap = placeTrap, LOBBY = LOBBY, ready = ready, clickPart = clickPart, mode = function() return modeName end }
 spawn(function()
-	-- fast systems: the bot, the Player Hog's tag, traps, the exit
+	-- fast systems: the bots, Hog players' and the Traitor's tags, traps, the exit
 	local last = tick()
 	local reported = {}
 	while true do
@@ -222,7 +250,7 @@ spawn(function()
 		local dt = math.min(0.3, now - last)
 		last = now
 		if STATE.phase == "hunt" and MAP and not STATE.hold then
-			for name, f in pairs({ bot = function() botStep(dt) end, hog = hogPlayerStep, traps = trapStep, exit = escapeStep, items = itemStep }) do
+			for name, f in pairs({ bot = function() botsStep(dt) end, hog = hogPlayerStep, traps = trapStep, exit = escapeStep }) do
 				local ok, err = pcall(f)
 				if not ok and not reported[name] then
 					reported[name] = true
@@ -253,8 +281,12 @@ spawn(function()
 				STATE.left = STATE.left - 1
 			end
 			openGate()
-			if HOG then HOG.mode = "patrol" end
-			toAll("big", "THE HOG IS LOOSE!", modeName == "Player Hog" and (hogName .. " is the Hog!") or "Hide... and find those items!")
+			for i, H in ipairs(HOGS) do
+				H.mode = "patrol"
+				H.pause = (i - 1) * 4
+			end
+			local who = modeName == "Swarm" and "THREE HOGS ARE LOOSE!" or "THE HOG IS LOOSE!"
+			toAll("big", who, next(hogPlayers) and (hogName .. " is the Hog!") or "Hide... and find those items!")
 			STATE.phase, STATE.left = "hunt", ROUND_TIME
 			while STATE.left > 0 and survivorCount() > 0 do
 				status()

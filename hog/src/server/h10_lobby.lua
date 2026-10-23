@@ -80,7 +80,7 @@ local boardText = { Text = "" }       -- (the last round's result; shown on the 
 
 ------------------------------------------------------------------ voting (on the menu screen): the map and the Hog
 local MAP_NAMES = { "Hog Manor", "School" }
-local MODE_NAMES = { "Bot Hog", "Player Hog" }
+local MODE_NAMES = { "Bot", "Player", "Player + Bot", "Infection", "Swarm", "Traitor" }
 local votes = { map = {}, mode = {} }
 local ready = {}            -- players who pressed PLAY (they're in the next round)
 local function countVotes(kind)

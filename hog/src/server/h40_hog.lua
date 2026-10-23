@@ -1,34 +1,37 @@
 -- ==== h40_hog.lua
------------------------------------------------------------------- the bot Hog
--- The server works out where the Hog is (no physics, so it can't get stuck) and tells every player's computer where
--- it's walking to through the "Move" value ("x z goalX goalZ speed what"); the computers move it smoothly and swing its arms
--- and legs. It walks the map's paths between rooms, can't get through locked doors, and chases anyone it can see.
+------------------------------------------------------------------ bot Hogs
+-- The server works out where each bot Hog is (no physics, so it can't get stuck) and tells every player's computer
+-- where it's walking to through its "Move" value ("x z goalX goalZ speed what seq"); the computers move it smoothly
+-- and swing its arms and legs. It walks the map's paths between rooms, can't get through locked doors, chases anyone
+-- it can see, and has a harder time seeing and hearing you while you crouch.
 local BOT_SPEED = { patrol = 10, look = 13, chase = 15.2 }
-local SIGHT = 75
+local SIGHT, SIGHT_CROUCH = 75, 32
+local HEAR, HEAR_CROUCH = 9, 4.5
 local CATCH = 4.2
-local function sendMove(what)
-	if not HOG then return end
-	HOG.mv.Value = string.format("%.2f %.2f %.2f %.2f %.2f %s %d", HOG.pos.X, HOG.pos.Z, HOG.pos.X, HOG.pos.Z, HOG.speed, what or "m", HOG.seq)
-	HOG.seq = HOG.seq + 1
+local function sendMove(H, what, goal)
+	goal = goal or H.pos
+	H.mv.Value = string.format("%.2f %.2f %.2f %.2f %.2f %s %d", H.pos.X, H.pos.Z, goal.X, goal.Z, what == "m" and H.speed or 0, what or "m", H.seq)
+	H.seq = H.seq + 1
 end
-local function newBot()
-	local at = V(MAP.pen.cx, 0, MAP.pen.cz)
+local function newBot(offset, speedK)
+	local at = V(MAP.pen.cx, 0, MAP.pen.cz) + (offset or V(0, 0, 0))
 	local m = buildHog(MAP.model, CFrame.new(at + V(0, HOG_UP, 0)), "Hog")
 	local mv = Instance.new("StringValue")
 	mv.Name = "Move"
 	mv.Parent = m
-	HOG = { model = m, pos = at, speed = 0, mv = mv, seq = 0, path = {}, mode = "wait", pause = 0, traps = 3, nextTrap = tick() + 40,
-		goal = nil, sent = nil }
-	sendMove("s")
-	return HOG
+	local H = { model = m, pos = at, speed = 0, mv = mv, seq = 0, path = {}, mode = "wait", pause = 0, traps = 3, nextTrap = tick() + 40 + math.random(0, 20),
+		k = speedK or 1 }
+	table.insert(HOGS, H)
+	sendMove(H, "s")
+	return H
 end
-local function canSee(from, char)
+local function canSee(H, char, range)
 	local t = torsoOf(char)
 	if not t then return false end
-	local eye = from + V(0, 4.5, 0)
+	local eye = H.pos + V(0, 4.5, 0)
 	local d = t.Position - eye
-	if d.magnitude > SIGHT then return false end
-	local ok, hit = pcall(function() return workspace:FindPartOnRay(Ray.new(eye, d), HOG and HOG.model or nil) end)
+	if d.magnitude > range then return false end
+	local ok, hit = pcall(function() return workspace:FindPartOnRay(Ray.new(eye, d), H.model) end)
 	if not ok then return true end
 	return hit == nil or hit:IsDescendantOf(char)
 end
@@ -68,11 +71,13 @@ local function route(from, to)
 	table.insert(path, V(to.X, 0, to.Z))
 	return path
 end
-local catchPlayer           -- (below)
+local catchPlayer           -- (h50)
 local function heard(at)
-	if HOG and HOG.mode ~= "chase" and HOG.mode ~= "wait" then
-		HOG.path = route(HOG.pos, at) or {}
-		HOG.mode = "look"
+	for _, H in ipairs(HOGS) do
+		if H.mode ~= "chase" and H.mode ~= "wait" then
+			H.path = route(H.pos, at) or {}
+			H.mode = "look"
+		end
 	end
 end
 onHeard = heard
@@ -86,20 +91,23 @@ local function placeTrap(at)
 	end
 	table.insert(traps, { model = m, at = V(at.X, 0, at.Z), base = base })
 end
-local function botStep(dt)
-	local H = HOG
-	if not H or H.mode == "wait" then return end
+local function botStep(H, dt)
+	if H.mode == "wait" then return end
 	if H.pause > 0 then
 		H.pause = H.pause - dt
 		return
 	end
-	-- who can it see?
-	local seen, sd = nil, 1e9
+	-- who can it see (or hear right next to it)?
+	local seen, sd, visible = nil, 1e9, false
 	for p in pairs(survivors) do
 		local t = torsoOf(p.Character)
 		if t then
 			local d = (flat(t.Position) - flat(H.pos)).magnitude
-			if d < sd and (d < 9 or canSee(H.pos, p.Character)) then seen, sd = p, d end
+			local low = crouching[p]
+			if d < sd then
+				local v = canSee(H, p.Character, low and SIGHT_CROUCH or SIGHT)
+				if v or d < (low and HEAR_CROUCH or HEAR) then seen, sd, visible = p, d, v end
+			end
 		end
 	end
 	local target
@@ -108,16 +116,13 @@ local function botStep(dt)
 		if H.mode ~= "chase" then H.path = {} end
 		H.mode = "chase"
 		H.last = t.Position
-		H.lastT = tick()
-		H.speed = BOT_SPEED.chase
-		if canSee(H.pos, seen.Character) then
+		H.speed = BOT_SPEED.chase * H.k
+		if visible then
 			target = V(t.Position.X, 0, t.Position.Z)
 			H.path = {}
-		else
-			if #H.path == 0 or (H.pathTo and (H.pathTo - t.Position).magnitude > 8) then
-				H.path = route(H.pos, t.Position) or {}
-				H.pathTo = t.Position
-			end
+		elseif #H.path == 0 or (H.pathTo and (H.pathTo - t.Position).magnitude > 8) then
+			H.path = route(H.pos, t.Position) or {}
+			H.pathTo = t.Position
 		end
 	elseif H.mode == "chase" then
 		-- lost them: go to where they were last seen, then look around
@@ -134,7 +139,7 @@ local function botStep(dt)
 			H.path = route(H.pos, V(R.cx + math.random(-4, 4), 0, R.cz + math.random(-4, 4))) or {}
 			if #H.path == 0 then H.pause = 1 return end
 		end
-		H.speed = H.mode == "look" and BOT_SPEED.look or H.mode == "chase" and BOT_SPEED.chase or BOT_SPEED.patrol
+		H.speed = (H.mode == "look" and BOT_SPEED.look or H.mode == "chase" and BOT_SPEED.chase or BOT_SPEED.patrol) * H.k
 		target = H.path[1]
 	end
 	local d = target - H.pos
@@ -149,8 +154,7 @@ local function botStep(dt)
 	local goal = H.path[1] or target
 	if not H.sent or H.sentSpeed ~= H.speed or (H.sent - goal).magnitude > 4 or ((H.sent - goal).magnitude > 0.5 and tick() - H.sentAt > 0.2) then
 		H.sent, H.sentSpeed, H.sentAt = goal, H.speed, tick()
-		HOG.mv.Value = string.format("%.2f %.2f %.2f %.2f %.2f m %d", H.pos.X, H.pos.Z, goal.X, goal.Z, H.speed, H.seq)
-		H.seq = H.seq + 1
+		sendMove(H, "m", goal)
 	end
 	-- now and then it sets a trap in a doorway
 	if H.traps > 0 and tick() > H.nextTrap and not seen then
@@ -171,20 +175,21 @@ local function botStep(dt)
 			H.pause = 2.5
 			H.path = {}
 			H.mode = "look"
-			HOG.mv.Value = string.format("%.2f %.2f %.2f %.2f 0 e %d", H.pos.X, H.pos.Z, H.pos.X, H.pos.Z, H.seq)
-			H.seq = H.seq + 1
 			H.sent = nil
+			sendMove(H, "e")
 			break
 		end
 	end
 end
+local function botsStep(dt) for _, H in ipairs(HOGS) do botStep(H, dt) end end
 
------------------------------------------------------------------- a player as the Hog
+------------------------------------------------------------------ players as the Hog (Player, Player + Bot, Infection)
 local hogTrap
+local hogTrapsLeft = {}
 local function morph(p)
 	local c = p.Character
 	local head = c and c:FindFirstChild("Head")
-	if not head then return end
+	if not head or c:FindFirstChild("HogHead") then return end
 	for _, o in ipairs(c:GetChildren()) do
 		if o:IsA("Hat") or o:IsA("Accessory") or o:IsA("Shirt") or o:IsA("Pants") or o:IsA("ShirtGraphic") then pcall(function() o:Destroy() end) end
 		if o:IsA("BasePart") and o.Name ~= "HumanoidRootPart" then
@@ -192,6 +197,7 @@ local function morph(p)
 		end
 	end
 	pcall(function() head.face:Destroy() end)
+	pcall(function() head.Flashlight:Destroy() end)
 	local rootCF = head.CFrame * CFrame.new(0, -3 + 0.1, 0)
 	local pose = HogPose(rootCF, 0, 0)
 	for _, d in ipairs(HOG_PARTS) do
@@ -204,6 +210,7 @@ local function morph(p)
 	local h = c:FindFirstChild("Humanoid")
 	if h then h.WalkSpeed = 17 end
 	-- a tool for laying traps
+	hogTrapsLeft[p] = 3
 	local tool = Instance.new("Tool")
 	tool.Name = "Trap"
 	pcall(function() tool.CanBeDropped = false end)
@@ -213,34 +220,71 @@ local function morph(p)
 	tool.Parent = p:FindFirstChild("Backpack") or c
 	tool.Activated:connect(function() if hogTrap then hogTrap(p) end end)
 end
-local hogTrapLeft, lastTrap = 3, 0
+local lastTrap = {}
 function hogTrap(p)
-	if p ~= hogPlayer or hogTrapLeft <= 0 or tick() - lastTrap < 1.5 or STATE.phase ~= "hunt" then return end
+	if not hogPlayers[p] or (hogTrapsLeft[p] or 0) <= 0 or tick() - (lastTrap[p] or 0) < 1.5 or STATE.phase ~= "hunt" then return end
 	local t = torsoOf(p.Character)
 	if not t then return end
-	lastTrap = tick()
-	hogTrapLeft = hogTrapLeft - 1
+	lastTrap[p] = tick()
+	hogTrapsLeft[p] = hogTrapsLeft[p] - 1
 	placeTrap(t.Position)
-	say(p, "Trap set! (" .. hogTrapLeft .. " left)", "gold")
+	say(p, "Trap set! (" .. hogTrapsLeft[p] .. " left)", "gold")
 end
-local hogCool = 0
+-- a Hog player (or the Traitor) catches you by touching you
+local hogCool = {}
 local function hogPlayerStep()
-	if not hogPlayer then return end
-	local ht = torsoOf(hogPlayer.Character)
-	if not ht or tick() < hogCool then return end
-	for p in pairs(survivors) do
-		local t = torsoOf(p.Character)
-		if t and (t.Position - ht.Position).magnitude < 5 then
-			catchPlayer(p)
-			hogCool = tick() + 1.5
-			addCoins(hogPlayer, 10)
-			break
+	local hunters = {}
+	for p in pairs(hogPlayers) do table.insert(hunters, { p, 1.5 }) end
+	if traitor then table.insert(hunters, { traitor, 25 }) end
+	for _, hh in ipairs(hunters) do
+		local hp = hh[1]
+		local ht = torsoOf(hp.Character)
+		if ht and tick() > (hogCool[hp] or 0) then
+			for p in pairs(survivors) do
+				local t = torsoOf(p.Character)
+				if p ~= hp and t and (t.Position - ht.Position).magnitude < 5 then
+					catchPlayer(p, hp)
+					hogCool[hp] = tick() + hh[2]
+					addCoins(hp, 10)
+					if hp == traitor then toClient(hp, "toast", "Got one! Next catch in 25 seconds.", "red") end
+					break
+				end
+			end
 		end
 	end
 end
 
+------------------------------------------------------------------ crouching (C, or the button): slower, lower, harder to spot
+local JOINTS = { "RootJoint", "Right Hip", "Left Hip" }
+local function setCrouch(p, on)
+	on = on and true or nil
+	if not survivors[p] and on then return end
+	if crouching[p] == on then return end
+	crouching[p] = on
+	local c = p.Character
+	local h = c and c:FindFirstChild("Humanoid")
+	if h and not stuck[p] then h.WalkSpeed = on and 8 or 16 end
+	local root, torso = c and c:FindFirstChild("HumanoidRootPart"), c and c:FindFirstChild("Torso")
+	pcall(function()
+		for _, jn in ipairs(JOINTS) do
+			local j = (jn == "RootJoint" and root or torso):FindFirstChild(jn)
+			if j then
+				if not j:FindFirstChild("StandC0") then
+					local v = Instance.new("CFrameValue")
+					v.Name = "StandC0"
+					v.Value = j.C0
+					v.Parent = j
+				end
+				local c0 = j.StandC0.Value
+				if not on then j.C0 = c0
+				elseif jn == "RootJoint" then j.C0 = CFrame.new(0, -1.2, 0) * CFrame.Angles(-0.35, 0, 0) * c0
+				else j.C0 = CFrame.new(c0.p) * CFrame.Angles(1.35, 0, 0) * (CFrame.new(-c0.p) * c0) end
+			end
+		end
+	end)
+end
+
 ------------------------------------------------------------------ traps catch your foot
-local stuck = {}
 local function trapStep()
 	for i = #traps, 1, -1 do
 		local tr = traps[i]
@@ -258,7 +302,7 @@ local function trapStep()
 				delay(5, function()
 					stuck[p] = nil
 					pcall(function() m:Destroy() end)
-					if h and survivors[p] then h.WalkSpeed = 16 pcall(function() h.JumpPower = 50 end) end
+					if h and survivors[p] then h.WalkSpeed = crouching[p] and 8 or 16 pcall(function() h.JumpPower = 50 end) end
 				end)
 				break
 			end

@@ -2,8 +2,11 @@
 ------------------------------------------------------------------ items: click to pick up, you can only carry ONE
 local holding = {}          -- player -> item name
 local survivors = {}        -- player -> true while they're in the map and not caught / escaped
-local hogPlayer = nil       -- the player who is the Hog (Player Hog mode)
-local HOG = nil             -- the bot Hog (Bot Hog mode)
+local hogPlayers = {}       -- players who are a Hog (Player, Player + Bot, Infection)
+local traitor = nil         -- Traitor mode: the secret traitor
+local HOGS = {}             -- the bot Hogs
+local crouching = {}        -- player -> true while crouching
+local stuck = {}            -- player -> true while caught in a trap
 local onHeard               -- (the Hog hears doors being unlocked; set in h40_hog.lua)
 local function itemLook(m, name, at)
 	local c = ITEM_LOOK[name] or { "Bright yellow" }
@@ -86,8 +89,10 @@ function spawnItem(name, at)
 	local main = itemLook(m, name, at)
 	local it = { name = name, model = m, at = at }
 	MAP.items[m] = it
-	local b = bill(main, name, 5, 1, 1.6, Color3.new(1, 1, 0.6))
-	pcall(function() b.Parent.MaxDistance = 40 end)
+	local tag = Instance.new("StringValue")         -- (players' computers show the name when you point at it)
+	tag.Name = "ItemName"
+	tag.Value = name
+	tag.Parent = m
 	-- a big invisible box round it, so it's easy to click
 	local hit = P(m, "Hitbox", V(3.4, 3, 3.4), CFrame.new(main.Position), "White", nil, { tr = 1, nc = true })
 	it.main, it.born = main, tick()
@@ -110,20 +115,15 @@ function spawnItem(name, at)
 		say(p, "You picked up the " .. name .. "!", "gold")
 	end
 	for _, part in ipairs(m:GetChildren()) do
-		if part:IsA("BasePart") then MAP.clicker(part, it.take) end
+		if part:IsA("BasePart") then
+			MAP.clickable(part)
+			MAP.partItem[part] = it
+		end
 	end
 	return it
 end
 
 ------------------------------------------------------------------ locks: click with the right item
-local function sendLocks(p)
-	if not MAP then return end
-	local list = {}
-	for _, L in ipairs(MAP.locks) do
-		if not L.gate then table.insert(list, { L.name, L.need, L.done and true or false, L.exit and true or false }) end
-	end
-	if p then toClient(p, "locks", list, MAP.name) else toAll("locks", list, MAP.name) end
-end
 local function openExit()
 	if MAP.exitDone then return end
 	MAP.exitDone = true
@@ -146,11 +146,13 @@ local function solve(L, p)
 	elseif L.node then
 		-- a coloured door swings open
 		local d = L.part
-		d.CanCollide = false
 		local dn = L.node
-		local hinge = dn.vertical and CFrame.new(0, 0, -DW / 2) or CFrame.new(-DW / 2, 0, 0)
-		d.CFrame = d.CFrame * hinge * CFrame.Angles(0, math.rad(85), 0) * hinge:inverse()
-		d.Transparency = 0.2
+		local hinge = d.CFrame * (dn.vertical and CFrame.new(0, 0, -DW / 2) or CFrame.new(-DW / 2, 0, 0))
+		local turn = hinge * CFrame.Angles(0, math.rad(85), 0) * hinge:inverse()
+		for _, part in ipairs(L.parts) do
+			part.CanCollide = false
+			part.CFrame = turn * part.CFrame
+		end
 	else
 		for _, part in ipairs(L.parts) do
 			part.Anchored = false
@@ -159,10 +161,9 @@ local function solve(L, p)
 		end
 	end
 	local name = p and p.Name or "Someone"
-	sayAll(name .. " used the " .. (L.need or "?") .. " on the " .. L.name .. "!", "green")
+	sayAll(name .. " used the " .. (L.need or "?") .. "!", "green")
 	if p then addCoins(p, 5) end
 	if onHeard then onHeard((L.part or L.parts[1]).Position) end
-	sendLocks()
 	if L.exit then
 		local all = true
 		for _, e in ipairs(MAP.exitLocks) do if not e.done then all = false end end
@@ -173,20 +174,36 @@ local function hookLocks()
 	for _, L in ipairs(MAP.locks) do
 		if not L.gate then
 			for _, part in ipairs(L.parts) do
-				MAP.clicker(part, function(p)
-					if L.done or not survivors[p] then return end
-					local t = torsoOf(p.Character)
-					if not t or (t.Position - part.Position).magnitude > 20 then return end
-					if holding[p] == L.need then
-						holding[p] = nil
-						takeTool(p)
-						toClient(p, "hold", nil)
-						solve(L, p)
-					else
-						say(p, "The " .. L.name .. " needs the " .. L.need .. (holding[p] and (" - you have the " .. holding[p]) or "") .. ".", "red")
-					end
-				end)
+				MAP.clickable(part)
+				MAP.partLock[part] = L
 			end
+		end
+	end
+end
+-- a player clicked something in the map (their computer sends what the mouse was on)
+local lastClick = {}
+local function clickPart(p, part)
+	if not MAP or not survivors[p] then return end
+	if type(part) ~= "userdata" and type(part) ~= "table" then return end
+	if tick() - (lastClick[p] or 0) < 0.25 then return end
+	lastClick[p] = tick()
+	local t = torsoOf(p.Character)
+	local ok, pos = pcall(function() return part.Position end)
+	if not t or not ok or (t.Position - pos).magnitude > 16 then return end
+	local it = MAP.partItem[part]
+	if it then
+		if MAP.items[it.model] then it.take(p) end
+		return
+	end
+	local L = MAP.partLock[part]
+	if L and not L.done then
+		if holding[p] == L.need then
+			holding[p] = nil
+			takeTool(p)
+			toClient(p, "hold", nil)
+			solve(L, p)
+		else
+			say(p, "It's locked.", "red")
 		end
 	end
 end
@@ -196,36 +213,6 @@ local function openGate()
 	L.done = true
 	for _, part in ipairs(L.parts) do
 		if part.Name == "GateBlock" then part:Destroy() else part.CFrame = part.CFrame - V(0, DH - 0.3, 0) end
-	end
-end
--- no clicking needed: walk over an item (with empty hands) to pick it up, walk up to a lock holding the right item
--- to use it
-local function itemStep()
-	if not MAP then return end
-	for p in pairs(survivors) do
-		local t = torsoOf(p.Character)
-		if t then
-			if not holding[p] then
-				for m, it in pairs(MAP.items) do
-					local d = it.main.Position - t.Position
-					if tick() - it.born > 1.5 and V(d.X, 0, d.Z).magnitude < 4.5 and math.abs(d.Y) < 6 then it.take(p) break end
-				end
-			else
-				for _, L in ipairs(MAP.locks) do
-					if not L.done and L.need == holding[p] then
-						for _, part in ipairs(L.parts) do
-							if part.Parent and (part.Position - t.Position).magnitude < 8 then
-								holding[p] = nil
-								takeTool(p)
-								toClient(p, "hold", nil)
-								solve(L, p)
-								break
-							end
-						end
-					end
-				end
-			end
-		end
 	end
 end
 -- is the way through this path point shut?
