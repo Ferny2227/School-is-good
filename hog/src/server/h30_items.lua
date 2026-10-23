@@ -88,7 +88,10 @@ function spawnItem(name, at)
 	MAP.items[m] = it
 	local b = bill(main, name, 5, 1, 1.6, Color3.new(1, 1, 0.6))
 	pcall(function() b.Parent.MaxDistance = 40 end)
-	MAP.clicker(main, function(p)
+	-- a big invisible box round it, so it's easy to click
+	local hit = P(m, "Hitbox", V(3.4, 3, 3.4), CFrame.new(main.Position), "White", nil, { tr = 1, nc = true })
+	it.main, it.born = main, tick()
+	it.take = function(p)
 		if not survivors[p] or not m.Parent then return end
 		local t = torsoOf(p.Character)
 		if not t or (t.Position - main.Position).magnitude > 18 then return end
@@ -105,7 +108,10 @@ function spawnItem(name, at)
 		giveTool(p, name)
 		toClient(p, "hold", name)
 		say(p, "You picked up the " .. name .. "!", "gold")
-	end)
+	end
+	for _, part in ipairs(m:GetChildren()) do
+		if part:IsA("BasePart") then MAP.clicker(part, it.take) end
+	end
 	return it
 end
 
@@ -190,6 +196,36 @@ local function openGate()
 	L.done = true
 	for _, part in ipairs(L.parts) do
 		if part.Name == "GateBlock" then part:Destroy() else part.CFrame = part.CFrame - V(0, DH - 0.3, 0) end
+	end
+end
+-- no clicking needed: walk over an item (with empty hands) to pick it up, walk up to a lock holding the right item
+-- to use it
+local function itemStep()
+	if not MAP then return end
+	for p in pairs(survivors) do
+		local t = torsoOf(p.Character)
+		if t then
+			if not holding[p] then
+				for m, it in pairs(MAP.items) do
+					local d = it.main.Position - t.Position
+					if tick() - it.born > 1.5 and V(d.X, 0, d.Z).magnitude < 4.5 and math.abs(d.Y) < 6 then it.take(p) break end
+				end
+			else
+				for _, L in ipairs(MAP.locks) do
+					if not L.done and L.need == holding[p] then
+						for _, part in ipairs(L.parts) do
+							if part.Parent and (part.Position - t.Position).magnitude < 8 then
+								holding[p] = nil
+								takeTool(p)
+								toClient(p, "hold", nil)
+								solve(L, p)
+								break
+							end
+						end
+					end
+				end
+			end
+		end
 	end
 end
 -- is the way through this path point shut?

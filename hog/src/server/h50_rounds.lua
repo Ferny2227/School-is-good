@@ -8,7 +8,9 @@ local modeName, hogName = "Bot Hog", "The Hog"
 local function status()
 	local n = 0
 	for _ in pairs(survivors) do n = n + 1 end
-	toAll("status", STATE.phase, math.max(0, math.floor(STATE.left)), n, MAP and MAP.name or "", modeName, hogName)
+	local r = 0
+	for p in pairs(ready) do if p.Parent then r = r + 1 end end
+	toAll("status", STATE.phase, math.max(0, math.floor(STATE.left)), n, MAP and MAP.name or "", modeName, hogName, r)
 end
 local function toLobby(p)
 	local t = torsoOf(p.Character)
@@ -75,7 +77,7 @@ local function startRound()
 	local plist = {}
 	for _, p in ipairs(Players:GetPlayers()) do
 		local h = p.Character and p.Character:FindFirstChild("Humanoid")
-		if h and h.Health > 0 and torsoOf(p.Character) then table.insert(plist, p) end
+		if ready[p] and h and h.Health > 0 and torsoOf(p.Character) then table.insert(plist, p) end
 	end
 	if #plist == 0 then return false end
 	local mapName = winner("map", MAP_NAMES)
@@ -136,6 +138,7 @@ local function endRound()
 			"\nEscaped: " .. (#names > 0 and table.concat(names, ", ") or "nobody") ..
 			"\n\nFind items, unlock the doors, open the EXIT.\nOnly ONE item at a time!"
 	end)
+	toAll("last", boardText.Text)
 	STATE.phase, STATE.left = "results", 6
 	status()
 	wait(6)
@@ -180,13 +183,14 @@ local function setup(p)
 			end
 		end)
 	end)
-	toClient(p, "howto")
+	refreshVotes()
+	if boardText.Text ~= "" then toClient(p, "last", boardText.Text) end
 end
 for _, p in ipairs(Players:GetPlayers()) do spawn(function() setup(p) end) end
 Players.PlayerAdded:connect(setup)
 Players.PlayerRemoving:connect(function(p)
 	saveStats(p)
-	survivors[p], holding[p], votes.map[p], votes.mode[p] = nil, nil, nil, nil
+	survivors[p], holding[p], votes.map[p], votes.mode[p], ready[p] = nil, nil, nil, nil, nil
 	if p == hogPlayer and STATE.phase == "hunt" and MAP then
 		hogPlayer = nil
 		modeName, hogName = "Bot Hog", "The Hog"
@@ -195,8 +199,11 @@ Players.PlayerRemoving:connect(function(p)
 		sayAll("The Hog player left - the BOT HOG takes over!", "red")
 	end
 end)
-remote.OnServerEvent:connect(function(p, what)
-	if what == "trap" then hogTrap(p) end
+remote.OnServerEvent:connect(function(p, what, a, b)
+	if what == "trap" then hogTrap(p)
+	elseif what == "play" then ready[p] = true status()
+	elseif what == "menu" then ready[p] = nil
+	elseif what == "vote" then vote(p, a, b) end
 end)
 pcall(function() game:BindToClose(function() for _, p in ipairs(Players:GetPlayers()) do saveStats(p) end wait(2) end) end)
 
@@ -204,7 +211,7 @@ pcall(function() game:BindToClose(function() for _, p in ipairs(Players:GetPlaye
 _G.HogDebug = { STATE = STATE, MAPS = MAPS, buildMap = buildMap, getMap = function() return MAP end, getHog = function() return HOG end,
 	survivors = function() return survivors end, holding = function() return holding end, spawnItem = spawnItem, solve = solve,
 	votes = votes, route = route, roomAt = roomAt, catchPlayer = catchPlayer, hogPlayer = function() return hogPlayer end,
-	traps = function() return traps end, placeTrap = placeTrap, LOBBY = LOBBY }
+	traps = function() return traps end, placeTrap = placeTrap, LOBBY = LOBBY, ready = ready }
 spawn(function()
 	-- fast systems: the bot, the Player Hog's tag, traps, the exit
 	local last = tick()
@@ -215,7 +222,7 @@ spawn(function()
 		local dt = math.min(0.3, now - last)
 		last = now
 		if STATE.phase == "hunt" and MAP and not STATE.hold then
-			for name, f in pairs({ bot = function() botStep(dt) end, hog = hogPlayerStep, traps = trapStep, exit = escapeStep }) do
+			for name, f in pairs({ bot = function() botStep(dt) end, hog = hogPlayerStep, traps = trapStep, exit = escapeStep, items = itemStep }) do
 				local ok, err = pcall(f)
 				if not ok and not reported[name] then
 					reported[name] = true
@@ -231,7 +238,10 @@ spawn(function()
 		while STATE.left > 0 do
 			status()
 			wait(1)
-			if #Players:GetPlayers() > 0 then STATE.left = STATE.left - 1 end
+			-- the countdown only runs while someone has pressed PLAY
+			local any = false
+			for p in pairs(ready) do if p.Parent then any = true else ready[p] = nil end end
+			if any then STATE.left = STATE.left - 1 else STATE.left = INTERMISSION end
 		end
 		local ok, started = pcall(startRound)
 		if not ok then spawn(function() error("startRound: " .. tostring(started)) end) end

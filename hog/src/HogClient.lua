@@ -119,10 +119,10 @@ local function showHowTo()
 	local title = label(f, UDim2.new(0, 0, 0, 10), UDim2.new(1, 0, 0, 44), "ESCAPE THE HOG - HOW TO PLAY", 36, C.pink)
 	title.ZIndex = 6
 	local body = label(f, UDim2.new(0, 28, 0, 66), UDim2.new(1, -56, 0, 330),
-		"1.  In the lobby, step on a pad to vote for the MAP and the HOG (a bot, or one of the players).\n\n" ..
+		"1.  Press PLAY, then vote for the MAP and the HOG (a bot, or one of the players).\n\n" ..
 		"2.  You're locked inside. After 15 seconds the Hog gets out of its pen and hunts you.\n\n" ..
-		"3.  Find ITEMS (keys, a hammer, a wrench, a fuse...). CLICK an item to pick it up - only ONE at a time.\n\n" ..
-		"4.  CLICK a locked door or a lock on the EXIT to use your item. The list on the right shows what's left.\n\n" ..
+		"3.  Find ITEMS (keys, a hammer, a wrench, a fuse...). WALK OVER one to pick it up - only ONE at a time.\n\n" ..
+		"4.  Walk up to a locked door or a lock on the EXIT holding the right item to use it. The list on the right shows what's left.\n\n" ..
 		"5.  Open every lock on the exit and run out! Escaping = +50 Coins. Caught = out for the round. Watch out for traps!", 24, C.white)
 	body.TextWrapped = true
 	pcall(function() body.TextXAlignment = Enum.TextXAlignment.Left body.TextYAlignment = Enum.TextYAlignment.Top end)
@@ -154,7 +154,7 @@ local function jumpscare()
 	part(110, 370, 300, 50, rgb(60, 0, 10))                 -- mouth
 	for i = 0, 5 do part(120 + i * 48, 370, 26, 22, C.white) end
 	local t = label(f, UDim2.new(0.5, -400, 1, -110), UDim2.new(0, 800, 0, 60), "YOU WERE CAUGHT!", 48, C.red)
-	t.ZIndex = 11
+	t.ZIndex = 10
 	spawn(function()
 		local t0 = tick()
 		while tick() - t0 < 1.8 do
@@ -168,18 +168,181 @@ local function jumpscare()
 	end)
 end
 
+------------------------------------------------------------------ THE MENU (the lobby is just this screen, like Piggy)
+-- behind it the camera looks down a dark hallway at the Hog. PLAY -> the vote screen -> the round.
+local screen = "menu"            -- "menu", "vote" or "game"
+local function font(o, name) pcall(function() o.Font = Enum.Font[name] end) end
+local menu = frame(gui, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 1, 0), rgb(0, 0, 0), 0.55)
+menu.ZIndex = 2
+local logo = label(menu, UDim2.new(0.5, -360, 0, 30), UDim2.new(0, 720, 0, 110), "ESCAPE THE HOG", 48, C.white)
+logo.TextScaled = true
+logo.TextStrokeTransparency = 0
+logo.TextStrokeColor3 = rgb(60, 0, 20)
+logo.ZIndex = 3
+font(logo, "Antique")
+-- little pig ears on the logo
+for _, x in ipairs({ -330, -300 }) do
+	local ear = frame(menu, UDim2.new(0.5, x, 0, 22), UDim2.new(0, 26, 0, 26), C.pink, 0)
+	ear.ZIndex = 3
+	pcall(function() ear.Rotation = 45 end)
+end
+local function menuButton(x, y, w, h, text, border, textColor, fs)
+	local b = Instance.new("TextButton")
+	b.Position, b.Size = UDim2.new(0.5, x, 0, y), UDim2.new(0, w, 0, h)
+	b.BackgroundColor3 = rgb(10, 12, 14)
+	b.BackgroundTransparency = 0.15
+	b.BorderColor3 = border
+	b.BorderSizePixel = 3
+	b.Text = text
+	b.TextColor3 = textColor or border
+	b.TextStrokeTransparency = 0.6
+	font(b, "Cartoon")
+	pcall(function() b.FontSize = Enum.FontSize["Size" .. (fs or 24)] end)
+	b.ZIndex = 3
+	b.Parent = menu
+	return b
+end
+local playB = menuButton(-215, 270, 430, 70, ">  PLAY", rgb(70, 200, 110), rgb(90, 240, 120), 48)
+playB.BackgroundColor3 = rgb(15, 45, 25)
+-- four buttons under PLAY, each with a little picture made of boxes
+local function icon(b, x, y, w, h, color, rot)
+	local f = frame(b, UDim2.new(0.5, x, 0, y), UDim2.new(0, w, 0, h), color, 0)
+	f.ZIndex = 4
+	if rot then pcall(function() f.Rotation = rot end) end
+	return f
+end
+local function smallButton(i, text, border)
+	local b = menuButton(-215 + (i - 1) * 110, 355, 100, 100, "", border)
+	local t = label(b, UDim2.new(0, 0, 1, -28), UDim2.new(1, 0, 0, 26), text, 18, border)
+	t.ZIndex = 4
+	font(t, "Cartoon")
+	return b
+end
+local itemsB = smallButton(1, "ITEMS", rgb(220, 50, 60))
+icon(itemsB, -26, 18, 22, 22, C.gold) icon(itemsB, -21, 23, 12, 12, rgb(10, 12, 14)) icon(itemsB, -6, 26, 32, 6, C.gold) icon(itemsB, 16, 30, 5, 10, C.gold)
+local mapsB = smallButton(2, "MAPS", rgb(50, 90, 230))
+icon(mapsB, -18, 34, 36, 26, rgb(210, 180, 120)) icon(mapsB, -16, 18, 32, 32, rgb(170, 40, 40), 45) icon(mapsB, -6, 44, 12, 16, rgb(90, 50, 20))
+local helpM = smallButton(3, "HOW TO", rgb(170, 60, 220))
+local q = label(helpM, UDim2.new(0, 0, 0, 6), UDim2.new(1, 0, 0, 60), "?", 48, rgb(200, 110, 255)) q.ZIndex = 4 font(q, "Cartoon")
+local statsB = smallButton(4, "STATS", rgb(230, 70, 150))
+icon(statsB, -20, 16, 40, 40, C.gold, 45) icon(statsB, -12, 24, 24, 24, rgb(255, 235, 120), 45)
+local credit = label(menu, UDim2.new(0.5, -300, 1, -40), UDim2.new(0, 600, 0, 30), "Don't get caught...", 24, rgb(200, 120, 140))
+credit.ZIndex = 3
+font(credit, "Antique")
+-- info panels
+local function infoPanel(title, text, h)
+	local old = gui:FindFirstChild("Info")
+	if old then old:Destroy() end
+	local f = frame(gui, UDim2.new(0.5, -380, 0.5, -(h or 420) / 2), UDim2.new(0, 760, 0, h or 420), C.dark, 0.06)
+	f.Name = "Info"
+	f.ZIndex = 6
+	f.BorderSizePixel = 3
+	f.BorderColor3 = C.pink
+	local t = label(f, UDim2.new(0, 0, 0, 10), UDim2.new(1, 0, 0, 44), title, 36, C.pink) t.ZIndex = 7 font(t, "Cartoon")
+	local body = label(f, UDim2.new(0, 28, 0, 64), UDim2.new(1, -56, 1, -130), text, 24, C.white)
+	body.TextWrapped = true
+	body.ZIndex = 7
+	pcall(function() body.TextXAlignment = Enum.TextXAlignment.Left body.TextYAlignment = Enum.TextYAlignment.Top end)
+	local close = button(f, UDim2.new(0.5, -90, 1, -58), UDim2.new(0, 180, 0, 44), "CLOSE", C.red)
+	close.ZIndex = 7
+	close.MouseButton1Click:connect(function() f:Destroy() end)
+	return f
+end
+itemsB.MouseButton1Click:connect(function()
+	infoPanel("ITEMS", "Walk over an item to pick it up (or click it). You can only hold ONE - click another to swap.\n" ..
+		"Walk up to a lock holding the right item and it's used.\n\n" ..
+		"RED KEY - opens the Red Door          BLUE KEY - opens the Blue Door\n" ..
+		"HAMMER - smashes the Boards on the exit\n" ..
+		"GOLD KEY - opens the Padlock on the exit\n" ..
+		"WRENCH - undoes the Bolt (Hog Manor)     FUSE - goes in the Fuse Box (School)", 440)
+end)
+mapsB.MouseButton1Click:connect(function()
+	infoPanel("MAPS", "HOG MANOR - a creepy old house: bedroom, bathroom, kitchen, pantry, garage, living room, dining room " ..
+		"and a dark cellar. The Hog sleeps in its pen behind the pantry.\n\n" ..
+		"SCHOOL - classrooms, the science lab, the library, the cafeteria, the gym and the principal's office. " ..
+		"The Hog hides in the janitor's closet.\n\nVote for the map after you press PLAY!", 420)
+end)
+statsB.MouseButton1Click:connect(function()
+	local ls = player:FindFirstChild("leaderstats")
+	local c = ls and ls:FindFirstChild("Coins")
+	local e = ls and ls:FindFirstChild("Escapes")
+	infoPanel("YOUR STATS", "COINS: " .. (c and c.Value or 0) .. "\n\nESCAPES: " .. (e and e.Value or 0) ..
+		"\n\nEscape = +50 Coins.  Every lock you open = +5.\nAs the Hog: +10 for each catch, +40 if nobody escapes.", 380)
+end)
+
+-- the vote screen (after PLAY)
+local voteF = frame(gui, UDim2.new(0.5, -330, 0.5, -170), UDim2.new(0, 660, 0, 380), rgb(10, 8, 12), 0.2)
+voteF.BorderSizePixel = 3
+voteF.BorderColor3 = C.pink
+voteF.Visible = false
+local vt = label(voteF, UDim2.new(0, 0, 0, 8), UDim2.new(1, 0, 0, 36), "VOTE", 36, C.pink) font(vt, "Cartoon")
+local voteCards = { map = {}, mode = {} }
+local myVote = {}
+local VOTE_NAMES = { map = { "Hog Manor", "School" }, mode = { "Bot Hog", "Player Hog" } }
+for row, kind in ipairs({ "map", "mode" }) do
+	local y = 52 + (row - 1) * 140
+	local h = label(voteF, UDim2.new(0, 0, 0, y), UDim2.new(1, 0, 0, 28), kind == "map" and "THE MAP" or "THE HOG", 24, C.white)
+	font(h, "Cartoon")
+	for i, name in ipairs(VOTE_NAMES[kind]) do
+		local b = button(voteF, UDim2.new(0.5, -310 + (i - 1) * 320, 0, y + 32), UDim2.new(0, 300, 0, 96), name .. "\n0 votes",
+			kind == "map" and (i == 1 and rgb(150, 70, 30) or rgb(40, 80, 170)) or (i == 1 and rgb(40, 130, 60) or rgb(170, 50, 110)))
+		b.BorderColor3 = C.gold
+		pcall(function() b.FontSize = Enum.FontSize.Size28 end)
+		font(b, "Cartoon")
+		b.MouseButton1Click:connect(function()
+			myVote[kind] = name
+			for j, o in ipairs(voteCards[kind]) do o.BorderSizePixel = (j == i) and 4 or 0 end
+			remote:FireServer("vote", kind, name)
+		end)
+		voteCards[kind][i] = b
+	end
+end
+local lastText = label(voteF, UDim2.new(0, 10, 1, -44), UDim2.new(1, -20, 0, 36), "", 18, C.grey)
+lastText.TextWrapped = true
+local menuB = button(gui, UDim2.new(0, 10, 1, -70), UDim2.new(0, 120, 0, 50), "MENU", C.panel)
+menuB.Visible = false
+font(menuB, "Cartoon")
+local function setScreen(s)
+	screen = s
+	menu.Visible = s == "menu"
+	voteF.Visible = s == "vote"
+	menuB.Visible = s == "vote"
+	top.Visible = s ~= "menu"
+	helpB.Visible = s == "game"
+	mine.Visible = s ~= "menu"
+	if s ~= "game" then holdBox.Visible = false lockBox.Visible = false trapB.Visible = false end
+end
+playB.MouseButton1Click:connect(function()
+	remote:FireServer("play")
+	setScreen("vote")
+end)
+menuB.MouseButton1Click:connect(function()
+	remote:FireServer("menu")
+	setScreen("menu")
+end)
+helpM.MouseButton1Click:connect(showHowTo)
+setScreen("menu")
+
 ------------------------------------------------------------------ messages from the server
 local role = nil
 local hogPlayerName = nil      -- (Player Hog rounds: the red edges warn you about them too)
-remote.OnClientEvent:connect(function(what, a, b, c, d, e, f)
+remote.OnClientEvent:connect(function(what, a, b, c, d, e, f, g)
 	if what == "status" then
 		local phase, left, alive, mapName, mode, hogName = a, b, c, d, e, f
 		hogPlayerName = (mode == "Player Hog" and phase ~= "lobby") and hogName or nil
 		local mm, ss = math.floor(left / 60), left % 60
 		local clock = mm .. ":" .. (ss < 10 and "0" or "") .. ss
 		if phase == "lobby" then
-			topTitle.Text = "NEXT ROUND IN " .. left
-			topSub.Text = "Vote for the map and the Hog!"
+			if (g or 0) == 0 then
+				topTitle.Text = "WAITING FOR PLAYERS..."
+				topSub.Text = "Press PLAY to join the next round"
+			else
+				topTitle.Text = "NEXT ROUND IN " .. left
+				topSub.Text = g .. (g == 1 and " player" or " players") .. " ready - vote for the map and the Hog!"
+			end
+		elseif screen == "vote" and phase ~= "results" then
+			topTitle.Text = "ROUND IN PROGRESS"
+			topSub.Text = mapName .. "  |  SURVIVORS LEFT: " .. alive .. "  |  you're in the next one"
 		elseif phase == "release" then
 			topTitle.Text = "THE HOG GETS OUT IN " .. left
 			topSub.Text = mapName .. "  |  " .. mode .. "  |  SURVIVORS: " .. alive
@@ -196,13 +359,16 @@ remote.OnClientEvent:connect(function(what, a, b, c, d, e, f)
 		holdBox.Visible = role == "survivor"
 		if role == "survivor" then holdText.Text = "HOLDING: nothing" end
 		if not role then holdBox.Visible = false end
+		if role then setScreen("game") elseif screen == "game" then setScreen("vote") end
+		trapB.Visible = role == "hog"
+		holdBox.Visible = role == "survivor"
 	elseif what == "hold" then
 		holdText.Text = "HOLDING: " .. (a or "nothing")
 	elseif what == "locks" then
 		for _, l in ipairs(lockLines) do l:Destroy() end
 		lockLines = {}
 		local list = a or {}
-		lockBox.Visible = #list > 0
+		lockBox.Visible = #list > 0 and screen == "game"
 		local y = 34
 		local function line(text, color)
 			local t = label(lockBox, UDim2.new(0, 10, 0, y), UDim2.new(1, -20, 0, 26), text, 18, color)
@@ -222,6 +388,16 @@ remote.OnClientEvent:connect(function(what, a, b, c, d, e, f)
 		jumpscare()
 	elseif what == "howto" then
 		showHowTo()
+	elseif what == "votes" then
+		for _, kind in ipairs({ "map", "mode" }) do
+			local counts = kind == "map" and a or b
+			for i, card in ipairs(voteCards[kind]) do
+				local n = counts and counts[i] or 0
+				card.Text = VOTE_NAMES[kind][i] .. "\n" .. n .. (n == 1 and " vote" or " votes")
+			end
+		end
+	elseif what == "last" then
+		lastText.Text = (a or ""):gsub("\n+", "  ")
 	end
 end)
 gui.Parent = pg
@@ -264,6 +440,23 @@ RunService.RenderStepped:connect(function()
 	local dt = math.min(0.1, now - lastT)
 	lastT = now
 	if tick() > bigUntil then big.Text, sub.Text = "", "" end
+	local cam = workspace.CurrentCamera
+	if cam then
+		if screen ~= "game" then
+			local w = workspace:FindFirstChild("Hog World")
+			local sc = w and w:FindFirstChild("MenuScene")
+			local cp, lp = sc and sc:FindFirstChild("MenuCam"), sc and sc:FindFirstChild("MenuLook")
+			if cp and lp then
+				if cam.CameraType ~= Enum.CameraType.Scriptable then cam.CameraType = Enum.CameraType.Scriptable end
+				local sway = Vector3.new(math.sin(now * 0.4) * 0.6, math.sin(now * 0.7) * 0.25, 0)
+				cam.CFrame = CFrame.new(cp.Position + sway, lp.Position)
+			end
+		elseif cam.CameraType == Enum.CameraType.Scriptable then
+			cam.CameraType = Enum.CameraType.Custom
+			local h = player.Character and player.Character:FindFirstChild("Humanoid")
+			if h then cam.CameraSubject = h end
+		end
+	end
 	local closest = 1e9
 	local me = player.Character and (player.Character:FindFirstChild("Torso") or player.Character:FindFirstChild("HumanoidRootPart"))
 	for m, S in pairs(hogs) do

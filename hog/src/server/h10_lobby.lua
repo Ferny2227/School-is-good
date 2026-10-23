@@ -13,73 +13,76 @@ local WORLD = model(workspace, "Hog World")
 local STATE = { phase = "lobby", left = 0 }
 
 ------------------------------------------------------------------ the hog (the shape is in src/shared/HogRig.lua)
-local function buildHog(parent, at, name)
+local function buildHog(parent, at, name, swing, smash)
 	local m = model(parent, name or "Hog")
 	local root = P(m, "Root", V(1, 1, 1), at, "Pink", nil, { tr = 1, nc = true })
-	local pose = HogPose(at, 0, 0)
+	local pose = HogPose(at, swing or 0, smash or 0)
 	for _, d in ipairs(HOG_PARTS) do
 		P(m, d[1], d[2], pose[d[1]], d[4], d[5], { shape = d[6], nc = true })
 	end
 	return m, root
 end
 
------------------------------------------------------------------- the lobby: a cabin in the woods
+------------------------------------------------------------------ the lobby is a menu on the screen (like Piggy)
+-- Behind the menu, every player's camera looks down a dark, dirty hallway where the Hog stands with its bat raised
+-- (and another one lurks at the far end). Players' characters wait in a closed room nobody sees.
+local SCENE = V(-320, 0, -220)
+local scene = model(WORLD, "MenuScene")
+local function sb(name, sx, sy, sz, x, y0, z, color, mat, opt)
+	return blk(scene, name, sx, sy, sz, SCENE.X + x, y0, SCENE.Z + z, color, mat, opt)
+end
+local HL, HWD, HH = 110, 18, 12
+sb("Floor", HWD, 1, HL, 0, -1, -HL / 2 + 8, "Brown", "WoodPlanks")
+sb("Ceiling", HWD, 1, HL, 0, HH, -HL / 2 + 8, "Dark stone grey", "SmoothPlastic")
+for _, side in ipairs({ -1, 1 }) do
+	sb("Wall", 1, HH, HL, side * HWD / 2, 0, -HL / 2 + 8, "Olive", "SmoothPlastic")
+	sb("Skirting", 0.6, 1.4, HL, side * (HWD / 2 - 0.6), 0, -HL / 2 + 8, "Brown", "Wood")
+	for z = -12, -HL + 14, -22 do
+		sb("Door", 0.4, 8, 5, side * (HWD / 2 - 0.6), 0, z + (side > 0 and 8 or 0), "Reddish brown", "Wood")
+		sb("Frame", 0.6, 3, 4, side * (HWD / 2 - 0.6), 5, z - 9 + (side > 0 and 4 or 0), "Brick yellow", "SmoothPlastic", { tr = 0.2 })
+	end
+end
+sb("BackWall", HWD, HH, 1, 0, 0, -HL + 8, "Black", "SmoothPlastic")
+for z = -6, -HL + 14, -20 do
+	local lamp = sb("Lamp", 2, 0.4, 2, 0, HH - 0.4, z, "Olive", "Neon")
+	light(lamp, Color3.new(0.75, 0.8, 0.45), 26, 0.7)
+end
+local hog1 = buildHog(scene, CFrame.new(SCENE + V(-3, HOG_UP, -16)) * CFrame.Angles(0, math.rad(160), 0), "MenuHog", 0, 0.55)
+light(hog1:FindFirstChild("PupilL"), Color3.new(1, 0.1, 0.1), 12, 2)
+buildHog(scene, CFrame.new(SCENE + V(3, HOG_UP, -62)) * CFrame.Angles(0, math.rad(200), 0), "MenuHog2", 0.3, 0)
+local camPart = sb("MenuCam", 1, 1, 1, 1.5, 5.5, 2, "White", nil, { tr = 1, nc = true })
+local lookPart = sb("MenuLook", 1, 1, 1, -1, 5, -30, "White", nil, { tr = 1, nc = true })
+
+-- the waiting room (closed, out of sight)
 local LOBBY = V(-320, 0, 0)
-local LW, LD, LH = 76, 56, 16
 local lobby = model(WORLD, "Lobby")
-local function lb(name, sx, sy, sz, x, y0, z, color, mat, opt, ry)
-	return blk(lobby, name, sx, sy, sz, LOBBY.X + x, y0, LOBBY.Z + z, color, mat, opt, ry)
+local function lb(name, sx, sy, sz, x, y0, z, color, mat, opt)
+	return blk(lobby, name, sx, sy, sz, LOBBY.X + x, y0, LOBBY.Z + z, color, mat, opt)
 end
-lb("Ground", 300, 2, 300, 0, -2, 0, "Earth green", "Grass")
-lb("Floor", LW, 1, LD, 0, -1, 0, "Brown", "WoodPlanks")
-lb("Rug", 30, 0.1, 20, 0, 0, 2, "Crimson", "Fabric")
+lb("Floor", 40, 1, 40, 0, -1, 0, "Brown", "WoodPlanks")
+lb("Ceiling", 40, 1, 40, 0, 12, 0, "Dark stone grey", "SmoothPlastic")
 for _, s in ipairs({ -1, 1 }) do
-	lb("WallSide", 1, LH, LD, s * LW / 2, 0, 0, "Reddish brown", "Wood")
-	lb("WallBack", LW / 2 - 7, LH, 1, s * (LW / 4 + 3.5), 0, LD / 2, "Reddish brown", "Wood")
-	lb("WallFront", LW / 2 - 7, LH, 1, s * (LW / 4 + 3.5), 0, -LD / 2, "Reddish brown", "Wood")
-	-- windows: dark glass showing the night outside
-	for _, z in ipairs({ -14, 14 }) do
-		lb("Window", 0.4, 5, 8, s * (LW / 2 - 0.3), 5, z, "Black", "Glass", { tr = 0.35 })
-	end
+	lb("Wall", 1, 12, 40, s * 20, 0, 0, "Reddish brown", "Wood")
+	lb("Wall", 40, 12, 1, 0, 0, s * 20, "Reddish brown", "Wood")
 end
-lb("WallBackTop", 14, LH - 10, 1, 0, 10, LD / 2, "Reddish brown", "Wood")
-lb("WallFrontTop", 14, LH - 10, 1, 0, 10, -LD / 2, "Reddish brown", "Wood")
-lb("Ceiling", LW, 1, LD, 0, LH, 0, "Dark orange", "Wood")
-for _, x in ipairs({ -24, 0, 24 }) do lb("Beam", 1.5, 1.5, LD, x, LH - 1.5, 0, "Reddish brown", "Wood") end
--- the board on the back wall: how to play and how the last round went
-local board = lb("Board", 26, 10, 0.6, 0, 3, LD / 2 - 1, "Black", "SmoothPlastic")
-local boardText = sign(board, "ESCAPE THE HOG", "Front", Color3.new(1, 0.85, 0.3))
-local title = lb("Title", 30, 4, 0.6, 0, 11, -LD / 2 + 1.2, "Really black", "SmoothPlastic")
-sign(title, "ESCAPE THE HOG", "Back", Color3.new(1, 0.45, 0.6))
--- warm lamps
-for _, x in ipairs({ -24, 0, 24 }) do
-	for _, z in ipairs({ -14, 14 }) do
-		local lamp = lb("Lamp", 2, 1, 2, x, LH - 2.5, z, "Bright yellow", "Neon")
-		light(lamp, Color3.new(1, 0.8, 0.5), 28, 1.2)
-	end
-end
--- a fireplace and a pig statue
-lb("Fireplace", 10, 8, 3, -LW / 2 + 8, 0, LD / 2 - 2.5, "Dark stone grey", "Brick")
-local fire = lb("Fire", 5, 2, 1, -LW / 2 + 8, 0.5, LD / 2 - 3.6, "Bright orange", "Neon")
-light(fire, Color3.new(1, 0.5, 0.15), 22, 2)
-buildHog(lobby, CFrame.new(LOBBY + V(LW / 2 - 8, HOG_UP + 0.5, LD / 2 - 6)) * CFrame.Angles(0, math.rad(200), 0), "HogStatue")
-lb("StatueBase", 6, 0.5, 6, LW / 2 - 8, 0, LD / 2 - 6, "Dark stone grey", "Marble")
+light(lb("Lamp", 3, 0.5, 3, 0, 11.5, 0, "Bright yellow", "Neon"), Color3.new(1, 0.85, 0.6), 40, 1)
 local spawnPad = Instance.new("SpawnLocation")
 spawnPad.Name = "LobbySpawn"
 spawnPad.Anchored = true
 spawnPad.Size = V(8, 1, 8)
-spawnPad.CFrame = CFrame.new(LOBBY + V(0, -0.4, -6))
+spawnPad.CFrame = CFrame.new(LOBBY + V(0, -0.4, 0))
 spawnPad.Transparency = 1
 spawnPad.CanCollide = false
 pcall(function() spawnPad.Neutral = true end)
 spawnPad.Parent = lobby
-local function lobbySpot() return LOBBY + V(math.random(-16, 16), 3.5, math.random(-14, 6)) end
+local function lobbySpot() return LOBBY + V(math.random(-12, 12), 3.5, math.random(-12, 12)) end
+local boardText = { Text = "" }       -- (the last round's result; shown on the menu)
 
------------------------------------------------------------------- voting: the map and the monster
+------------------------------------------------------------------ voting (on the menu screen): the map and the Hog
 local MAP_NAMES = { "Hog Manor", "School" }
 local MODE_NAMES = { "Bot Hog", "Player Hog" }
 local votes = { map = {}, mode = {} }
-local voteLabels = { map = {}, mode = {} }
+local ready = {}            -- players who pressed PLAY (they're in the next round)
 local function countVotes(kind)
 	local n = {}
 	for p, name in pairs(votes[kind]) do
@@ -88,36 +91,26 @@ local function countVotes(kind)
 	return n
 end
 local function refreshVotes()
+	local out = {}
 	for _, kind in ipairs({ "map", "mode" }) do
 		local n = countVotes(kind)
 		local names = kind == "map" and MAP_NAMES or MODE_NAMES
-		for i, name in ipairs(names) do
-			local c = n[name] or 0
-			voteLabels[kind][i].Text = name .. "\n" .. c .. (c == 1 and " vote" or " votes")
+		out[kind] = {}
+		for i, name in ipairs(names) do out[kind][i] = n[name] or 0 end
+	end
+	toAll("votes", out.map, out.mode)
+end
+local function vote(p, kind, name)
+	local names = kind == "map" and MAP_NAMES or kind == "mode" and MODE_NAMES
+	if not names then return end
+	for _, n in ipairs(names) do
+		if n == name then
+			votes[kind][p] = name
+			refreshVotes()
+			return
 		end
 	end
 end
-local function votePads(kind, names, colors, x, heading)
-	local hs = lb("VoteHeading", 0.6, 3, 18, x + (x < 0 and 0.9 or -0.9), 7.5, 0, "Really black", "SmoothPlastic")
-	sign(hs, heading, x < 0 and "Right" or "Left", Color3.new(1, 0.85, 0.3))
-	for i, name in ipairs(names) do
-		local z = (i - 1.5) * 12
-		local padX = x + (x < 0 and 6 or -6)
-		local pad = lb("VotePad", 8, 0.4, 8, padX, 0, z, colors[i], "Neon")
-		local plate = lb("VoteSign", 0.6, 4.5, 9.4, x + (x < 0 and 1.1 or -1.1), 1.5, z, "Institutional white", "SmoothPlastic")
-		voteLabels[kind][i] = sign(plate, name .. "\n0 votes", x < 0 and "Right" or "Left", Color3.new(0.1, 0.1, 0.2))
-		pad.Touched:connect(function(hit)
-			local p = hit.Parent and Players:GetPlayerFromCharacter(hit.Parent)
-			if p and votes[kind][p] ~= name then
-				votes[kind][p] = name
-				refreshVotes()
-				say(p, "You voted for " .. name .. "!", "green")
-			end
-		end)
-	end
-end
-votePads("map", MAP_NAMES, { "Bright orange", "Bright blue" }, -LW / 2, "VOTE: MAP")
-votePads("mode", MODE_NAMES, { "Lime green", "Hot pink" }, LW / 2, "VOTE: THE HOG")
 local function winner(kind, names)
 	local n = countVotes(kind)
 	local best, top = {}, 0
