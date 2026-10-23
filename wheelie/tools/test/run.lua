@@ -183,17 +183,18 @@ frames(15)
 local xb = p1.Position.X
 say(string.format("highway: %d vehicles, one moved %.0f studs in 0.75 s (it's at y %.1f, on the road)", #tf:GetChildren(), math.abs(xb - xa), p1.Position.Y))
 -- stand a rider in the slow eastbound lane just ahead of a car
-remote.OnServerEvent:fireNow(p, "ride")
+remote.OnServerEvent:fireNow(p, "off")
 MOCK.run(0.3)
 local lane = v1.Lane.Value
 local lz = tonumber(lane:match("^(%S+)"))
 local dir = tonumber(lane:match("^%S+ (%S+)"))
 local carX = p1.Position.X
-root.CFrame = CFrame.new(carX + dir * 14, 5.5, lz) * CFrame.Angles(0, -math.pi / 2, 0)
+root.CFrame = CFrame.new(carX + dir * 45, 5.5, lz) * CFrame.Angles(0, -math.pi / 2, 0)
 remote.OnServerEvent:fireNow(p, "ride")
 MOCK.run(0.2)
 local hit = false
 frames(40, function() if not D.riding[p] then hit = true end end)
+
 say(string.format("standing in a lane with a car coming: knocked off %s", tostring(hit)))
 MOCK.run(6)
 say("leaderboard: " .. D.boardText.Text:gsub("\n", " / "))

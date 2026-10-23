@@ -12,11 +12,18 @@ An original wheelie game with e-motos and mini bikes, for 2016 Roblox. Open/uplo
 - **Cash**: when the front wheel comes back down you get paid: seconds x speed. Your best wheelie is on the
   leaderboard. Cash, best wheelie and your bikes are saved (DataStore); the board in the plaza shows the best
   wheelies of all time.
-- **The bikes look like real ones**: knobbly tyres, rims with spokes (e-motos have 3-spoke mag wheels), brake
-  discs, twin fork legs, a rear shock with a coloured spring, swingarm, chain and sprocket, foot pegs, handlebars
-  with grips, headlight, tail light, fenders and number plates. Mini bikes have a tube frame, fuel tank, a finned
-  engine, an air filter and an exhaust with a muffler; e-motos have a big battery with glowing light strips, side
-  covers with your race number, a motor and a long thin seat. The rider sits on the seat holding the bars.
+- **The bikes are built like real ones** (real proportions: a rider is 5 studs tall, so a metre is about 2.9 studs),
+  with round tubes, raked forks (thick dark upper legs, shiny lower legs), two fork clamps, handlebars with a bar
+  pad, grips, levers and mirrors, spoked wheels with tread, rims, hubs, brake discs and red calipers, a swingarm,
+  a rear shock with a coloured spring, chain and sprocket, foot pegs, a kickstand, fenders, a tail light and
+  number plates with your race number.
+  - **Mini Bike / Gold Mini**: a street mini (like a little 125) - fat 5-spoke mag wheels, headlight cowl, chunky
+    frame, fat tank, low engine, underslung exhaust, stubby tail.
+  - **Pit Bike**: a petrol dirt bike - bigger front wheel, cradle frame, radiator shrouds, tank, finned engine,
+    radiator, exhaust header and silencer, side number plates.
+  - **Volt Bee / Stinger / Thunder X**: electric dirt bikes - an alloy frame round a big battery, side covers with
+    your number and a glowing accent strip, the motor by the swingarm pivot, a long thin seat, front plate with a
+    round headlight.
 - **Bikes** (GARAGE button, or see them all on show in the garage in the plaza):
   - Mini bikes: **Mini Bike** (free), **Pit Bike** ($400), **Gold Mini** ($9000, very easy to balance).
   - E-motos (big battery with a glowing light strip, long fork, number plate): **Volt Bee** ($1200),
