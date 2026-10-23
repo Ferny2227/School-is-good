@@ -241,13 +241,13 @@ local function endWheelie()
 	if R and R.wt >= 0.8 then remote:FireServer("wheelie", R.wt, R.wdist / R.wt, R.wdist) end
 	if R then R.wt, R.wdist = 0, 0 end
 end
-local function crash()
+local function crash(why)
 	if not R then return end
 	local root = R.root
 	local back = Vector3.new(math.sin(R.yaw), 0, math.cos(R.yaw))
 	stopRide()
 	pcall(function() root.Velocity = back * 20 + Vector3.new(0, 25, 0) end)
-	remote:FireServer("crash")
+	remote:FireServer("crash", why)
 	popUntil = tick() + 2
 	wTimer.Text = "LOOPED OUT!"
 	wTimer.TextColor3 = C.red
@@ -340,6 +340,51 @@ local function step(dt)
 	if p then p.position = cf.p end
 end
 
+------------------------------------------------------------------ the highway traffic (moved on this computer, from the game clock)
+local HWX1, HWL, CAR_HOME = -940, 1880, CFrame.new(0, -500, 0)
+local cars = {}
+local function findCars()
+	local w = workspace:FindFirstChild("Wheelie City")
+	local tf = w and w:FindFirstChild("Traffic")
+	if not tf then return end
+	for _, m in ipairs(tf:GetChildren()) do
+		local lane = m:FindFirstChild("Lane")
+		if lane and not cars[m] then
+			local z0, dir, speed, off, len, wid = lane.Value:match("^(%S+) (%S+) (%S+) (%S+) (%S+) (%S+)")
+			local parts = {}
+			for _, q in ipairs(m:GetChildren()) do
+				if q:IsA("BasePart") then table.insert(parts, { q, CAR_HOME:inverse() * q.CFrame }) end
+			end
+			cars[m] = { z = tonumber(z0), dir = tonumber(dir), speed = tonumber(speed), off = tonumber(off), len = tonumber(len), wid = tonumber(wid), parts = parts }
+		end
+	end
+end
+spawn(function() for _ = 1, 30 do pcall(findCars) wait(1) end end)
+local function gameTime()
+	local ok, t = pcall(function() return workspace.DistributedGameTime end)
+	return (ok and t) or tick()
+end
+local function moveTraffic()
+	local t = gameTime()
+	for m, cdat in pairs(cars) do
+		local d = (t * cdat.speed + cdat.off) % HWL
+		local x = cdat.dir > 0 and (HWX1 + d) or (HWX1 + HWL - d)
+		local root = CFrame.new(x, 0.3, cdat.z) * CFrame.Angles(0, cdat.dir > 0 and -math.pi / 2 or math.pi / 2, 0)
+		cdat.x = x
+		for _, pp in ipairs(cdat.parts) do pp[1].CFrame = root * pp[2] end
+	end
+end
+-- a car hits you: off the bike you go
+local function hitByCar()
+	if not R then return false end
+	local p = R.pos
+	if R.y > 7 then return false end
+	for _, cdat in pairs(cars) do
+		if cdat.x and math.abs(p.Z - cdat.z) < cdat.wid / 2 + 1.5 and math.abs(p.X - cdat.x) < cdat.len / 2 + 1.5 then return true end
+	end
+	return false
+end
+
 ------------------------------------------------------------------ messages from the server
 remote.OnClientEvent:connect(function(what, a, b, c)
 	if what == "riding" then
@@ -372,9 +417,14 @@ RunService.RenderStepped:connect(function()
 		cashL.Text = "$" .. ls.Cash.Value
 		bestL.Text = string.format("BEST WHEELIE: %.1fs", ls.Best.Value)
 	end
+	pcall(moveTraffic)
 	if R then
 		local ok, err = pcall(step, dt)
 		if not ok then stopRide() end
+		if R and hitByCar() then
+			crash("car")
+			wTimer.Text = "HIT BY A CAR!"
+		end
 	end
 	if R then
 		speedL.Text = tostring(math.floor(math.abs(R.speed) * 0.6))

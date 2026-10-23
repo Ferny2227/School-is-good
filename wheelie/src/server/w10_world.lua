@@ -19,10 +19,14 @@ local EDGE = 400                 -- the city goes from -400 to 400 on both sides
 w("Ground", EDGE * 2 + 40, 2, EDGE * 2 + 40, 0, -2, 0, "Bright green", "Grass")
 -- a wall round the edge of the city (hedges outside, invisible wall up high)
 for _, s in ipairs({ -1, 1 }) do
-	w("Hedge", EDGE * 2, 8, 4, 0, 0, s * (EDGE + 2), "Dark green", "Grass")
 	w("Hedge", 4, 8, EDGE * 2, s * (EDGE + 2), 0, 0, "Dark green", "Grass")
-	w("EdgeWall", EDGE * 2, 60, 2, 0, 8, s * (EDGE + 3), "White", nil, { tr = 1 })
 	w("EdgeWall", 2, 60, EDGE * 2, s * (EDGE + 3), 8, 0, "White", nil, { tr = 1 })
+end
+w("Hedge", EDGE * 2, 8, 4, 0, 0, -(EDGE + 2), "Dark green", "Grass")
+w("EdgeWall", EDGE * 2, 60, 2, 0, 8, -(EDGE + 3), "White", nil, { tr = 1 })
+-- the north side opens onto the HIGHWAY (w15_highway.lua): hedge with gaps where the three streets go through
+for _, seg in ipairs({ { -950, -235 }, { -205, -15 }, { 15, 205 }, { 235, 950 } }) do
+	w("Hedge", seg[2] - seg[1], 8, 4, (seg[1] + seg[2]) / 2, 0, EDGE + 2, "Dark green", "Grass")
 end
 local ROADS = {}
 local function road(x1, z1, x2, z2)
@@ -190,10 +194,17 @@ for _, b in ipairs(blocks) do
 end
 
 ------------------------------------------------------------------ the garage (bike shop) in the plaza, with every bike on show
-local function buildBikeModel(parent, b, at, anchored)
-	local m = model(parent, b.name)
+-- build a bike (anchored for the show room, or welded under a rider when weldTo is given)
+local function buildBikeModel(parent, b, at, anchored, weldTo, name)
+	local m = model(parent, name or b.name)
 	for _, d in ipairs(BikeParts(b)) do
 		local part = P(m, d[1], d[2], at * d[3], d[4], d[5], { shape = d[6], anchored = anchored, nc = true })
+		if d[7] then
+			-- race numbers on the plates
+			local face = d[1] == "NumberPlate" and "Front" or (d[3].p.X > 0 and "Right" or "Left")
+			sign(part, d[7], face, BrickColor.new(d[4] == "Really black" and "White" or "Really black").Color)
+		end
+		if weldTo then weld(weldTo, part) end
 	end
 	return m
 end

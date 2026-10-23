@@ -27,7 +27,7 @@ remote.OnServerEvent:connect(function(p, what, a, b, c)
 	elseif what == "crash" then
 		if riding[p] then
 			getOff(p)
-			say(p, "LOOPED OUT! Press RIDE to get back on.", "red")
+			say(p, (a == "car" and "HIT BY A CAR!" or "LOOPED OUT!") .. " Press RIDE to get back on.", "red")
 		end
 	elseif what == "garage" then sendGarage(p) end
 end)

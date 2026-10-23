@@ -76,7 +76,7 @@ local function sitPose(c, on)
 				local leg = jn:find("Hip") ~= nil
 				local side = jn:find("Right") and 1 or -1
 				-- (the joints turn round their own axis: hips and shoulders point the limb forwards)
-				j.C0 = c0 * CFrame.Angles(0, 0, side * (leg and 1.35 or 1.45))
+				j.C0 = c0 * CFrame.Angles(0, 0, side * (leg and 1.05 or 1.25))
 			end
 		end
 	end
@@ -104,11 +104,7 @@ local function ride(p)
 	local base = CFrame.new(root.Position.X, root.Position.Y - 3, root.Position.Z) * CFrame.Angles(0, yaw, 0)
 	local rootCF = base * RiderOffset(b)
 	root.CFrame = rootCF
-	local m = model(c, "Bike")
-	for _, d in ipairs(BikeParts(b)) do
-		local part = P(m, d[1], d[2], base * d[3], d[4], d[5], { shape = d[6], anchored = false, nc = true })
-		weld(root, part)
-	end
+	local m = buildBikeModel(c, b, base, false, root, "Bike")
 	local tag = Instance.new("StringValue")
 	tag.Name = "BikeName"
 	tag.Value = b.name

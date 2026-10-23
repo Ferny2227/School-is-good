@@ -172,6 +172,28 @@ MOCK.run(0.5)
 say(string.format("garage: can't buy the Stinger without money %s; bought the Pit Bike %s (cash 600 -> %d), riding it now %s",
 	tostring(noMoney), tostring(D.DATA[p].owned["Pit Bike"] == true), p.leaderstats.Cash.Value,
 	tostring(c:FindFirstChild("Bike") and c.Bike.BikeName.Value == "Pit Bike")))
+-- the highway: traffic moves on this computer, and a car knocks you off
+local tf = workspace["Wheelie City"].Traffic
+local v1 = tf:GetChildren()[1]
+local p1 = v1:FindFirstChild("Body") or v1:FindFirstChild("Cab")
+frames(2)
+local xa = p1.Position.X
+frames(15)
+local xb = p1.Position.X
+say(string.format("highway: %d vehicles, one moved %.0f studs in 0.75 s (it's at y %.1f, on the road)", #tf:GetChildren(), math.abs(xb - xa), p1.Position.Y))
+-- stand a rider in the slow eastbound lane just ahead of a car
+remote.OnServerEvent:fireNow(p, "ride")
+MOCK.run(0.3)
+local lane = v1.Lane.Value
+local lz = tonumber(lane:match("^(%S+)"))
+local dir = tonumber(lane:match("^%S+ (%S+)"))
+local carX = p1.Position.X
+root.CFrame = CFrame.new(carX + dir * 14, 5.5, lz) * CFrame.Angles(0, -math.pi / 2, 0)
+remote.OnServerEvent:fireNow(p, "ride")
+MOCK.run(0.2)
+local hit = false
+frames(40, function() if not D.riding[p] then hit = true end end)
+say(string.format("standing in a lane with a car coming: knocked off %s", tostring(hit)))
 MOCK.run(6)
 say("leaderboard: " .. D.boardText.Text:gsub("\n", " / "))
 say("ERRORS: " .. #MOCK.errors)
